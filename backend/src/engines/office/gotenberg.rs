@@ -1,6 +1,5 @@
 use std::{
     fs,
-    path::Path,
     process::{Child, Command, Output, Stdio},
     thread,
     time::{Duration, Instant},
@@ -87,13 +86,7 @@ fn wait_with_timeout(child: &mut Child, timeout: Duration) -> Result<(), String>
 
     loop {
         match child.try_wait() {
-            Ok(Some(status)) => {
-                if status.success() {
-                    return Ok(());
-                }
-
-                return Ok(());
-            }
+            Ok(Some(_status)) => return Ok(()),
             Ok(None) => {
                 if start.elapsed() >= timeout {
                     let _ = child.kill();
@@ -116,6 +109,3 @@ fn wait_with_timeout(child: &mut Child, timeout: Duration) -> Result<(), String>
         }
     }
 }
-
-#[allow(dead_code)]
-fn _keep_path_type_used(_: &Path) {}
