@@ -1,43 +1,36 @@
-import { defineConfig } from "vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import viteReact from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import { nitro } from "nitro/vite";
-import { pwaPlugin } from "./scripts/pwa-plugin.mjs";
-import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import path from 'path'
 
-export default defineConfig(({ command, isPreview }) => ({
+export default defineConfig({
+  plugins: [
+    TanStackRouterVite(),
+    react({
+      babel: {
+        plugins: ['@babel/plugin-syntax-import-meta'],
+      },
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
-    host: "0.0.0.0",
     port: 8080,
-    strictPort: true,
-    // Proxy API routes to the Rust Axum backend
+    host: '0.0.0.0',
     proxy: {
-      "/rust-api": {
-        target: "http://127.0.0.1:3000",
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
       },
     },
   },
-  preview: {
-    host: "127.0.0.1",
-    port: 8081,
-    strictPort: true,
+  build: {
+    target: 'ES2020',
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
   },
-  resolve: { tsconfigPaths: true },
-  plugins: [
-    appEnvPlugin(),
-    pwaPlugin(),
-    tailwindcss(),
-    tanstackStart(),
-    ...(command === "build" || isPreview
-      ? [
-          nitro({
-            preset: "vercel",
-            serverDir: "./server",
-          }),
-        ]
-      : []),
-    viteReact(),
-  ],
-}));
+})
