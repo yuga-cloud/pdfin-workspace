@@ -1,21 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2020",
+    "useDefineForEnumMembers": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "isolatedModules": true,
     "skipLibCheck": true,
-    // `src/lib/db.ts` imports scripts/migration-plan.mjs; checkJs types the
-    // implementation itself instead of a hand-written declaration beside it.
-    "allowJs": true,
-    "checkJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
     "noEmit": true,
-    "types": ["vite/client", "node"],
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src", "server"]
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.app.json" }]
 }
