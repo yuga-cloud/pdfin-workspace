@@ -88,7 +88,7 @@ where
 
         AppError::internal(
             error_code::CONVERSION_FAILED,
-            format!("Gagal melakukan operasi: {operation}: {error}"),
+            "Gagal memproses file. Silakan coba lagi.",
         )
     })
 }
