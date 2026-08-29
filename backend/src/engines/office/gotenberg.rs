@@ -1,22 +1,15 @@
 use std::{
     fs,
-    path::PathBuf,
-    process::{Command, Stdio},
-    time::{SystemTime, UNIX_EPOCH},
+    path::Path,
+    process::{Child, Command, Output, Stdio},
+    thread,
+    time::{Duration, Instant},
 };
 
-fn unique_temp_dir() -> Result<PathBuf, String> {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| format!("Gagal mendapatkan timestamp: {e}"))?
-        .as_nanos();
+use tempfile::tempdir;
 
-    let dir = std::env::temp_dir().join(format!("pdfin-office-{timestamp}"));
-
-    fs::create_dir_all(&dir).map_err(|e| format!("Gagal membuat temporary directory: {e}"))?;
-
-    Ok(dir)
-}
+const LIBREOFFICE_TIMEOUT: Duration = Duration::from_secs(120);
+const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 pub fn convert_to_pdf(
     document_bytes: &[u8],
@@ -27,43 +20,102 @@ pub fn convert_to_pdf(
         return Err(format!("{document_type} kosong"));
     }
 
-    let temp_dir = unique_temp_dir()?;
+    let temp_dir = tempdir().map_err(|error| {
+        format!("Gagal membuat temporary directory: {error}")
+    })?;
 
-    let input_path = temp_dir.join(format!("input.{input_extension}"));
+    let input_path = temp_dir
+        .path()
+        .join(format!("input.{input_extension}"));
 
-    fs::write(&input_path, document_bytes)
-        .map_err(|e| format!("Gagal menulis file {document_type}: {e}"))?;
+    fs::write(&input_path, document_bytes).map_err(|error| {
+        format!("Gagal menulis file {document_type}: {error}")
+    })?;
 
-    let output = Command::new("libreoffice")
+    let mut command = Command::new("libreoffice");
+    command
         .arg("--headless")
         .arg("--convert-to")
         .arg("pdf")
         .arg("--outdir")
-        .arg(&temp_dir)
+        .arg(temp_dir.path())
         .arg(&input_path)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|e| format!("Gagal menjalankan LibreOffice: {e}"))?;
+        .stderr(Stdio::piped());
+
+    let output = run_with_timeout(command, LIBREOFFICE_TIMEOUT)?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-
-        let _ = fs::remove_dir_all(&temp_dir);
-
         return Err(format!(
-            "LibreOffice gagal mengonversi {document_type}: {stderr}"
+            "LibreOffice gagal mengonversi {document_type}: {}",
+            stderr.trim()
         ));
     }
 
-    let output_path = temp_dir.join("input.pdf");
-
-    let pdf_bytes = fs::read(&output_path).map_err(|e| {
-        format!("LibreOffice tidak menghasilkan file PDF untuk {document_type}: {e}")
+    let output_path = temp_dir.path().join("input.pdf");
+    let pdf_bytes = fs::read(&output_path).map_err(|error| {
+        format!(
+            "LibreOffice tidak menghasilkan file PDF untuk {document_type}: {error}"
+        )
     })?;
 
-    let _ = fs::remove_dir_all(&temp_dir);
+    if pdf_bytes.is_empty() {
+        return Err(format!("LibreOffice menghasilkan PDF kosong untuk {document_type}"));
+    }
 
     Ok(pdf_bytes)
 }
+
+fn run_with_timeout(mut command: Command, timeout: Duration) -> Result<Output, String> {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("Gagal menjalankan LibreOffice: {error}"))?;
+
+    wait_with_timeout(&mut child, timeout)?;
+
+    child
+        .wait_with_output()
+        .map_err(|error| format!("Gagal mengambil output LibreOffice: {error}"))
+}
+
+fn wait_with_timeout(child: &mut Child, timeout: Duration) -> Result<(), String> {
+    let start = Instant::now();
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if status.success() {
+                    return Ok(());
+                }
+
+                return Ok(());
+            }
+            Ok(None) => {
+                if start.elapsed() >= timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+
+                    return Err(format!(
+                        "LibreOffice melebihi batas waktu {} detik dan dihentikan",
+                        timeout.as_secs()
+                    ));
+                }
+
+                thread::sleep(POLL_INTERVAL);
+            }
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+
+                return Err(format!("Gagal menunggu LibreOffice: {error}"));
+            }
+        }
+    }
+}
+
+#[allow(dead_code)]
+fn _keep_path_type_used(_: &Path) {}
