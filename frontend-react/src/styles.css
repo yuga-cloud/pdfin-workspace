@@ -1,0 +1,86 @@
+@import "@fontsource-variable/plus-jakarta-sans/wght.css";
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: #fafafa;
+  --color-fg: #202124;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f3f4;
+  --color-muted: #6b7280;
+  --color-primary: #df5148;
+  --color-primary-fg: #ffffff;
+  --color-border: #e2e5e8;
+  --color-danger: #b42318;
+  --color-ok: #2f6f45;
+  --color-ring: #df5148;
+  --color-stamp: #9b2c2c;
+
+  --color-background: #fafafa;
+  --color-foreground: #202124;
+  --color-card: #ffffff;
+  --color-card-foreground: #202124;
+  --color-muted-foreground: #6b7280;
+  --color-accent: #df5148;
+  --color-accent-foreground: #ffffff;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+}
+
+:root {
+  --shadow-card:
+    0 0 0 1px rgba(28, 25, 23, 0.06),
+    0 1px 2px -1px rgba(28, 25, 23, 0.06),
+    0 8px 24px -12px rgba(28, 25, 23, 0.12);
+  --shadow-card-hover:
+    0 0 0 1px rgba(28, 25, 23, 0.08),
+    0 1px 2px -1px rgba(28, 25, 23, 0.08),
+    0 12px 28px -12px rgba(28, 25, 23, 0.16);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-quick: 150ms;
+  --motion-fast: 250ms;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

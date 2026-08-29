@@ -1,0 +1,38 @@
+# Rust / Cargo
+/target/
+**/target/
+Cargo.lock
+
+# Node.js & React Frontend
+**/node_modules/
+**/.app/
+**/.vercel/
+**/dist/
+**/build/
+package-lock.json
+
+# Python & Linter Caches
+**/.venv/
+**/.ruff_cache/
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Local Data & Test Outputs
+*.xlsx
+*.pdf
+*.csv
+*.log
+hasil.xlsx
+
+# Secret Files & Environment Variables (Sangat Penting!)
+.env
+.env.*
+!.env.example
+
+# OS & IDE Settings
+.vscode/
+.idea/
+.zed/
+.DS_Store
+Thumbs.db

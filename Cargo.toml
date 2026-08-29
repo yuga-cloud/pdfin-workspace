@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "backend",
+    "shared",
+]
+resolver = "3"
+
+[workspace.dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+tempfile = "3"

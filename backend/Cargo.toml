@@ -1,0 +1,46 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.9", features = ["multipart"] }
+
+tokio = {
+    version = "1.53.1",
+    features = [
+        "macros",
+        "rt-multi-thread",
+        "net",
+        "signal",
+    ],
+}
+
+tower-http = {
+    version = "0.7.0",
+    features = [
+        "cors",
+        "fs",
+        "trace",
+        "timeout",
+        "limit",
+    ],
+}
+
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+
+shared = { path = "../shared" }
+
+lopdf = {
+    version = "0.44.0",
+    features = ["embed_image"],
+}
+rust_xlsxwriter = "0.99.0"
+tempfile = { workspace = true }
+
+pdfium-render = "0.9.3"
+pdfium-bundled = "0.1.1"
