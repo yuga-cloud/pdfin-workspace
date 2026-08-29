@@ -35,6 +35,8 @@ serde_json = "1.0.151"
 
 shared = { path = "../shared" }
 
+docx-rs = "0.4.22"
+
 lopdf = {
     version = "0.44.0",
     features = ["embed_image"],
