@@ -1,10 +1,13 @@
 use std::{
     fs,
     process::{Command, Stdio},
+    thread,
+    time::{Duration, Instant},
 };
 
 const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
 const MAX_OUTPUT_SIZE_BYTES: usize = 200 * 1024 * 1024;
+const CONVERSION_TIMEOUT: Duration = Duration::from_secs(120);
 
 fn unique_temp_dir() -> Result<tempfile::TempDir, String> {
     tempfile::Builder::new()
@@ -36,7 +39,7 @@ pub fn convert_to_pdf(
     fs::write(&input_path, document_bytes)
         .map_err(|error| format!("Gagal menulis file {document_type}: {error}"))?;
 
-    let output = Command::new("libreoffice")
+    let mut process = Command::new("libreoffice")
         .arg("--headless")
         .arg("--norestore")
         .arg("--convert-to")
@@ -47,20 +50,48 @@ pub fn convert_to_pdf(
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
-        .output()
+        .spawn()
         .map_err(|error| format!("Gagal menjalankan LibreOffice: {error}"))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
+    let deadline = Instant::now() + CONVERSION_TIMEOUT;
 
-        return Err(format!(
-            "LibreOffice gagal mengonversi {document_type}: {}",
-            stderr.trim()
-        ));
+    loop {
+        match process.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    let output = process
+                        .wait_with_output()
+                        .map_err(|error| format!("Gagal membaca output LibreOffice: {error}"))?;
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+
+                    return Err(format!(
+                        "LibreOffice gagal mengonversi {document_type}: {}",
+                        stderr.trim()
+                    ));
+                }
+
+                break;
+            }
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = process.kill();
+                let _ = process.wait();
+
+                return Err(format!(
+                    "LibreOffice melebihi batas waktu {} detik",
+                    CONVERSION_TIMEOUT.as_secs()
+                ));
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(50)),
+            Err(error) => {
+                let _ = process.kill();
+                let _ = process.wait();
+
+                return Err(format!("Gagal memantau LibreOffice: {error}"));
+            }
+        }
     }
 
     let output_path = temp_path.join("input.pdf");
-
     let pdf_bytes = fs::read(&output_path).map_err(|error| {
         format!("LibreOffice tidak menghasilkan file PDF untuk {document_type}: {error}")
     })?;
