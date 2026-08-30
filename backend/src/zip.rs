@@ -18,7 +18,9 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
     }
 
     if entries.len() > MAX_ZIP_ENTRIES {
-        return Err(format!("Jumlah file ZIP melebihi batas maksimum ({MAX_ZIP_ENTRIES})"));
+        return Err(format!(
+            "Jumlah file ZIP melebihi batas maksimum ({MAX_ZIP_ENTRIES})"
+        ));
     }
 
     let estimated_size = entries.iter().try_fold(0usize, |total, entry| {
@@ -47,8 +49,10 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
     for entry in entries {
         let name = entry.name.as_bytes();
         let crc = crc32(entry.data);
-        let size = u32::try_from(entry.data.len()).map_err(|_| "File ZIP terlalu besar".to_owned())?;
-        let name_len = u16::try_from(name.len()).map_err(|_| "Nama file ZIP terlalu panjang".to_owned())?;
+        let size =
+            u32::try_from(entry.data.len()).map_err(|_| "File ZIP terlalu besar".to_owned())?;
+        let name_len =
+            u16::try_from(name.len()).map_err(|_| "Nama file ZIP terlalu panjang".to_owned())?;
 
         write_u32(&mut output, ZIP_LOCAL_FILE_HEADER)?;
         write_u16(&mut output, ZIP_VERSION_NEEDED)?;
@@ -61,8 +65,12 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
         write_u32(&mut output, size)?;
         write_u16(&mut output, name_len)?;
         write_u16(&mut output, 0)?;
-        output.write_all(name).map_err(|error| error.to_string())?;
-        output.write_all(entry.data).map_err(|error| error.to_string())?;
+        output
+            .write_all(name)
+            .map_err(|error| error.to_string())?;
+        output
+            .write_all(entry.data)
+            .map_err(|error| error.to_string())?;
 
         write_u32(&mut central_directory, ZIP_CENTRAL_DIRECTORY_HEADER)?;
         write_u16(&mut central_directory, ZIP_VERSION_NEEDED)?;
@@ -92,14 +100,17 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
             .ok_or_else(|| "Ukuran ZIP melebihi batas ZIP32".to_owned())?;
     }
 
-    let central_offset = u32::try_from(output.len()).map_err(|_| "Ukuran ZIP melebihi batas ZIP32".to_owned())?;
-    let central_size = u32::try_from(central_directory.len()).map_err(|_| "Ukuran ZIP melebihi batas ZIP32".to_owned())?;
+    let central_offset =
+        u32::try_from(output.len()).map_err(|_| "Ukuran ZIP melebihi batas ZIP32".to_owned())?;
+    let central_size = u32::try_from(central_directory.len())
+        .map_err(|_| "Ukuran ZIP melebihi batas ZIP32".to_owned())?;
 
     output.extend_from_slice(&central_directory);
     write_u32(&mut output, ZIP_END_OF_CENTRAL_DIRECTORY)?;
     write_u16(&mut output, 0)?;
     write_u16(&mut output, 0)?;
-    let entry_count = u16::try_from(entries.len()).map_err(|_| "Terlalu banyak entry ZIP".to_owned())?;
+    let entry_count =
+        u16::try_from(entries.len()).map_err(|_| "Terlalu banyak entry ZIP".to_owned())?;
     write_u16(&mut output, entry_count)?;
     write_u16(&mut output, entry_count)?;
     write_u32(&mut output, central_size)?;
@@ -159,8 +170,12 @@ mod tests {
 
         let archive = create_stored_zip(&entries).expect("ZIP harus terbentuk");
         assert_eq!(&archive[0..4], &ZIP_LOCAL_FILE_HEADER.to_le_bytes());
-        assert!(archive.windows(4).any(|window| window == ZIP_CENTRAL_DIRECTORY_HEADER.to_le_bytes()));
-        assert!(archive.windows(4).any(|window| window == ZIP_END_OF_CENTRAL_DIRECTORY.to_le_bytes()));
+        assert!(archive
+            .windows(4)
+            .any(|window| window == ZIP_CENTRAL_DIRECTORY_HEADER.to_le_bytes()));
+        assert!(archive
+            .windows(4)
+            .any(|window| window == ZIP_END_OF_CENTRAL_DIRECTORY.to_le_bytes()));
     }
 
     #[test]
