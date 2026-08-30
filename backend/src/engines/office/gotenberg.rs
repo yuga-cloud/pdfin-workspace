@@ -39,10 +39,7 @@ pub fn convert_to_pdf(
     fs::write(&input_path, document_bytes)
         .map_err(|error| format!("Gagal menulis file {document_type}: {error}"))?;
 
-    let user_installation = format!(
-        "-env:UserInstallation=file://{}",
-        temp_path.display()
-    );
+    let user_installation = format!("-env:UserInstallation=file://{}", temp_path.display());
 
     let mut process = Command::new("libreoffice")
         .arg("--headless")
