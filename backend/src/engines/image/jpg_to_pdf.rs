@@ -6,6 +6,7 @@ use lopdf::{
 
 use crate::engines::common::validate_input;
 
+#[expect(dead_code, reason = "engine siap dipakai saat route JPG to PDF diaktifkan")]
 pub fn jpg_to_pdf(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
     jpgs_to_pdf(&[image_bytes])
 }
@@ -49,17 +50,7 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
         let content = Content {
             operations: vec![
                 Operation::new("q", vec![]),
-                Operation::new(
-                    "cm",
-                    vec![
-                        width.into(),
-                        0.into(),
-                        0.into(),
-                        height.into(),
-                        0.into(),
-                        0.into(),
-                    ],
-                ),
+                Operation::new("cm", vec![width.into(), 0.into(), 0.into(), height.into(), 0.into(), 0.into()]),
                 Operation::new("Do", vec![Object::Name(image_name.clone())]),
                 Operation::new("Q", vec![]),
             ],
@@ -67,20 +58,13 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
 
         let content_id = document.add_object(Stream::new(
             dictionary! {},
-            content
-                .encode()
-                .map_err(|error| format!("Gagal membuat content stream PDF: {error}"))?,
+            content.encode().map_err(|error| format!("Gagal membuat content stream PDF: {error}"))?,
         ));
 
         let page_id = document.add_object(dictionary! {
             "Type" => "Page",
             "Parent" => pages_id,
-            "MediaBox" => vec![
-                0.into(),
-                0.into(),
-                width.into(),
-                height.into(),
-            ],
+            "MediaBox" => vec![0.into(), 0.into(), width.into(), height.into()],
             "Contents" => content_id,
         });
 
@@ -91,15 +75,11 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
         page_ids.push(page_id);
     }
 
-    document.objects.insert(
-        pages_id,
-        dictionary! {
-            "Type" => "Pages",
-            "Count" => page_ids.len() as u32,
-            "Kids" => page_ids.iter().copied().map(Object::Reference).collect::<Vec<_>>(),
-        }
-        .into(),
-    );
+    document.objects.insert(pages_id, dictionary! {
+        "Type" => "Pages",
+        "Count" => page_ids.len() as u32,
+        "Kids" => page_ids.iter().copied().map(Object::Reference).collect::<Vec<_>>(),
+    }.into());
 
     let catalog_id = document.add_object(dictionary! {
         "Type" => "Catalog",
@@ -110,10 +90,7 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
     document.compress();
 
     let mut output = Vec::new();
-
-    document
-        .save_to(&mut output)
-        .map_err(|error| format!("Gagal menyimpan PDF: {error}"))?;
+    document.save_to(&mut output).map_err(|error| format!("Gagal menyimpan PDF: {error}"))?;
 
     Ok(output)
 }
