@@ -1,26 +1,24 @@
-use std::collections::BTreeSet;
-
 use lopdf::Document;
 
 use super::common::validate_pdf;
 
+const MAX_SPLIT_OUTPUTS: usize = 64;
+
 /// Memisahkan PDF berdasarkan rentang halaman.
 ///
-/// Setiap rentang menghasilkan satu PDF baru.
-///
-/// Contoh:
-/// `(1, 3), (5, 7)`
-///
-/// menghasilkan:
-/// - PDF 1: halaman 1-3
-/// - PDF 2: halaman 5-7
-///
-/// Nomor halaman menggunakan sistem 1-based.
+/// Validasi dilakukan sebelum operasi berat agar PDF besar tidak
+/// diproses jika request sudah tidak valid.
 pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>, String> {
     validate_pdf(pdf_bytes)?;
 
     if ranges.is_empty() {
         return Err("Tidak ada rentang halaman yang dipilih".to_owned());
+    }
+
+    if ranges.len() > MAX_SPLIT_OUTPUTS {
+        return Err(format!(
+            "Jumlah output split melebihi batas maksimum ({MAX_SPLIT_OUTPUTS})"
+        ));
     }
 
     let source =
@@ -51,16 +49,13 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
     let mut outputs = Vec::with_capacity(ranges.len());
 
     for &(start, end) in ranges {
-        let selected_pages = (start..=end).collect::<BTreeSet<_>>();
-
         let mut document = source.clone();
-
         let pages = document.get_pages();
 
         let pages_to_delete = pages
             .keys()
             .copied()
-            .filter(|page_number| !selected_pages.contains(page_number))
+            .filter(|page| *page < start || *page > end)
             .collect::<Vec<_>>();
 
         if !pages_to_delete.is_empty() {
@@ -71,7 +66,6 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
         document.renumber_objects();
 
         let mut output = Vec::new();
-
         document.save_to(&mut output).map_err(|error| {
             format!("Gagal menyimpan hasil split halaman {start}-{end}: {error}")
         })?;
