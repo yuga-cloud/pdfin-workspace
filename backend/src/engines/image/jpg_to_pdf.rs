@@ -8,7 +8,7 @@ use crate::engines::common::validate_input;
 
 const MAX_IMAGES_PER_DOCUMENT: usize = 64;
 const MAX_TOTAL_INPUT_SIZE: usize = 256 * 1024 * 1024;
-const MAX_IMAGE_DIMENSION: i64 = 20_000;
+const MAX_IMAGE_DIMENSION: u32 = 20_000;
 
 #[expect(
     dead_code,
@@ -44,6 +44,7 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
 
     for (index, image_bytes) in images.iter().enumerate() {
         validate_input(image_bytes, "JPG")?;
+        validate_jpeg_dimensions(image_bytes, index + 1)?;
 
         let image = xobject::image_from((*image_bytes).to_vec())
             .map_err(|error| format!("Gagal membaca gambar JPEG {}: {error}", index + 1))?;
@@ -66,7 +67,7 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
             return Err(format!("Dimensi JPEG {} tidak valid", index + 1));
         }
 
-        if width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION {
+        if width as u32 > MAX_IMAGE_DIMENSION || height as u32 > MAX_IMAGE_DIMENSION {
             return Err(format!(
                 "Resolusi JPEG {} terlalu besar: {}x{}",
                 index + 1,
@@ -149,4 +150,125 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
     }
 
     Ok(output)
+}
+
+fn validate_jpeg_dimensions(bytes: &[u8], image_number: usize) -> Result<(), String> {
+    if bytes.len() < 4 || bytes[..2] != [0xFF, 0xD8] {
+        return Err(format!("File JPEG {} tidak valid", image_number));
+    }
+
+    let mut offset = 2usize;
+
+    while offset < bytes.len() {
+        while offset < bytes.len() && bytes[offset] == 0xFF {
+            offset += 1;
+        }
+
+        if offset >= bytes.len() {
+            break;
+        }
+
+        let marker = bytes[offset];
+        offset += 1;
+
+        match marker {
+            0xD9 => break,
+            0xD8 | 0x01 | 0xD0..=0xD7 => continue,
+            _ => {}
+        }
+
+        if offset + 2 > bytes.len() {
+            return Err(format!("Struktur JPEG {} terpotong", image_number));
+        }
+
+        let segment_length = u16::from_be_bytes([bytes[offset], bytes[offset + 1]]) as usize;
+
+        if segment_length < 2 || offset + segment_length > bytes.len() {
+            return Err(format!("Struktur JPEG {} tidak valid", image_number));
+        }
+
+        if is_sof_marker(marker) {
+            if segment_length < 7 {
+                return Err(format!("Metadata dimensi JPEG {} tidak lengkap", image_number));
+            }
+
+            let data_start = offset + 2;
+            let height = u16::from_be_bytes([bytes[data_start + 1], bytes[data_start + 2]]) as u32;
+            let width = u16::from_be_bytes([bytes[data_start + 3], bytes[data_start + 4]]) as u32;
+
+            if width == 0 || height == 0 {
+                return Err(format!("Dimensi JPEG {} tidak valid", image_number));
+            }
+
+            if width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION {
+                return Err(format!(
+                    "Resolusi JPEG {} terlalu besar: {}x{}",
+                    image_number, width, height
+                ));
+            }
+
+            return Ok(());
+        }
+
+        offset += segment_length;
+    }
+
+    Err(format!("Dimensi JPEG {} tidak ditemukan", image_number))
+}
+
+fn is_sof_marker(marker: u8) -> bool {
+    matches!(
+        marker,
+        0xC0..=0xC3 | 0xC5..=0xC7 | 0xC9..=0xCB | 0xCD..=0xCF
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_non_jpeg_before_decode() {
+        let error = validate_jpeg_dimensions(b"PK\x03\x04", 1).unwrap_err();
+        assert!(error.contains("tidak valid"));
+    }
+
+    #[test]
+    fn rejects_truncated_jpeg_segment() {
+        let error = validate_jpeg_dimensions(&[0xFF, 0xD8, 0xFF, 0xC0, 0x00], 1).unwrap_err();
+        assert!(error.contains("terpotong"));
+    }
+
+    #[test]
+    fn accepts_jpeg_with_valid_sof_dimensions() {
+        let jpeg = [
+            0xFF, 0xD8,
+            0xFF, 0xC0,
+            0x00, 0x0B,
+            0x08,
+            0x07, 0xD0,
+            0x0F, 0xA0,
+            0x03,
+            0x00, 0x11, 0x00, 0x22, 0x00, 0x33,
+        ];
+
+        assert!(validate_jpeg_dimensions(&jpeg, 1).is_ok());
+    }
+
+    #[test]
+    fn rejects_jpeg_over_dimension_limit() {
+        let jpeg = [
+            0xFF, 0xD8,
+            0xFF, 0xC0,
+            0x00, 0x0B,
+            0x08,
+            0x4E, 0x20,
+            0x4E, 0x21,
+            0x03,
+            0x00, 0x11, 0x00, 0x22, 0x00, 0x33,
+        ];
+
+        let error = validate_jpeg_dimensions(&jpeg, 1).unwrap_err();
+        assert!(error.contains("terlalu besar"));
+    }
 }
