@@ -1,8 +1,8 @@
 ﻿/**
  * Brand-asset gate shared by browser-smoke.mjs (and unit-testable without a
- * browser): a canvas app is almost always a game / visually rich app, and
- * those must ship a custom share card. Games must also declare x:game in
- * src/lib/og/site.json and provide the X feed card.
+ * browser): a canvas app is a game / visually rich app and must ship a custom
+ * share card. Canvas apps also need the explicit x:game site contract and the
+ * narrow X feed card.
  */
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -60,6 +60,9 @@ export function computeBrandWarnings({ hasCanvas, workspaceRoot }) {
     warnings.push(
       'BRAND WARNING: canvas apps must declare `type": "x:game"` in src/lib/og/site.json.',
     );
+    if (customSiteCard && !fileBytes(workspaceRoot, "public/x-banner.jpg")) {
+      warnings.push("BRAND WARNING: x:game requires public/x-banner.jpg.");
+    }
   }
 
   if (gameType) {
