@@ -49,6 +49,14 @@ export function projectRoot(): string {
   return dirname(dirname(fileURLToPath(import.meta.url)));
 }
 
+function resolveRuntimeRoot(): string {
+  const cwd = process.cwd();
+  if (existsSync(join(cwd, "package.json")) || existsSync(join(cwd, APP_ENV_REL_PATH))) {
+    return cwd;
+  }
+  return projectRoot();
+}
+
 function resolveLocalBin(command: string, root: string): string {
   const binDir = join(root, "node_modules", ".bin");
   if (process.platform === "win32") {
@@ -80,7 +88,7 @@ function main(argv: string[]): void {
     process.exit(2);
   }
 
-  const root = projectRoot();
+  const root = resolveRuntimeRoot();
   const env = mergeAppEnv(readAppEnv(root), process.env);
   const resolved = resolveLocalBin(command, root);
   const isWin = process.platform === "win32";
