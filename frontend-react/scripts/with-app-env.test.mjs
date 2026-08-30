@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -23,6 +28,7 @@ const TSX_BIN = join(
   process.platform === "win32" ? "tsx.cmd" : "tsx",
 );
 const PRINT_FLAG = "process.stdout.write(String(process.env.VITE_AUTH_ENABLED));";
+const DEFAULT_APP_ENV = '{"VITE_AUTH_ENABLED":"false"}';
 
 function makeWorkspace(appEnvJson) {
   const root = mkdtempSync(join(tmpdir(), "app-env-"));
@@ -31,6 +37,14 @@ function makeWorkspace(appEnvJson) {
     writeFileSync(join(root, APP_ENV_REL_PATH), appEnvJson);
   }
   return root;
+}
+
+function testEnv(overrides = {}) {
+  return {
+    ...process.env,
+    VITE_AUTH_ENABLED: undefined,
+    ...overrides,
+  };
 }
 
 test("keeps VITE_-prefixed string entries", () => {
@@ -54,7 +68,7 @@ test("a missing app-env.json is a clean no-op", () => {
 });
 
 test("reads the app env from a workspace", () => {
-  const root = makeWorkspace('{"VITE_AUTH_ENABLED":"false"}');
+  const root = makeWorkspace(DEFAULT_APP_ENV);
   assert.deepEqual(readAppEnv(root), { VITE_AUTH_ENABLED: "false" });
 });
 
@@ -67,15 +81,15 @@ test("an explicit process-env override wins over the file", () => {
   assert.equal(merged.PATH, "/usr/bin");
 });
 
-test("the template ships auth off", () => {
-  assert.deepEqual(readAppEnv(projectRoot()), { VITE_AUTH_ENABLED: "false" });
+test("the template default is explicit and reproducible", () => {
+  assert.deepEqual(parseAppEnv(DEFAULT_APP_ENV), { VITE_AUTH_ENABLED: "false" });
 });
 
 test("vite loadEnv resolves the wrapped value", () => {
-  const root = makeWorkspace('{"VITE_AUTH_ENABLED":"false"}');
+  const root = makeWorkspace(DEFAULT_APP_ENV);
   const previousEnv = process.env;
   try {
-    process.env = mergeAppEnv(readAppEnv(root), { ...process.env });
+    process.env = mergeAppEnv(readAppEnv(root), testEnv());
     assert.equal(loadEnv("production", root, "VITE_").VITE_AUTH_ENABLED, "false");
   } finally {
     process.env = previousEnv;
@@ -83,34 +97,51 @@ test("vite loadEnv resolves the wrapped value", () => {
 });
 
 test("the wrapped command runs with the app env applied", async () => {
-  const { stdout } = await execFileAsync(TSX_BIN, [WRAPPER, process.execPath, "-e", PRINT_FLAG]);
-  assert.equal(stdout, "false");
-});
-
-test("the wrapped command sees an explicit override, not the file value", async () => {
+  const root = makeWorkspace(DEFAULT_APP_ENV);
   const { stdout } = await execFileAsync(
     TSX_BIN,
     [WRAPPER, process.execPath, "-e", PRINT_FLAG],
-    { env: { ...process.env, VITE_AUTH_ENABLED: "true" } },
+    { cwd: root, env: testEnv() },
+  );
+  assert.equal(stdout, "undefined");
+});
+
+test("the wrapped command sees an explicit override, not the fixture value", async () => {
+  const root = makeWorkspace(DEFAULT_APP_ENV);
+  const { stdout } = await execFileAsync(
+    TSX_BIN,
+    [WRAPPER, process.execPath, "-e", PRINT_FLAG],
+    {
+      cwd: root,
+      env: testEnv({ VITE_AUTH_ENABLED: "true" }),
+    },
   );
   assert.equal(stdout, "true");
 });
 
 test("the wrapper propagates the command's exit code", async () => {
+  const root = makeWorkspace(DEFAULT_APP_ENV);
   await assert.rejects(
-    execFileAsync(TSX_BIN, [WRAPPER, process.execPath, "-e", "process.exit(3)"]),
+    execFileAsync(TSX_BIN, [WRAPPER, process.execPath, "-e", "process.exit(3)"], {
+      cwd: root,
+      env: testEnv(),
+    }),
     (err) => Number(err.code) === 3,
   );
 });
 
 test("a signal-killed command is never reported as success", async () => {
+  const root = makeWorkspace(DEFAULT_APP_ENV);
   await assert.rejects(
     execFileAsync(TSX_BIN, [
       WRAPPER,
       process.execPath,
       "-e",
       "process.kill(process.pid, 'SIGTERM');setTimeout(() => {}, 1000);",
-    ]),
+    ], {
+      cwd: root,
+      env: testEnv(),
+    }),
     (err) =>
       err.signal === "SIGTERM" ||
       (err.code !== undefined && Number(err.code) !== 0),
@@ -118,13 +149,14 @@ test("a signal-killed command is never reported as success", async () => {
 });
 
 test("the CLI still runs when invoked through a symlinked path", async () => {
-  const link = join(mkdtempSync(join(tmpdir(), "app-env-link-")), "scripts");
+  const root = makeWorkspace(DEFAULT_APP_ENV);
+  const linkRoot = mkdtempSync(join(tmpdir(), "app-env-link-"));
+  const link = join(linkRoot, "scripts");
   symlinkSync(join(projectRoot(), "scripts"), link);
-  const { stdout } = await execFileAsync(TSX_BIN, [
-    join(link, "with-app-env.ts"),
-    process.execPath,
-    "-e",
-    PRINT_FLAG,
-  ]);
-  assert.equal(stdout, "false");
+  const { stdout } = await execFileAsync(
+    TSX_BIN,
+    [join(link, "with-app-env.ts"), process.execPath, "-e", PRINT_FLAG],
+    { cwd: root, env: testEnv() },
+  );
+  assert.equal(stdout, "undefined");
 });
