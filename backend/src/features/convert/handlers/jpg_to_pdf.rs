@@ -4,9 +4,7 @@ use axum::{
 };
 
 use crate::{
-    engines::image::jpg_to_pdf::jpgs_to_pdf as jpgs_to_pdf_engine,
-    error::AppError,
-    state::AppState,
+    engines::image::jpg_to_pdf::jpgs_to_pdf as jpgs_to_pdf_engine, error::AppError, state::AppState,
 };
 
 use super::super::{
