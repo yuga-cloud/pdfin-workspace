@@ -2,23 +2,16 @@ use std::{
     fs,
     path::PathBuf,
     process::{Command, Stdio},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
 const MAX_OUTPUT_SIZE_BYTES: usize = 200 * 1024 * 1024;
 
-fn unique_temp_dir() -> Result<PathBuf, String> {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| format!("Gagal mendapatkan timestamp: {e}"))?
-        .as_nanos();
-
-    let dir = std::env::temp_dir().join(format!("pdfin-office-{timestamp}"));
-
-    fs::create_dir_all(&dir).map_err(|e| format!("Gagal membuat temporary directory: {e}"))?;
-
-    Ok(dir)
+fn unique_temp_dir() -> Result<tempfile::TempDir, String> {
+    tempfile::Builder::new()
+        .prefix("pdfin-office-")
+        .tempdir()
+        .map_err(|error| format!("Gagal membuat temporary directory: {error}"))
 }
 
 pub fn convert_to_pdf(
@@ -38,11 +31,11 @@ pub fn convert_to_pdf(
     }
 
     let temp_dir = unique_temp_dir()?;
-
-    let input_path = temp_dir.join(format!("input.{input_extension}"));
+    let temp_path = temp_dir.path();
+    let input_path = temp_path.join(format!("input.{input_extension}"));
 
     fs::write(&input_path, document_bytes)
-        .map_err(|e| format!("Gagal menulis file {document_type}: {e}"))?;
+        .map_err(|error| format!("Gagal menulis file {document_type}: {error}"))?;
 
     let output = Command::new("libreoffice")
         .arg("--headless")
@@ -50,17 +43,16 @@ pub fn convert_to_pdf(
         .arg("--convert-to")
         .arg("pdf")
         .arg("--outdir")
-        .arg(&temp_dir)
+        .arg(temp_path)
         .arg(&input_path)
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
+        .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|e| format!("Gagal menjalankan LibreOffice: {e}"))?;
+        .map_err(|error| format!("Gagal menjalankan LibreOffice: {error}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let _ = fs::remove_dir_all(&temp_dir);
 
         return Err(format!(
             "LibreOffice gagal mengonversi {document_type}: {}",
@@ -68,13 +60,11 @@ pub fn convert_to_pdf(
         ));
     }
 
-    let output_path = temp_dir.join("input.pdf");
+    let output_path = temp_path.join("input.pdf");
 
-    let pdf_bytes = fs::read(&output_path).map_err(|e| {
-        format!("LibreOffice tidak menghasilkan file PDF untuk {document_type}: {e}")
+    let pdf_bytes = fs::read(&output_path).map_err(|error| {
+        format!("LibreOffice tidak menghasilkan file PDF untuk {document_type}: {error}")
     })?;
-
-    let _ = fs::remove_dir_all(&temp_dir);
 
     if pdf_bytes.is_empty() {
         return Err("LibreOffice menghasilkan PDF kosong".to_owned());
