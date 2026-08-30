@@ -16,10 +16,7 @@ use axum::{Router, extract::DefaultBodyLimit, routing::get, serve::ListenerExt};
 use tokio::{net::TcpListener, sync::Semaphore};
 use tower::limit::ConcurrencyLimitLayer;
 use tower_http::{
-    cors::CorsLayer,
-    limit::RequestBodyLimitLayer,
-    timeout::TimeoutLayer,
-    trace::TraceLayer,
+    cors::CorsLayer, limit::RequestBodyLimitLayer, timeout::TimeoutLayer, trace::TraceLayer,
 };
 use tracing::info;
 
@@ -38,14 +35,15 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let host = parse_ipv4_env("PDFIN_HOST", DEFAULT_HOST);
     let port = parse_env("PDFIN_PORT", DEFAULT_PORT);
-    let max_request_body_size_mb = parse_env(
-        "PDFIN_MAX_REQUEST_MB",
-        DEFAULT_MAX_REQUEST_BODY_SIZE_MB,
-    )
-    .max(1);
+    let max_request_body_size_mb =
+        parse_env("PDFIN_MAX_REQUEST_MB", DEFAULT_MAX_REQUEST_BODY_SIZE_MB).max(1);
     let max_request_body_size = max_request_body_size_mb.saturating_mul(1024 * 1024);
     let request_timeout = Duration::from_secs(
-        parse_env("PDFIN_REQUEST_TIMEOUT_SECONDS", DEFAULT_REQUEST_TIMEOUT_SECONDS).max(1),
+        parse_env(
+            "PDFIN_REQUEST_TIMEOUT_SECONDS",
+            DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        )
+        .max(1),
     );
 
     let cpu_count = std::thread::available_parallelism()
@@ -53,8 +51,11 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .unwrap_or(1);
     let configured_max_concurrency = parse_env("PDFIN_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY);
     let pdf_concurrency = cpu_count.min(configured_max_concurrency.max(1));
-    let max_in_flight_requests =
-        parse_env("PDFIN_MAX_IN_FLIGHT_REQUESTS", DEFAULT_MAX_IN_FLIGHT_REQUESTS).max(1);
+    let max_in_flight_requests = parse_env(
+        "PDFIN_MAX_IN_FLIGHT_REQUESTS",
+        DEFAULT_MAX_IN_FLIGHT_REQUESTS,
+    )
+    .max(1);
 
     let server_addr = SocketAddr::new(IpAddr::V4(host), port);
 
@@ -135,7 +136,10 @@ where
 {
     match std::env::var(name) {
         Ok(value) => value.parse::<T>().unwrap_or_else(|_| {
-            tracing::warn!(variable = name, "Nilai environment tidak valid; memakai default");
+            tracing::warn!(
+                variable = name,
+                "Nilai environment tidak valid; memakai default"
+            );
             default
         }),
         Err(_) => default,
@@ -159,10 +163,7 @@ fn build_cors_layer() -> Result<CorsLayer, Box<dyn Error + Send + Sync>> {
         .filter(|value| !value.is_empty())
     else {
         return Ok(CorsLayer::new()
-            .allow_methods([
-                axum::http::Method::GET,
-                axum::http::Method::POST,
-            ])
+            .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
             .allow_headers([axum::http::header::CONTENT_TYPE]));
     };
 
@@ -170,17 +171,14 @@ fn build_cors_layer() -> Result<CorsLayer, Box<dyn Error + Send + Sync>> {
 
     Ok(CorsLayer::new()
         .allow_origin(origin)
-        .allow_methods([
-            axum::http::Method::GET,
-            axum::http::Method::POST,
-        ])
+        .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
         .allow_headers([axum::http::header::CONTENT_TYPE]))
 }
 
 fn init_tracing() {
     let env_filter = std::env::var("RUST_LOG")
         .ok()
-        .and_then(|value| value.parse().ok());
+        .and_then(|value| value.parse::<tracing::Level>().ok());
 
     let builder = tracing_subscriber::fmt()
         .with_target(false)
