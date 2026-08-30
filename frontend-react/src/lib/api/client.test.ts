@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, postMultipart } from "./client";
+import { ApiError, postFileWithText, postMultipart } from "./client";
 
 describe("postMultipart", () => {
   const originalFetch = globalThis.fetch;
@@ -63,6 +63,38 @@ describe("postMultipart", () => {
       code: "request_timeout",
       status: 0,
     });
+  });
+
+  it("rejects an oversized multipart payload before fetch", async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const formData = new FormData();
+    formData.append("file", new Blob([new Uint8Array(51 * 1024 * 1024)]));
+
+    await expect(postMultipart("/rust-api/test", formData)).rejects.toMatchObject<ApiError>({
+      code: "request_too_large",
+      status: 0,
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized text field before fetch", async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const file = new Blob(["pdf"]);
+    const oversized = "x".repeat(16 * 1024 + 1);
+
+    await expect(
+      postFileWithText("/rust-api/test", file, "text", oversized),
+    ).rejects.toMatchObject<ApiError>({
+      code: "field_too_large",
+      status: 0,
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects empty successful responses", async () => {
