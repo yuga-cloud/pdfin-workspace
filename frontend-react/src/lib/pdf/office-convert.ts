@@ -34,7 +34,7 @@ type PdfTextItem = {
   str: string;
 };
 
-function isPdfTextItem(item: unknown): item is PdfTextItem {
+export function isPdfTextItem(item: unknown): item is PdfTextItem {
   if (!item || typeof item !== "object") {
     return false;
   }
