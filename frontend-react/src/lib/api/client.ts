@@ -117,15 +117,33 @@ export async function postMultipart(
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let response: Response;
 
   try {
-    response = await fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: "POST",
       body: formData,
       signal: controller.signal,
     });
+
+    if (!response.ok) {
+      throw await parseError(response);
+    }
+
+    const blob = await response.blob();
+
+    if (blob.size === 0) {
+      throw new ApiError("Server mengembalikan file hasil yang kosong.", {
+        status: response.status,
+        code: "empty_response",
+      });
+    }
+
+    return blob;
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new ApiError("Request terlalu lama dan dihentikan.", {
         status: 0,
@@ -140,21 +158,6 @@ export async function postMultipart(
   } finally {
     clearTimeout(timer);
   }
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  const blob = await response.blob();
-
-  if (blob.size === 0) {
-    throw new ApiError("Server mengembalikan file hasil yang kosong.", {
-      status: response.status,
-      code: "empty_response",
-    });
-  }
-
-  return blob;
 }
 
 export async function postFile(

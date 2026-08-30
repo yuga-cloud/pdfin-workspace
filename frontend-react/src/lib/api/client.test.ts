@@ -65,6 +65,27 @@ describe("postMultipart", () => {
     } satisfies Partial<ApiError>);
   });
 
+  it("keeps the timeout active while reading a slow response body", async () => {
+    let abortHandler: (() => void) | undefined;
+    const bodyPromise = new Promise<Response>((_resolve, reject) => {
+      abortHandler = () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      };
+    });
+
+    globalThis.fetch = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      init?.signal?.addEventListener("abort", () => abortHandler?.());
+      return bodyPromise;
+    });
+
+    await expect(
+      postMultipart("/rust-api/test", new FormData(), 10),
+    ).rejects.toMatchObject({
+      code: "request_timeout",
+      status: 0,
+    } satisfies Partial<ApiError>);
+  });
+
   it("rejects an oversized multipart payload before fetch", async () => {
     const fetchMock = vi.fn();
     globalThis.fetch = fetchMock;
