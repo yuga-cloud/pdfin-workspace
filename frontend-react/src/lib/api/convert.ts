@@ -1,17 +1,22 @@
 import {
   postFile,
+  postMultipart,
 } from "./client";
 
 /**
  * Konversi JPG ke PDF.
  */
 export function jpgToPdf(
-  file: File,
+  files: File | Blob | Array<File | Blob>,
 ): Promise<Blob> {
-  return postFile(
-    "/rust-api/jpg-to-pdf",
-    file,
-  );
+  const values = Array.isArray(files) ? files : [files];
+  const formData = new FormData();
+
+  for (const file of values) {
+    formData.append("file", file);
+  }
+
+  return postMultipart("/rust-api/jpg-to-pdf", formData);
 }
 
 /**
