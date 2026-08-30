@@ -24,17 +24,12 @@ impl PdfWord {
         }
     }
 
+    #[expect(dead_code, reason = "helper dipakai saat scoring layout tabel diaktifkan")]
     pub fn width(&self) -> f32 {
         (self.right - self.left).abs()
     }
 
     pub fn height(&self) -> f32 {
-        // .abs() dipakai sebagai jaring pengaman: kalau suatu saat ada
-        // caller yang lupa menormalkan koordinat top/bottom (lih. fix
-        // di extractor.rs soal koordinat native PDFium yang Y-nya
-        // mengarah ke atas), height tetap dapat nilai yang masuk akal
-        // alih-alih diam-diam clamp ke 0.0 dan merusak semua toleransi
-        // adaptif yang bergantung padanya.
         (self.bottom - self.top).abs()
     }
 }
@@ -52,6 +47,7 @@ impl PdfRow {
         (self.bottom - self.top).max(0.0)
     }
 
+    #[expect(dead_code, reason = "helper dipakai saat grouping row tabel selesai")]
     pub fn center_y(&self) -> f32 {
         (self.top + self.bottom) / 2.0
     }
