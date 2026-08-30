@@ -6,6 +6,8 @@ use std::{
 
 use crate::engines::common::validate_input;
 
+const MAX_RENDER_PAGES: usize = 100;
+
 pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     validate_input(pdf_bytes, "PDF")?;
 
@@ -25,34 +27,24 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
         .arg(&input_path)
         .arg(&output_prefix)
         .output()
-        .map_err(|error| {
-            format!(
-                "Gagal menjalankan pdftocairo. \
-                 Pastikan Poppler terpasang: {error}"
-            )
-        })?;
+        .map_err(|error| format!("Gagal menjalankan pdftocairo: {error}"))?;
 
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        return Err(format!(
-            "pdftocairo gagal dengan status {}: {}",
-            output
-                .status
-                .code()
-                .map_or_else(|| "unknown".to_owned(), |code| code.to_string()),
-            stderr.trim()
-        ));
+        return Err(format!("pdftocairo gagal: {}", String::from_utf8_lossy(&output.stderr).trim()));
     }
+
+    let mut page_files = collect_page_files(temp_dir.path())?;
+    page_files.sort_by_key(|path| page_number(path));
 
     let mut pages = Vec::new();
 
-    let mut page_files = collect_page_files(temp_dir.path())?;
-
-    page_files.sort_by_key(|path| page_number(path));
-
     for path in page_files {
-        let bytes = fs::read(&path).map_err(|error| format!("Gagal membaca hasil JPG: {error}"))?;
+        if pages.len() >= MAX_RENDER_PAGES {
+            return Err(format!("PDF melebihi batas {} halaman", MAX_RENDER_PAGES));
+        }
+
+        let bytes = fs::read(&path)
+            .map_err(|error| format!("Gagal membaca hasil JPG: {error}"))?;
 
         if !bytes.is_empty() {
             pages.push(bytes);
@@ -67,16 +59,14 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
 }
 
 fn collect_page_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
-    let entries =
-        fs::read_dir(dir).map_err(|error| format!("Gagal membaca temporary directory: {error}"))?;
-
     let mut files = Vec::new();
 
-    for entry in entries {
-        let entry =
-            entry.map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?;
-
-        let path = entry.path();
+    for entry in fs::read_dir(dir)
+        .map_err(|error| format!("Gagal membaca temporary directory: {error}"))?
+    {
+        let path = entry
+            .map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?
+            .path();
 
         if path.extension().and_then(|ext| ext.to_str()) == Some("jpg") {
             files.push(path);
@@ -89,9 +79,6 @@ fn collect_page_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
 fn page_number(path: &Path) -> u32 {
     path.file_stem()
         .and_then(|stem| stem.to_str())
-        .and_then(|stem| {
-            stem.rsplit_once('-')
-                .and_then(|(_, number)| number.parse::<u32>().ok())
-        })
+        .and_then(|stem| stem.rsplit_once('-').and_then(|(_, number)| number.parse().ok()))
         .unwrap_or(u32::MAX)
 }
