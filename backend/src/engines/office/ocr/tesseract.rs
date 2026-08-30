@@ -1,5 +1,9 @@
 use std::{path::Path, process::Command};
 
+const MAX_TSV_BYTES: usize = 16 * 1024 * 1024;
+const MAX_OCR_WORDS: usize = 50_000;
+const MAX_OCR_TEXT_LENGTH: usize = 10_000;
+
 #[derive(Debug, Clone)]
 pub struct OcrTextItem {
     pub x: f64,
@@ -42,6 +46,13 @@ pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
         ));
     }
 
+    if output.stdout.len() > MAX_TSV_BYTES {
+        return Err(format!(
+            "Output OCR terlalu besar (maksimum {} MiB)",
+            MAX_TSV_BYTES / 1024 / 1024
+        ));
+    }
+
     let tsv = String::from_utf8_lossy(&output.stdout);
 
     parse_tesseract_tsv(&tsv)
@@ -52,6 +63,13 @@ pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
 /* -------------------------------------------------------------------------- */
 
 fn parse_tesseract_tsv(tsv: &str) -> Result<Vec<OcrTextItem>, String> {
+    if tsv.len() > MAX_TSV_BYTES {
+        return Err(format!(
+            "Input TSV terlalu besar (maksimum {} MiB)",
+            MAX_TSV_BYTES / 1024 / 1024
+        ));
+    }
+
     let mut items = Vec::new();
 
     for (line_number, line) in tsv.lines().enumerate() {
@@ -83,24 +101,30 @@ fn parse_tesseract_tsv(tsv: &str) -> Result<Vec<OcrTextItem>, String> {
             continue;
         }
 
+        if items.len() >= MAX_OCR_WORDS {
+            return Err(format!(
+                "Jumlah word OCR melebihi batas maksimum ({MAX_OCR_WORDS})"
+            ));
+        }
+
         let left = match columns[6].parse::<f64>() {
-            Ok(value) => value,
-            Err(_) => continue,
+            Ok(value) if value.is_finite() => value,
+            _ => continue,
         };
 
         let top = match columns[7].parse::<f64>() {
-            Ok(value) => value,
-            Err(_) => continue,
+            Ok(value) if value.is_finite() => value,
+            _ => continue,
         };
 
         let width = match columns[8].parse::<f64>() {
-            Ok(value) => value,
-            Err(_) => continue,
+            Ok(value) if value.is_finite() && value >= 0.0 => value,
+            _ => continue,
         };
 
         let height = match columns[9].parse::<f64>() {
-            Ok(value) => value,
-            Err(_) => continue,
+            Ok(value) if value.is_finite() && value >= 0.0 => value,
+            _ => continue,
         };
 
         let confidence = columns[10].parse::<f64>().unwrap_or(-1.0);
@@ -111,7 +135,7 @@ fn parse_tesseract_tsv(tsv: &str) -> Result<Vec<OcrTextItem>, String> {
          *
          * -1 berarti Tesseract tidak memberikan confidence.
          */
-        if (0.0..20.0).contains(&confidence) {
+        if !confidence.is_finite() || (0.0..20.0).contains(&confidence) {
             continue;
         }
 
@@ -119,6 +143,12 @@ fn parse_tesseract_tsv(tsv: &str) -> Result<Vec<OcrTextItem>, String> {
 
         if text.is_empty() {
             continue;
+        }
+
+        if text.len() > MAX_OCR_TEXT_LENGTH {
+            return Err(format!(
+                "Text OCR pada word melebihi batas maksimum ({MAX_OCR_TEXT_LENGTH} byte)"
+            ));
         }
 
         items.push(OcrTextItem {
