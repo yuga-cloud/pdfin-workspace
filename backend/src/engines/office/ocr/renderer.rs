@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
@@ -24,7 +24,6 @@ pub fn render_pdf_pages(pdf_bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
     }
 
     let temp_dir = create_temp_dir()?;
-
     let pdf_path = temp_dir.join("input.pdf");
 
     if let Err(error) = fs::write(&pdf_path, pdf_bytes) {
@@ -50,21 +49,19 @@ pub fn render_pdf_pages(pdf_bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
             format!("Gagal menjalankan PDF renderer: {error}")
         })?;
 
-    let deadline = Instant::now() + RENDER_TIMEOUT;
+    let deadline = std::time::Instant::now() + RENDER_TIMEOUT;
 
     loop {
         match process.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
                     cleanup_temp_dir(&temp_dir);
-                    return Err(format!(
-                        "PDF renderer gagal dengan status {status}"
-                    ));
+                    return Err(format!("PDF renderer gagal dengan status {status}"));
                 }
 
                 break;
             }
-            Ok(None) if Instant::now() >= deadline => {
+            Ok(None) if std::time::Instant::now() >= deadline => {
                 let _ = process.kill();
                 let _ = process.wait();
                 cleanup_temp_dir(&temp_dir);
@@ -141,11 +138,12 @@ fn pdf_renderer_executable() -> &'static str {
 }
 
 fn create_temp_dir() -> Result<PathBuf, String> {
-    let timestamp = Instant::now();
-    let dir = std::env::temp_dir().join(format!(
-        "pdfin-ocr-{}",
-        timestamp.elapsed().as_nanos()
-    ));
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| format!("Gagal mendapatkan timestamp: {error}"))?
+        .as_nanos();
+
+    let dir = std::env::temp_dir().join(format!("pdfin-ocr-{timestamp}"));
 
     fs::create_dir_all(&dir)
         .map_err(|error| format!("Gagal membuat direktori OCR sementara: {error}"))?;
