@@ -6,6 +6,10 @@ const ROW_TOLERANCE: f32 = 5.0;
 
 const MIN_TABLE_ROWS: usize = 2;
 const MIN_TABLE_COLUMNS: usize = 2;
+const MAX_WORDS_PER_PAGE: usize = 50_000;
+const MAX_DETECTED_TABLES: usize = 100;
+const MAX_TABLE_COLUMNS: usize = 500;
+const MAX_TABLE_CELLS: usize = 1_000_000;
 
 const COLUMN_TOLERANCE_MIN: f32 = 8.0;
 const COLUMN_TOLERANCE_MAX: f32 = 24.0;
@@ -18,10 +22,20 @@ const COLUMN_SUPPORT_RATIO: f32 = 0.10;
 /* -------------------------------------------------------------------------- */
 
 pub fn detect_tables(pages: &[Vec<PdfWord>]) -> Vec<Table> {
-    let mut tables = Vec::new();
+    let mut tables = Vec::with_capacity(pages.len().min(MAX_DETECTED_TABLES));
 
     for (page_index, words) in pages.iter().enumerate() {
         if words.is_empty() {
+            continue;
+        }
+
+        if words.len() > MAX_WORDS_PER_PAGE {
+            tracing::warn!(
+                page = page_index + 1,
+                words = words.len(),
+                max_words = MAX_WORDS_PER_PAGE,
+                "Jumlah word melebihi batas table detection; halaman dilewati"
+            );
             continue;
         }
 
@@ -76,6 +90,14 @@ pub fn detect_tables(pages: &[Vec<PdfWord>]) -> Vec<Table> {
         );
 
         tables.push(table);
+
+        if tables.len() >= MAX_DETECTED_TABLES {
+            tracing::warn!(
+                max_tables = MAX_DETECTED_TABLES,
+                "Batas jumlah tabel tercapai; table detection dihentikan"
+            );
+            break;
+        }
     }
 
     tables
@@ -214,7 +236,9 @@ fn find_table_region(rows: &[PdfRow]) -> Vec<PdfRow> {
 
             current_score += density;
 
-            let start = current_start.unwrap();
+            let Some(start) = current_start else {
+                continue;
+            };
 
             if current_score > best_score {
                 best_score = current_score;
@@ -257,7 +281,7 @@ fn build_table(rows: &[PdfRow]) -> Table {
 
     let anchors = detect_columns(rows);
 
-    if anchors.len() < MIN_TABLE_COLUMNS {
+    if anchors.len() < MIN_TABLE_COLUMNS || anchors.len() > MAX_TABLE_COLUMNS {
         return Table { rows: Vec::new() };
     }
 
@@ -269,6 +293,21 @@ fn build_table(rows: &[PdfRow]) -> Table {
     let mut result = Vec::with_capacity(rows.len());
 
     for row in rows {
+        if result
+            .len()
+            .saturating_add(1)
+            .saturating_mul(anchors.len())
+            > MAX_TABLE_CELLS
+        {
+            tracing::warn!(
+                rows = result.len(),
+                columns = anchors.len(),
+                max_cells = MAX_TABLE_CELLS,
+                "Ukuran tabel melebihi batas cell"
+            );
+            return Table { rows: Vec::new() };
+        }
+
         let mut cells = vec![String::new(); anchors.len()];
 
         for word in &row.words {
@@ -333,10 +372,9 @@ fn detect_columns(rows: &[PdfRow]) -> Vec<f32> {
     for x in all_x {
         let mut found = false;
 
-        if let Some(last) = clustered.last_mut()
+        if let (Some(last), Some(count)) = (clustered.last_mut(), cluster_counts.last_mut())
             && (x - *last).abs() <= tolerance
         {
-            let count = cluster_counts.last_mut().unwrap();
             *last = ((*last * *count as f32) + x) / (*count as f32 + 1.0);
             *count += 1;
             found = true;
