@@ -7,6 +7,9 @@ const ROW_TOLERANCE_FACTOR: f32 = 0.45;
 const MIN_ROW_TOLERANCE: f32 = 2.0;
 const MAX_ROW_TOLERANCE: f32 = 8.0;
 
+const MAX_EXTRACTION_PAGES: usize = 5_000;
+const MAX_WORDS_PER_PAGE: usize = 50_000;
+
 pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> {
     let pdfium = pdfium_bundled::bind_pdfium_silent()
         .map_err(|error| format!("Gagal memuat PDFium: {error}"))?;
@@ -15,7 +18,15 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
         .load_pdf_from_byte_slice(pdf_bytes, None)
         .map_err(|error| format!("Gagal membuka PDF dengan PDFium: {error}"))?;
 
-    let mut pages = Vec::with_capacity(document.pages().len() as usize);
+    let document_page_count = document.pages().len() as usize;
+
+    if document_page_count > MAX_EXTRACTION_PAGES {
+        return Err(format!(
+            "Jumlah halaman PDF melebihi batas ekstraksi ({MAX_EXTRACTION_PAGES})"
+        ));
+    }
+
+    let mut pages = Vec::with_capacity(document_page_count);
 
     for (page_index, page) in document.pages().iter().enumerate() {
         let text = page.text().map_err(|error| {
@@ -197,6 +208,13 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
                 current_bottom = current_bottom.max(bottom);
             }
 
+            if words.len() >= MAX_WORDS_PER_PAGE {
+                return Err(format!(
+                    "Jumlah word pada halaman {} melebihi batas maksimum ({MAX_WORDS_PER_PAGE})",
+                    page_index + 1
+                ));
+            }
+
             previous_right = Some(right);
             previous_top = Some(top);
             previous_height = Some(height);
@@ -210,6 +228,13 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
             &mut current_top,
             &mut current_bottom,
         );
+
+        if words.len() > MAX_WORDS_PER_PAGE {
+            return Err(format!(
+                "Jumlah word pada halaman {} melebihi batas maksimum ({MAX_WORDS_PER_PAGE})",
+                page_index + 1
+            ));
+        }
 
         tracing::debug!(
             page = page_index + 1,
