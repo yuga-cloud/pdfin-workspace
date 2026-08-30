@@ -112,17 +112,6 @@ pub async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>,
     Ok(files)
 }
 
-async fn acquire_pdf_permit(state: &AppState, operation: &'static str) -> Result<(), AppError> {
-    state.pdf_semaphore.acquire().await.map(drop).map_err(|error| {
-        error!(%error, operation, "PDF semaphore tidak tersedia");
-
-        AppError::service_unavailable(
-            error_code::PDF_BUSY,
-            "Server sedang terlalu sibuk memproses PDF",
-        )
-    })
-}
-
 pub async fn run_conversion_many<F, T>(
     state: AppState,
     data: Vec<Bytes>,
@@ -208,24 +197,4 @@ where
             "Gagal memproses file. Silakan coba lagi.",
         )
     })
-}
-
-#[allow(dead_code)]
-async fn acquire_pdf_permit_for_operation(
-    state: &AppState,
-    operation: &'static str,
-) -> Result<tokio::sync::OwnedSemaphorePermit, AppError> {
-    state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, operation, "PDF semaphore tidak tersedia");
-
-        AppError::service_unavailable(
-            error_code::PDF_BUSY,
-            "Server sedang terlalu sibuk memproses PDF",
-        )
-    })
-}
-
-#[allow(dead_code)]
-async fn _unused_permit_compat(state: &AppState, operation: &'static str) -> Result<(), AppError> {
-    acquire_pdf_permit(state, operation).await
 }
