@@ -6,6 +6,10 @@ use lopdf::{
 
 use crate::engines::common::validate_input;
 
+const MAX_IMAGES_PER_DOCUMENT: usize = 64;
+const MAX_TOTAL_INPUT_SIZE: usize = 256 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION: i64 = 20_000;
+
 #[expect(dead_code, reason = "engine siap dipakai saat route JPG to PDF diaktifkan")]
 pub fn jpg_to_pdf(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
     jpgs_to_pdf(&[image_bytes])
@@ -14,6 +18,21 @@ pub fn jpg_to_pdf(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
 pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
     if images.is_empty() {
         return Err("Tidak ada gambar yang akan dikonversi".to_owned());
+    }
+
+    if images.len() > MAX_IMAGES_PER_DOCUMENT {
+        return Err(format!(
+            "Jumlah gambar melebihi batas maksimal ({MAX_IMAGES_PER_DOCUMENT})"
+        ));
+    }
+
+    let total_size = images.iter().map(|image| image.len()).sum::<usize>();
+
+    if total_size > MAX_TOTAL_INPUT_SIZE {
+        return Err(format!(
+            "Ukuran total gambar melebihi batas maksimal {} MB",
+            MAX_TOTAL_INPUT_SIZE / 1024 / 1024
+        ));
     }
 
     let mut document = Document::with_version("1.7");
@@ -44,13 +63,25 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
             return Err(format!("Dimensi JPEG {} tidak valid", index + 1));
         }
 
+        if width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION {
+            return Err(format!(
+                "Resolusi JPEG {} terlalu besar: {}x{}",
+                index + 1,
+                width,
+                height
+            ));
+        }
+
         let image_id = document.add_object(image);
         let image_name = format!("Im{}", index + 1).into_bytes();
 
         let content = Content {
             operations: vec![
                 Operation::new("q", vec![]),
-                Operation::new("cm", vec![width.into(), 0.into(), 0.into(), height.into(), 0.into(), 0.into()]),
+                Operation::new(
+                    "cm",
+                    vec![width.into(), 0.into(), 0.into(), height.into(), 0.into(), 0.into()],
+                ),
                 Operation::new("Do", vec![Object::Name(image_name.clone())]),
                 Operation::new("Q", vec![]),
             ],
@@ -58,7 +89,9 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
 
         let content_id = document.add_object(Stream::new(
             dictionary! {},
-            content.encode().map_err(|error| format!("Gagal membuat content stream PDF: {error}"))?,
+            content
+                .encode()
+                .map_err(|error| format!("Gagal membuat content stream PDF: {error}"))?,
         ));
 
         let page_id = document.add_object(dictionary! {
@@ -75,11 +108,15 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
         page_ids.push(page_id);
     }
 
-    document.objects.insert(pages_id, dictionary! {
-        "Type" => "Pages",
-        "Count" => page_ids.len() as u32,
-        "Kids" => page_ids.iter().copied().map(Object::Reference).collect::<Vec<_>>(),
-    }.into());
+    document.objects.insert(
+        pages_id,
+        dictionary! {
+            "Type" => "Pages",
+            "Count" => page_ids.len() as u32,
+            "Kids" => page_ids.iter().copied().map(Object::Reference).collect::<Vec<_>>(),
+        }
+        .into(),
+    );
 
     let catalog_id = document.add_object(dictionary! {
         "Type" => "Catalog",
@@ -90,7 +127,14 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
     document.compress();
 
     let mut output = Vec::new();
-    document.save_to(&mut output).map_err(|error| format!("Gagal menyimpan PDF: {error}"))?;
+
+    document
+        .save_to(&mut output)
+        .map_err(|error| format!("Gagal menyimpan PDF: {error}"))?;
+
+    if output.is_empty() {
+        return Err("PDF hasil konversi kosong".to_owned());
+    }
 
     Ok(output)
 }
