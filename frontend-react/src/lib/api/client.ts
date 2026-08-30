@@ -1,6 +1,8 @@
 export type ApiErrorPayload = {
-  code?: string;
-  message?: string;
+  error?: {
+    code?: string;
+    message?: string;
+  };
 };
 
 export class ApiError extends Error {
@@ -28,18 +30,15 @@ async function parseError(
   const contentType =
     response.headers.get("content-type") ?? "";
 
-  if (
-    contentType.includes("application/json")
-  ) {
+  if (contentType.toLowerCase().includes("application/json")) {
     try {
-      const payload =
-        (await response.json()) as ApiErrorPayload;
+      const payload = (await response.json()) as ApiErrorPayload;
+      const error = payload.error;
 
       return new ApiError(
-        payload.message ??
-          `Request gagal (${response.status}).`,
+        error?.message ?? `Request gagal (${response.status}).`,
         {
-          code: payload.code,
+          code: error?.code,
           status: response.status,
         },
       );
@@ -60,37 +59,45 @@ export async function postMultipart(
   endpoint: string,
   formData: FormData,
 ): Promise<Blob> {
-  const response = await fetch(
-    endpoint,
-    {
+  let response: Response;
+
+  try {
+    response = await fetch(endpoint, {
       method: "POST",
       body: formData,
-    },
-  );
+    });
+  } catch {
+    throw new ApiError("Tidak dapat terhubung ke server.", {
+      status: 0,
+      code: "network_error",
+    });
+  }
 
   if (!response.ok) {
     throw await parseError(response);
   }
 
-  return response.blob();
+  const blob = await response.blob();
+
+  if (blob.size === 0) {
+    throw new ApiError("Server mengembalikan file hasil yang kosong.", {
+      status: response.status,
+      code: "empty_response",
+    });
+  }
+
+  return blob;
 }
 
 export async function postFile(
   endpoint: string,
   file: File | Blob,
 ): Promise<Blob> {
-  const formData =
-    new FormData();
+  const formData = new FormData();
 
-  formData.append(
-    "file",
-    file,
-  );
+  formData.append("file", file);
 
-  return postMultipart(
-    endpoint,
-    formData,
-  );
+  return postMultipart(endpoint, formData);
 }
 
 export async function postFileWithText(
@@ -99,21 +106,10 @@ export async function postFileWithText(
   fieldName: string,
   value: string,
 ): Promise<Blob> {
-  const formData =
-    new FormData();
+  const formData = new FormData();
 
-  formData.append(
-    "file",
-    file,
-  );
+  formData.append("file", file);
+  formData.append(fieldName, value);
 
-  formData.append(
-    fieldName,
-    value,
-  );
-
-  return postMultipart(
-    endpoint,
-    formData,
-  );
+  return postMultipart(endpoint, formData);
 }
