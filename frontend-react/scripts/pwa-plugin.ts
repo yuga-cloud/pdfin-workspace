@@ -11,7 +11,7 @@ import {
   renderInstallPageHtml,
   renderWebManifest,
   snapshotOgIdentity,
-} from "./pwa-shared";
+} from "./pwa-shared.js";
 
 export const OG_IDENTITY_ID = "virtual:og-identity";
 
