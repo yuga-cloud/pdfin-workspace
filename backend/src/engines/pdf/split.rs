@@ -3,6 +3,7 @@ use lopdf::Document;
 use super::common::validate_pdf;
 
 const MAX_SPLIT_OUTPUTS: usize = 64;
+const MAX_SPLIT_RANGE_PAGES: u32 = 10_000;
 
 /// Memisahkan PDF berdasarkan rentang halaman.
 ///
@@ -44,6 +45,12 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
                 "Halaman {end} melebihi jumlah halaman PDF ({page_count})"
             ));
         }
+
+        if end - start + 1 > MAX_SPLIT_RANGE_PAGES {
+            return Err(format!(
+                "Rentang split melebihi batas maksimum ({MAX_SPLIT_RANGE_PAGES} halaman)"
+            ));
+        }
     }
 
     let mut outputs = Vec::with_capacity(ranges.len());
@@ -69,6 +76,10 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
         document.save_to(&mut output).map_err(|error| {
             format!("Gagal menyimpan hasil split halaman {start}-{end}: {error}")
         })?;
+
+        if output.is_empty() {
+            return Err(format!("Hasil split halaman {start}-{end} kosong"));
+        }
 
         outputs.push(output);
     }
