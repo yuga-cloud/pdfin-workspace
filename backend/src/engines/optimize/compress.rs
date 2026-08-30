@@ -10,12 +10,12 @@ use tempfile::tempdir;
 use super::common::validate_input;
 
 const PYTHON_SCRIPT_RELATIVE: &str = "scripts/compress_pdf/compressor.py";
-
 const QPDF_CANDIDATES: [&str; 2] = ["qpdf", "/usr/bin/qpdf"];
-
 const GHOSTSCRIPT_CANDIDATES: [&str; 3] = ["gs", "ghostscript", "/usr/bin/gs"];
-
 const MIN_PRIMARY_REDUCTION_PERCENT: usize = 5;
+const MAX_INPUT_BYTES: usize = 500 * 1024 * 1024;
+const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
+const MAX_INPUT_PAGES: usize = 10_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompressionQuality {
@@ -43,57 +43,36 @@ impl CompressionQuality {
     }
 }
 
-/// Mengompresi PDF menggunakan pipeline yang dipilih
-/// berdasarkan kualitas.
-///
-/// Strategi:
-///
-/// HIGH:
-///     PyMuPDF lossless
-///     -> qpdf hanya sebagai fallback
-///
-/// MEDIUM:
-///     PyMuPDF balanced
-///     -> Ghostscript balanced sebagai fallback
-///
-/// LOW:
-///     PyMuPDF strong
-///     -> Ghostscript strong sebagai fallback
-///
-/// Berbeda dengan pipeline lama, kita TIDAK menjalankan
-/// semua engine untuk setiap request.
-///
-/// Ini penting untuk PDF besar karena satu PDF dapat
-/// berisi ratusan atau ribuan halaman.
 pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec<u8>, String> {
     validate_input(pdf_bytes, "PDF")?;
 
-    if pdf_bytes.is_empty() {
-        return Err("PDF kosong tidak dapat dikompresi.".to_owned());
+    if pdf_bytes.len() > MAX_INPUT_BYTES {
+        return Err(format!(
+            "Ukuran PDF melebihi batas maksimum ({} MiB)",
+            MAX_INPUT_BYTES / 1024 / 1024
+        ));
     }
 
     let input_document = Document::load_mem(pdf_bytes)
         .map_err(|error| format!("Gagal membaca PDF sebelum kompresi: {error}"))?;
-
     let input_pages = input_document.get_pages().len();
 
     if input_pages == 0 {
         return Err("PDF tidak memiliki halaman.".to_owned());
     }
 
+    if input_pages > MAX_INPUT_PAGES {
+        return Err(format!(
+            "Jumlah halaman PDF melebihi batas maksimum ({MAX_INPUT_PAGES})"
+        ));
+    }
+
     let temp_dir =
         tempdir().map_err(|error| format!("Gagal membuat direktori sementara: {error}"))?;
-
     let input_path = temp_dir.path().join("input.pdf");
 
     fs::write(&input_path, pdf_bytes)
         .map_err(|error| format!("Gagal menulis PDF sementara: {error}"))?;
-
-    /*
-     * ---------------------------------------------------------
-     * PRIMARY ENGINE: PyMuPDF
-     * ---------------------------------------------------------
-     */
 
     if let Some(python) = resolve_python()
         && let Some(script) = resolve_python_script()
@@ -104,21 +83,10 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
 
         match run_pymupdf(&python, &script, quality, &input_path, &output_path) {
             Ok(output) if is_valid_pdf(&output, input_pages) => {
-                /*
-                 * Jika PyMuPDF sudah menghasilkan pengurangan
-                 * yang berarti, jangan jalankan engine kedua.
-                 *
-                 * Ini sangat penting untuk PDF besar.
-                 */
                 if has_meaningful_reduction(output.len(), pdf_bytes.len()) {
                     return Ok(output);
                 }
 
-                /*
-                 * Jika hasil PyMuPDF hanya sedikit lebih kecil,
-                 * kita masih memberikan kesempatan kepada
-                 * fallback engine.
-                 */
                 if output.len() < pdf_bytes.len() {
                     match run_fallback(
                         pdf_bytes,
@@ -127,32 +95,14 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
                         temp_dir.path(),
                         input_pages,
                     ) {
-                        Some(fallback) if fallback.len() < output.len() => {
-                            return Ok(fallback);
-                        }
-
-                        _ => {
-                            return Ok(output);
-                        }
+                        Some(fallback) if fallback.len() < output.len() => return Ok(fallback),
+                        _ => return Ok(output),
                     }
                 }
             }
-
-            Ok(_) => {}
-
-            Err(_) => {}
+            Ok(_) | Err(_) => {}
         }
     }
-
-    /*
-     * ---------------------------------------------------------
-     * FALLBACK ENGINE
-     * ---------------------------------------------------------
-     *
-     * Kalau PyMuPDF tidak tersedia, gagal, atau hasilnya
-     * tidak memberikan pengurangan yang cukup, kita gunakan
-     * qpdf / Ghostscript.
-     */
 
     if let Some(fallback) = run_fallback(
         pdf_bytes,
@@ -164,12 +114,6 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
         return Ok(fallback);
     }
 
-    /*
-     * Tidak ada engine yang menghasilkan file lebih kecil.
-     *
-     * Jangan pernah membuat hasil kompresi lebih besar
-     * daripada file asli.
-     */
     Ok(pdf_bytes.to_vec())
 }
 
@@ -180,57 +124,29 @@ fn run_fallback(
     temp_dir: &Path,
     expected_pages: usize,
 ) -> Option<Vec<u8>> {
-    match quality {
+    let output = match quality {
         CompressionQuality::High => {
             let qpdf = resolve_program(&QPDF_CANDIDATES)?;
-
-            let output = run_qpdf(&qpdf, input_path, temp_dir).ok()?;
-
-            if !is_valid_pdf(&output, expected_pages) {
-                return None;
-            }
-
-            if output.len() >= original_bytes.len() {
-                return None;
-            }
-
-            Some(output)
+            run_qpdf(&qpdf, input_path, temp_dir).ok()?
         }
-
         CompressionQuality::Medium => {
             let gs = resolve_program(&GHOSTSCRIPT_CANDIDATES)?;
-
-            let output =
-                run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Medium).ok()?;
-
-            if !is_valid_pdf(&output, expected_pages) {
-                return None;
-            }
-
-            if output.len() >= original_bytes.len() {
-                return None;
-            }
-
-            Some(output)
+            run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Medium).ok()?
         }
-
         CompressionQuality::Low => {
             let gs = resolve_program(&GHOSTSCRIPT_CANDIDATES)?;
-
-            let output =
-                run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Low).ok()?;
-
-            if !is_valid_pdf(&output, expected_pages) {
-                return None;
-            }
-
-            if output.len() >= original_bytes.len() {
-                return None;
-            }
-
-            Some(output)
+            run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Low).ok()?
         }
+    };
+
+    if output.len() > MAX_OUTPUT_BYTES
+        || !is_valid_pdf(&output, expected_pages)
+        || output.len() >= original_bytes.len()
+    {
+        return None;
     }
+
+    Some(output)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -295,7 +211,6 @@ fn run_pymupdf(
 
     if !result.status.success() {
         let stderr = String::from_utf8_lossy(&result.stderr);
-
         return Err(format!(
             "PyMuPDF gagal pada mode `{}`:\n{}",
             quality.as_str(),
@@ -308,7 +223,6 @@ fn run_pymupdf(
 
 fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, String> {
     let output_path = temp_dir.join("qpdf-output.pdf");
-
     let result = Command::new(qpdf)
         .arg("--object-streams=generate")
         .arg("--compress-streams=y")
@@ -325,7 +239,6 @@ fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, 
 
     if !result.status.success() {
         let stderr = String::from_utf8_lossy(&result.stderr);
-
         return Err(format!("qpdf gagal:\n{stderr}"));
     }
 
@@ -339,9 +252,7 @@ fn run_ghostscript(
     profile: GhostscriptProfile,
 ) -> Result<Vec<u8>, String> {
     let output_path = temp_dir.join(profile.output_name());
-
     let qfactor = profile.jpeg_quality() as f32 / 100.0;
-
     let image_dict = format!(
         "<< /QFactor {qfactor} \
            /Blend 1 \
@@ -370,6 +281,7 @@ fn run_ghostscript(
         .arg(format!("-dMonoImageResolution={}", profile.mono_dpi()))
         .arg(format!("-dColorImageDict={image_dict}"))
         .arg(format!("-dGrayImageDict={image_dict}"))
+        .arg(format!("-dMonoImageDict={image_dict}"))
         .arg("-dAutoFilterColorImages=true")
         .arg("-dAutoFilterGrayImages=true")
         .arg("-dEncodeColorImages=true")
@@ -388,7 +300,6 @@ fn run_ghostscript(
 
     if !result.status.success() {
         let stderr = String::from_utf8_lossy(&result.stderr);
-
         return Err(format!("Ghostscript gagal:\n{stderr}"));
     }
 
@@ -401,12 +312,11 @@ fn has_meaningful_reduction(output_size: usize, input_size: usize) -> bool {
     }
 
     let reduction = input_size.saturating_sub(output_size);
-
     reduction.saturating_mul(100) >= input_size.saturating_mul(MIN_PRIMARY_REDUCTION_PERCENT)
 }
 
 fn is_valid_pdf(bytes: &[u8], expected_pages: usize) -> bool {
-    if bytes.is_empty() {
+    if bytes.is_empty() || bytes.len() > MAX_OUTPUT_BYTES {
         return false;
     }
 
@@ -415,41 +325,24 @@ fn is_valid_pdf(bytes: &[u8], expected_pages: usize) -> bool {
         Err(_) => return false,
     };
 
-    document.get_pages().len() == expected_pages
+    let pages = document.get_pages();
+    !pages.is_empty() && pages.len() == expected_pages
 }
 
 fn resolve_python_script() -> Option<PathBuf> {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-
     let script = manifest_dir.join(PYTHON_SCRIPT_RELATIVE);
-
     script.is_file().then_some(script)
 }
 
 fn resolve_python() -> Option<PathBuf> {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-
-    /*
-     * Prioritas pertama:
-     *
-     * backend/.venv/bin/python
-     *
-     * Jadi cargo run tetap menemukan PyMuPDF
-     * walaupun shell tidak sedang melakukan
-     * `source .venv/bin/activate`.
-     */
     let venv_python = manifest_dir.join(".venv/bin/python");
 
     if venv_python.is_file() && python_has_pymupdf(&venv_python) {
         return Some(venv_python);
     }
 
-    /*
-     * Fallback ke PATH.
-     *
-     * Ini memungkinkan deployment production
-     * menggunakan Python system/container.
-     */
     let candidates = ["python3", "python", "/usr/bin/python3"];
 
     for candidate in candidates {
@@ -485,7 +378,6 @@ fn resolve_program(candidates: &[&str]) -> Option<PathBuf> {
             if path.is_file() {
                 return Some(path);
             }
-
             continue;
         }
 
