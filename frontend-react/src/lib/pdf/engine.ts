@@ -55,6 +55,22 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) {
+    return;
+  }
+
+  const error = new Error("Pembuatan pratinjau dibatalkan.");
+  error.name = "AbortError";
+  throw error;
+}
+
+export function revokeObjectUrls(urls: readonly string[]): void {
+  for (const url of urls) {
+    URL.revokeObjectURL(url);
+  }
+}
+
 async function loadPdfLib() {
   return import("pdf-lib");
 }
@@ -233,10 +249,13 @@ export async function countPages(
 export async function renderThumbs(
   file: File,
   onProgress?: ProgressFn,
+  signal?: AbortSignal,
 ): Promise<string[]> {
   const pdfjs = await loadPdfjs();
+  throwIfAborted(signal);
 
   const data = await fileBytes(file);
+  throwIfAborted(signal);
 
   const loadingTask = pdfjs.getDocument({
     data,
@@ -253,6 +272,8 @@ export async function renderThumbs(
       pageNumber <= total;
       pageNumber += 1
     ) {
+      throwIfAborted(signal);
+
       onProgress?.(
         pageNumber - 1,
         total,
@@ -312,17 +333,47 @@ export async function renderThumbs(
         viewport,
       }).promise;
 
-      urls.push(
-        canvas.toDataURL(
-          "image/jpeg",
-          0.72,
-        ),
-      );
+      const blob =
+        await new Promise<Blob>(
+          (resolve, reject) => {
+            canvas.toBlob(
+              (value) => {
+                if (value) {
+                  resolve(value);
+                } else {
+                  reject(
+                    new Error(
+                      "Gagal membuat pratinjau JPG.",
+                    ),
+                  );
+                }
+              },
+              "image/jpeg",
+              0.72,
+            );
+          },
+        );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      canvas.width = 0;
+      canvas.height = 0;
+
+      if (signal?.aborted) {
+        URL.revokeObjectURL(url);
+        throwIfAborted(signal);
+      }
+
+      urls.push(url);
 
       page.cleanup();
 
       await yieldToUi();
     }
+  } catch (error) {
+    revokeObjectUrls(urls);
+    throw error;
   } finally {
     await pdf.cleanup();
   }
@@ -718,7 +769,7 @@ async function renderPageJpeg(
   scale: number,
   quality: number,
 ): Promise<{
-  bytes: Uint8Array;
+  blob: Blob;
   width: number;
   height: number;
 }> {
@@ -793,13 +844,21 @@ async function renderPageJpeg(
 
   page.cleanup();
 
+  canvas.width = 0;
+  canvas.height = 0;
+
   return {
-    bytes:
-      new Uint8Array(
-        await blob.arrayBuffer(),
+    blob,
+    width:
+      Math.max(
+        1,
+        Math.floor(viewport.width),
       ),
-    width: canvas.width,
-    height: canvas.height,
+    height:
+      Math.max(
+        1,
+        Math.floor(viewport.height),
+      ),
   };
 }
 
@@ -826,7 +885,7 @@ async function pdfToImages(
 
   const images: Array<{
     name: string;
-    bytes: Uint8Array;
+    blob: Blob;
   }> = [];
 
   try {
@@ -852,7 +911,7 @@ async function pdfToImages(
       images.push({
         name:
           `${base}-halaman-${String(index).padStart(3, "0")}.jpg`,
-        bytes: image.bytes,
+        blob: image.blob,
       });
 
       await yieldToUi();
@@ -866,10 +925,7 @@ async function pdfToImages(
       images[0];
 
     return {
-      blob: blobFromBytes(
-        image.bytes,
-        "image/jpeg",
-      ),
+      blob: image.blob,
       filename:
         image.name,
       mime:
@@ -886,7 +942,7 @@ async function pdfToImages(
   for (const image of images) {
     zip.file(
       image.name,
-      image.bytes,
+      image.blob,
     );
   }
 
