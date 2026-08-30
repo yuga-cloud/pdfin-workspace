@@ -24,6 +24,8 @@ export class ApiError extends Error {
   }
 }
 
+export const DEFAULT_API_TIMEOUT_MS = 130_000;
+
 async function parseError(
   response: Response,
 ): Promise<ApiError> {
@@ -58,19 +60,32 @@ async function parseError(
 export async function postMultipart(
   endpoint: string,
   formData: FormData,
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
 
   try {
     response = await fetch(endpoint, {
       method: "POST",
       body: formData,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError("Request terlalu lama dan dihentikan.", {
+        status: 0,
+        code: "request_timeout",
+      });
+    }
+
     throw new ApiError("Tidak dapat terhubung ke server.", {
       status: 0,
       code: "network_error",
     });
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!response.ok) {
@@ -92,12 +107,13 @@ export async function postMultipart(
 export async function postFile(
   endpoint: string,
   file: File | Blob,
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
   const formData = new FormData();
 
   formData.append("file", file);
 
-  return postMultipart(endpoint, formData);
+  return postMultipart(endpoint, formData, timeoutMs);
 }
 
 export async function postFileWithText(
@@ -105,11 +121,12 @@ export async function postFileWithText(
   file: File | Blob,
   fieldName: string,
   value: string,
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
   const formData = new FormData();
 
   formData.append("file", file);
   formData.append(fieldName, value);
 
-  return postMultipart(endpoint, formData);
+  return postMultipart(endpoint, formData, timeoutMs);
 }
