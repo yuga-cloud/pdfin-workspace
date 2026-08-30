@@ -187,6 +187,11 @@ function ToolWorkspaceInner({
       0,
     );
 
+  const processingNote =
+    tool.processing === "server"
+      ? "File dikirim ke server untuk diproses."
+      : "File diproses di perangkat ini.";
+
   /*
    * Hapus object URL ketika component benar-benar
    * di-unmount.
@@ -732,7 +737,7 @@ function ToolWorkspaceInner({
           </span>
 
           <span className="text-xs text-muted">
-            Tidak diunggah ke internet.
+            {processingNote}{" "}
             Maksimal nyaman sekitar
             40 MB per file.
           </span>
