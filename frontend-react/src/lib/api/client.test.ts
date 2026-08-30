@@ -28,12 +28,12 @@ describe("postMultipart", () => {
 
     await expect(
       postMultipart("/rust-api/test", new FormData()),
-    ).rejects.toMatchObject<ApiError>({
+    ).rejects.toMatchObject({
       name: "ApiError",
       code: "invalid_multipart",
       status: 400,
       message: "File tidak valid.",
-    });
+    } satisfies Partial<ApiError>);
   });
 
   it("maps a transport failure to network_error", async () => {
@@ -41,10 +41,10 @@ describe("postMultipart", () => {
 
     await expect(
       postMultipart("/rust-api/test", new FormData(), 1000),
-    ).rejects.toMatchObject<ApiError>({
+    ).rejects.toMatchObject({
       code: "network_error",
       status: 0,
-    });
+    } satisfies Partial<ApiError>);
   });
 
   it("maps an aborted request to request_timeout", async () => {
@@ -59,10 +59,10 @@ describe("postMultipart", () => {
 
     await expect(
       postMultipart("/rust-api/test", new FormData(), 10),
-    ).rejects.toMatchObject<ApiError>({
+    ).rejects.toMatchObject({
       code: "request_timeout",
       status: 0,
-    });
+    } satisfies Partial<ApiError>);
   });
 
   it("rejects an oversized multipart payload before fetch", async () => {
@@ -72,10 +72,10 @@ describe("postMultipart", () => {
     const formData = new FormData();
     formData.append("file", new Blob([new Uint8Array(51 * 1024 * 1024)]));
 
-    await expect(postMultipart("/rust-api/test", formData)).rejects.toMatchObject<ApiError>({
+    await expect(postMultipart("/rust-api/test", formData)).rejects.toMatchObject({
       code: "request_too_large",
       status: 0,
-    });
+    } satisfies Partial<ApiError>);
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -89,10 +89,10 @@ describe("postMultipart", () => {
 
     await expect(
       postFileWithText("/rust-api/test", file, "text", oversized),
-    ).rejects.toMatchObject<ApiError>({
+    ).rejects.toMatchObject({
       code: "field_too_large",
       status: 0,
-    });
+    } satisfies Partial<ApiError>);
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -107,10 +107,10 @@ describe("postMultipart", () => {
 
     await expect(
       postMultipart("/rust-api/test", new FormData()),
-    ).rejects.toMatchObject<ApiError>({
+    ).rejects.toMatchObject({
       code: "empty_response",
       status: 200,
-    });
+    } satisfies Partial<ApiError>);
   });
 
   it("returns a non-empty successful response", async () => {
