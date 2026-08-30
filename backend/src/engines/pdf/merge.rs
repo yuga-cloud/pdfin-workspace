@@ -126,11 +126,7 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
          */
         let pages = document.get_pages();
 
-        if pages_in_order
-            .len()
-            .saturating_add(pages.len())
-            > MAX_MERGED_PAGES
-        {
+        if pages_in_order.len().saturating_add(pages.len()) > MAX_MERGED_PAGES {
             return Err(format!(
                 "Jumlah halaman hasil merge melebihi batas maksimum ({MAX_MERGED_PAGES})"
             ));

@@ -122,14 +122,19 @@ where
     F: FnOnce(&[&[u8]]) -> Result<T, String> + Send + 'static,
     T: Send + 'static,
 {
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, operation, "PDF semaphore tidak tersedia");
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, operation, "PDF semaphore tidak tersedia");
 
-        AppError::service_unavailable(
-            error_code::PDF_BUSY,
-            "Server sedang terlalu sibuk memproses PDF",
-        )
-    })?;
+            AppError::service_unavailable(
+                error_code::PDF_BUSY,
+                "Server sedang terlalu sibuk memproses PDF",
+            )
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
@@ -166,14 +171,19 @@ where
     F: FnOnce(&[u8]) -> Result<T, String> + Send + 'static,
     T: Send + 'static,
 {
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, operation, "PDF semaphore tidak tersedia");
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, operation, "PDF semaphore tidak tersedia");
 
-        AppError::service_unavailable(
-            error_code::PDF_BUSY,
-            "Server sedang terlalu sibuk memproses PDF",
-        )
-    })?;
+            AppError::service_unavailable(
+                error_code::PDF_BUSY,
+                "Server sedang terlalu sibuk memproses PDF",
+            )
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;

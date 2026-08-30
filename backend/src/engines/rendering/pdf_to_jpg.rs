@@ -56,8 +56,7 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     let mut pages = Vec::with_capacity(page_files.len());
 
     for path in page_files {
-        let bytes = fs::read(&path)
-            .map_err(|error| format!("Gagal membaca hasil JPG: {error}"))?;
+        let bytes = fs::read(&path).map_err(|error| format!("Gagal membaca hasil JPG: {error}"))?;
 
         if bytes.len() > MAX_OUTPUT_FILE_SIZE_BYTES {
             return Err("Ukuran hasil JPG melebihi batas maksimum".to_owned());
@@ -78,8 +77,8 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
 fn collect_page_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
 
-    for entry in fs::read_dir(dir)
-        .map_err(|error| format!("Gagal membaca temporary directory: {error}"))?
+    for entry in
+        fs::read_dir(dir).map_err(|error| format!("Gagal membaca temporary directory: {error}"))?
     {
         let path = entry
             .map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?

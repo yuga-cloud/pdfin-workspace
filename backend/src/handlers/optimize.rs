@@ -25,10 +25,15 @@ pub async fn compress_pdf(
 ) -> Result<impl IntoResponse, AppError> {
     let (data, quality) = read_compress_request(&mut multipart).await?;
 
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, "PDF semaphore tidak tersedia");
-        AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-    })?;
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, "PDF semaphore tidak tersedia");
+            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
@@ -73,10 +78,15 @@ pub async fn add_watermark(
 ) -> Result<impl IntoResponse, AppError> {
     let (data, text) = read_watermark_request(&mut multipart).await?;
 
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, "PDF semaphore tidak tersedia");
-        AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-    })?;
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, "PDF semaphore tidak tersedia");
+            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
@@ -130,12 +140,13 @@ async fn read_compress_request(
                             "Parameter kualitas kompresi tidak valid",
                         )
                     })?;
-                    quality = Some(CompressionQuality::from_str(value.trim()).ok_or_else(|| {
-                        AppError::bad_request(
-                            "invalid_quality",
-                            "Kualitas kompresi harus high, medium, atau low",
-                        )
-                    })?);
+                    quality =
+                        Some(CompressionQuality::from_str(value.trim()).ok_or_else(|| {
+                            AppError::bad_request(
+                                "invalid_quality",
+                                "Kualitas kompresi harus high, medium, atau low",
+                            )
+                        })?);
                 }
                 _ => {}
             },
@@ -253,10 +264,15 @@ where
     F: FnOnce(&[u8]) -> Result<Vec<u8>, String> + Send + 'static,
 {
     let data = read_single_file(multipart).await?;
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, operation, "PDF semaphore tidak tersedia");
-        AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-    })?;
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, operation, "PDF semaphore tidak tersedia");
+            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;

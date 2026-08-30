@@ -36,10 +36,15 @@ pub async fn merge_pdfs(
         ));
     }
 
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, "PDF semaphore tidak tersedia");
-        AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-    })?;
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, "PDF semaphore tidak tersedia");
+            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
@@ -49,7 +54,10 @@ pub async fn merge_pdfs(
     .await
     .map_err(|error| {
         error!(%error, "Merge worker mengalami panic");
-        AppError::internal("merge_worker_failed", "Worker penggabungan PDF mengalami kegagalan")
+        AppError::internal(
+            "merge_worker_failed",
+            "Worker penggabungan PDF mengalami kegagalan",
+        )
     })?;
 
     let pdf_bytes = result.map_err(|error| {
@@ -69,10 +77,15 @@ pub async fn split_pdf(
 ) -> Result<impl IntoResponse, AppError> {
     let (data, ranges) = read_split_request(multipart).await?;
 
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, "PDF semaphore tidak tersedia");
-        AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-    })?;
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, "PDF semaphore tidak tersedia");
+            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
@@ -81,7 +94,10 @@ pub async fn split_pdf(
     .await
     .map_err(|error| {
         error!(%error, "Split worker mengalami panic");
-        AppError::internal("split_worker_failed", "Worker pemisahan PDF mengalami kegagalan")
+        AppError::internal(
+            "split_worker_failed",
+            "Worker pemisahan PDF mengalami kegagalan",
+        )
     })?;
 
     let pdf_files = result.map_err(|error| {
@@ -91,13 +107,19 @@ pub async fn split_pdf(
 
     let pdf_bytes = if pdf_files.len() == 1 {
         pdf_files.into_iter().next().ok_or_else(|| {
-            AppError::internal("empty_split_result", "Pemisahan PDF tidak menghasilkan file")
+            AppError::internal(
+                "empty_split_result",
+                "Pemisahan PDF tidak menghasilkan file",
+            )
         })?
     } else {
         let file_refs: Vec<&[u8]> = pdf_files.iter().map(Vec::as_slice).collect();
         merge_pdf_engine(&file_refs).map_err(|error| {
             error!(%error, "Gagal menggabungkan hasil pemisahan PDF");
-            AppError::internal("split_merge_failed", "Gagal menggabungkan hasil pemisahan PDF")
+            AppError::internal(
+                "split_merge_failed",
+                "Gagal menggabungkan hasil pemisahan PDF",
+            )
         })?
     };
 
@@ -113,10 +135,15 @@ pub async fn manage_pages(
 ) -> Result<impl IntoResponse, AppError> {
     let (data, page_order) = read_manage_pages_request(multipart).await?;
 
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, "PDF semaphore tidak tersedia");
-        AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-    })?;
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, "PDF semaphore tidak tersedia");
+            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
@@ -149,10 +176,15 @@ pub async fn rotate(
     let (data, degrees) = read_rotate_request(multipart).await?;
     validate_rotation_degrees(degrees)?;
 
-    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
-        error!(%error, "PDF semaphore tidak tersedia");
-        AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-    })?;
+    let permit = state
+        .pdf_semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|error| {
+            error!(%error, "PDF semaphore tidak tersedia");
+            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+        })?;
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
@@ -161,7 +193,10 @@ pub async fn rotate(
     .await
     .map_err(|error| {
         error!(%error, "Rotate worker mengalami panic");
-        AppError::internal("rotate_worker_failed", "Worker rotasi PDF mengalami kegagalan")
+        AppError::internal(
+            "rotate_worker_failed",
+            "Worker rotasi PDF mengalami kegagalan",
+        )
     })?;
 
     let pdf_bytes = result.map_err(|error| {
@@ -190,7 +225,12 @@ async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>, App
 
                 match field.bytes().await {
                     Ok(bytes) if !bytes.is_empty() => files.push(bytes),
-                    Ok(_) => return Err(AppError::bad_request("empty_file", "Salah satu file PDF kosong")),
+                    Ok(_) => {
+                        return Err(AppError::bad_request(
+                            "empty_file",
+                            "Salah satu file PDF kosong",
+                        ));
+                    }
                     Err(error) => {
                         error!(%error, "Gagal membaca file PDF");
                         return Err(AppError::bad_request(
@@ -213,13 +253,18 @@ async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>, App
     }
 
     if files.is_empty() {
-        return Err(AppError::bad_request("file_missing", "Field file tidak ditemukan"));
+        return Err(AppError::bad_request(
+            "file_missing",
+            "Field file tidak ditemukan",
+        ));
     }
 
     Ok(files)
 }
 
-async fn read_split_request(mut multipart: Multipart) -> Result<(Bytes, Vec<(u32, u32)>), AppError> {
+async fn read_split_request(
+    mut multipart: Multipart,
+) -> Result<(Bytes, Vec<(u32, u32)>), AppError> {
     let mut file_bytes = None;
     let mut ranges = None;
 
@@ -265,12 +310,16 @@ async fn read_split_request(mut multipart: Multipart) -> Result<(Bytes, Vec<(u32
         }
     }
 
-    let data = file_bytes.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
-    let ranges = ranges.ok_or_else(|| AppError::bad_request("ranges_missing", "Field ranges tidak ditemukan"))?;
+    let data = file_bytes
+        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    let ranges = ranges
+        .ok_or_else(|| AppError::bad_request("ranges_missing", "Field ranges tidak ditemukan"))?;
     Ok((data, ranges))
 }
 
-async fn read_manage_pages_request(mut multipart: Multipart) -> Result<(Bytes, Vec<u32>), AppError> {
+async fn read_manage_pages_request(
+    mut multipart: Multipart,
+) -> Result<(Bytes, Vec<u32>), AppError> {
     let mut file_bytes = None;
     let mut page_order = None;
 
@@ -316,8 +365,10 @@ async fn read_manage_pages_request(mut multipart: Multipart) -> Result<(Bytes, V
         }
     }
 
-    let data = file_bytes.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
-    let page_order = page_order.ok_or_else(|| AppError::bad_request("pages_missing", "Field pages tidak ditemukan"))?;
+    let data = file_bytes
+        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    let page_order = page_order
+        .ok_or_else(|| AppError::bad_request("pages_missing", "Field pages tidak ditemukan"))?;
     Ok((data, page_order))
 }
 
@@ -362,7 +413,8 @@ async fn read_rotate_request(mut multipart: Multipart) -> Result<(Bytes, i64), A
         }
     }
 
-    let data = file_bytes.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    let data = file_bytes
+        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
     Ok((data, degrees))
 }
 
@@ -378,12 +430,18 @@ fn validate_rotation_degrees(degrees: i64) -> Result<(), AppError> {
 }
 
 fn parse_ranges(input: &str) -> Result<Vec<(u32, u32)>, AppError> {
-    let parts = input.split(',').map(str::trim).filter(|part| !part.is_empty());
+    let parts = input
+        .split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty());
     let mut ranges = Vec::new();
 
     for part in parts {
         if ranges.len() >= MAX_SPLIT_RANGES {
-            return Err(AppError::bad_request("too_many_ranges", "Jumlah rentang halaman terlalu banyak"));
+            return Err(AppError::bad_request(
+                "too_many_ranges",
+                "Jumlah rentang halaman terlalu banyak",
+            ));
         }
 
         let mut values = part.splitn(2, '-');
@@ -391,9 +449,17 @@ fn parse_ranges(input: &str) -> Result<Vec<(u32, u32)>, AppError> {
             .next()
             .ok_or_else(|| AppError::bad_request("invalid_ranges", "Rentang halaman tidak valid"))?
             .parse::<u32>()
-            .map_err(|_| AppError::bad_request("invalid_ranges", format!("Nomor halaman tidak valid: {part}")))?;
+            .map_err(|_| {
+                AppError::bad_request(
+                    "invalid_ranges",
+                    format!("Nomor halaman tidak valid: {part}"),
+                )
+            })?;
         let end = values.next().unwrap_or(part).parse::<u32>().map_err(|_| {
-            AppError::bad_request("invalid_ranges", format!("Nomor halaman tidak valid: {part}"))
+            AppError::bad_request(
+                "invalid_ranges",
+                format!("Nomor halaman tidak valid: {part}"),
+            )
         })?;
 
         if start == 0 || end == 0 || start > end {
@@ -423,7 +489,10 @@ fn parse_page_order(input: &str) -> Result<Vec<u32>, AppError> {
         .filter(|part| !part.is_empty())
         .map(|part| {
             part.parse::<u32>().map_err(|_| {
-                AppError::bad_request("invalid_pages", format!("Nomor halaman tidak valid: {part}"))
+                AppError::bad_request(
+                    "invalid_pages",
+                    format!("Nomor halaman tidak valid: {part}"),
+                )
             })
         })
         .collect::<Result<Vec<_>, _>>()?;

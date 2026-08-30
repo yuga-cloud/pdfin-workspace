@@ -24,7 +24,10 @@ impl PdfWord {
         }
     }
 
-    #[expect(dead_code, reason = "helper dipakai saat scoring layout tabel diaktifkan")]
+    #[expect(
+        dead_code,
+        reason = "helper dipakai saat scoring layout tabel diaktifkan"
+    )]
     pub fn width(&self) -> f32 {
         (self.right - self.left).abs()
     }

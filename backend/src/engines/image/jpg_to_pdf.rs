@@ -10,7 +10,10 @@ const MAX_IMAGES_PER_DOCUMENT: usize = 64;
 const MAX_TOTAL_INPUT_SIZE: usize = 256 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION: i64 = 20_000;
 
-#[expect(dead_code, reason = "engine siap dipakai saat route JPG to PDF diaktifkan")]
+#[expect(
+    dead_code,
+    reason = "engine siap dipakai saat route JPG to PDF diaktifkan"
+)]
 pub fn jpg_to_pdf(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
     jpgs_to_pdf(&[image_bytes])
 }
@@ -80,7 +83,14 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
                 Operation::new("q", vec![]),
                 Operation::new(
                     "cm",
-                    vec![width.into(), 0.into(), 0.into(), height.into(), 0.into(), 0.into()],
+                    vec![
+                        width.into(),
+                        0.into(),
+                        0.into(),
+                        height.into(),
+                        0.into(),
+                        0.into(),
+                    ],
                 ),
                 Operation::new("Do", vec![Object::Name(image_name.clone())]),
                 Operation::new("Q", vec![]),
@@ -103,7 +113,9 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
 
         document
             .add_xobject(page_id, image_name, image_id)
-            .map_err(|error| format!("Gagal memasang JPEG {} ke halaman PDF: {error}", index + 1))?;
+            .map_err(|error| {
+                format!("Gagal memasang JPEG {} ke halaman PDF: {error}", index + 1)
+            })?;
 
         page_ids.push(page_id);
     }

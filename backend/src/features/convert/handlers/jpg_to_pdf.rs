@@ -20,8 +20,7 @@ pub async fn handler(
 ) -> Result<Response, AppError> {
     let data = read_multiple_files(multipart).await?;
 
-    let output =
-        run_conversion_many(state, data, jpgs_to_pdf_engine, "JPG → PDF").await?;
+    let output = run_conversion_many(state, data, jpgs_to_pdf_engine, "JPG → PDF").await?;
 
     Ok(binary_response(PDF_CONTENT_TYPE, output))
 }

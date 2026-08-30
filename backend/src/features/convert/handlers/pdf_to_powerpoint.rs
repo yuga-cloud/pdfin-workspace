@@ -1,10 +1,6 @@
-use axum::{
-    response::Response,
-};
+use axum::response::Response;
 
-use crate::{
-    error::{error_code, AppError},
-};
+use crate::error::{AppError, error_code};
 
 pub async fn handler() -> Result<Response, AppError> {
     Err(AppError::not_implemented(

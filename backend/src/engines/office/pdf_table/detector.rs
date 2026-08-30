@@ -293,12 +293,7 @@ fn build_table(rows: &[PdfRow]) -> Table {
     let mut result = Vec::with_capacity(rows.len());
 
     for row in rows {
-        if result
-            .len()
-            .saturating_add(1)
-            .saturating_mul(anchors.len())
-            > MAX_TABLE_CELLS
-        {
+        if result.len().saturating_add(1).saturating_mul(anchors.len()) > MAX_TABLE_CELLS {
             tracing::warn!(
                 rows = result.len(),
                 columns = anchors.len(),
