@@ -8,7 +8,6 @@
 **/.vercel/
 **/dist/
 **/build/
-package-lock.json
 
 # Python & Linter Caches
 **/.venv/
