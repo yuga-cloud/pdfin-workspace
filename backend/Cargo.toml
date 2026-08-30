@@ -31,19 +31,20 @@ tower-http = {
 }
 
 tracing = "0.1.44"
-tracing-subscriber = "0.3.23"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 
 shared = { path = "../shared" }
 
+tempfile = { workspace = true }
+
 lopdf = {
     version = "0.44.0",
     features = ["embed_image"],
 }
 rust_xlsxwriter = "0.99.0"
-tempfile = { workspace = true }
 
 pdfium-render = "0.9.3"
 pdfium-bundled = "0.1.1"
