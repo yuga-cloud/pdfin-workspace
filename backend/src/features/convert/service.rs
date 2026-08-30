@@ -7,6 +7,8 @@ use crate::{
     state::AppState,
 };
 
+const MAX_MULTIPART_FILES: usize = 50;
+
 pub async fn read_single_file(mut multipart: Multipart) -> Result<Bytes, AppError> {
     loop {
         match multipart.next_field().await {
@@ -56,25 +58,34 @@ pub async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>,
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(field)) if field.name() == Some("file") => match field.bytes().await {
-                Ok(bytes) if !bytes.is_empty() => files.push(bytes),
-
-                Ok(_) => {
+            Ok(Some(field)) if field.name() == Some("file") => {
+                if files.len() >= MAX_MULTIPART_FILES {
                     return Err(AppError::bad_request(
-                        error_code::EMPTY_FILE,
-                        "Salah satu file yang dikirim kosong",
+                        "too_many_files",
+                        "Jumlah file dalam satu request terlalu banyak",
                     ));
                 }
 
-                Err(error) => {
-                    error!(%error, "Gagal membaca uploaded file");
+                match field.bytes().await {
+                    Ok(bytes) if !bytes.is_empty() => files.push(bytes),
 
-                    return Err(AppError::bad_request(
-                        error_code::INVALID_UPLOAD,
-                        "Gagal membaca file yang diunggah",
-                    ));
+                    Ok(_) => {
+                        return Err(AppError::bad_request(
+                            error_code::EMPTY_FILE,
+                            "Salah satu file yang dikirim kosong",
+                        ));
+                    }
+
+                    Err(error) => {
+                        error!(%error, "Gagal membaca uploaded file");
+
+                        return Err(AppError::bad_request(
+                            error_code::INVALID_UPLOAD,
+                            "Gagal membaca file yang diunggah",
+                        ));
+                    }
                 }
-            },
+            }
 
             Ok(Some(_)) => continue,
 
@@ -101,6 +112,17 @@ pub async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>,
     Ok(files)
 }
 
+async fn acquire_pdf_permit(state: &AppState, operation: &'static str) -> Result<(), AppError> {
+    state.pdf_semaphore.acquire().await.map(drop).map_err(|error| {
+        error!(%error, operation, "PDF semaphore tidak tersedia");
+
+        AppError::service_unavailable(
+            error_code::PDF_BUSY,
+            "Server sedang terlalu sibuk memproses PDF",
+        )
+    })
+}
+
 pub async fn run_conversion_many<F, T>(
     state: AppState,
     data: Vec<Bytes>,
@@ -111,7 +133,7 @@ where
     F: FnOnce(&[&[u8]]) -> Result<T, String> + Send + 'static,
     T: Send + 'static,
 {
-    let permit = state.pdf_semaphore.acquire().await.map_err(|error| {
+    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
         error!(%error, operation, "PDF semaphore tidak tersedia");
 
         AppError::service_unavailable(
@@ -121,6 +143,7 @@ where
     })?;
 
     let result = task::spawn_blocking(move || {
+        let _permit = permit;
         let refs: Vec<&[u8]> = data.iter().map(Bytes::as_ref).collect();
         engine(&refs)
     })
@@ -134,14 +157,12 @@ where
         )
     })?;
 
-    drop(permit);
-
     result.map_err(|error| {
         error!(%error, operation, "Konversi gagal");
 
         AppError::internal(
             error_code::CONVERSION_FAILED,
-            format!("Gagal melakukan operasi: {operation}: {error}"),
+            "Gagal memproses file. Silakan coba lagi.",
         )
     })
 }
@@ -156,7 +177,7 @@ where
     F: FnOnce(&[u8]) -> Result<T, String> + Send + 'static,
     T: Send + 'static,
 {
-    let permit = state.pdf_semaphore.acquire().await.map_err(|error| {
+    let permit = state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
         error!(%error, operation, "PDF semaphore tidak tersedia");
 
         AppError::service_unavailable(
@@ -165,25 +186,46 @@ where
         )
     })?;
 
-    let result = task::spawn_blocking(move || engine(&data))
-        .await
-        .map_err(|error| {
-            error!(%error, operation, "Conversion worker mengalami panic");
+    let result = task::spawn_blocking(move || {
+        let _permit = permit;
+        engine(&data)
+    })
+    .await
+    .map_err(|error| {
+        error!(%error, operation, "Conversion worker mengalami panic");
 
-            AppError::internal(
-                error_code::CONVERSION_WORKER_FAILED,
-                "Worker konversi mengalami kegagalan",
-            )
-        })?;
-
-    drop(permit);
+        AppError::internal(
+            error_code::CONVERSION_WORKER_FAILED,
+            "Worker konversi mengalami kegagalan",
+        )
+    })?;
 
     result.map_err(|error| {
         error!(%error, operation, "Konversi gagal");
 
         AppError::internal(
             error_code::CONVERSION_FAILED,
-            format!("Gagal melakukan operasi: {operation}: {error}"),
+            "Gagal memproses file. Silakan coba lagi.",
         )
     })
+}
+
+#[allow(dead_code)]
+async fn acquire_pdf_permit_for_operation(
+    state: &AppState,
+    operation: &'static str,
+) -> Result<tokio::sync::OwnedSemaphorePermit, AppError> {
+    state.pdf_semaphore.clone().acquire_owned().await.map_err(|error| {
+        error!(%error, operation, "PDF semaphore tidak tersedia");
+
+        AppError::service_unavailable(
+            error_code::PDF_BUSY,
+            "Server sedang terlalu sibuk memproses PDF",
+        )
+    })
+}
+
+#[allow(dead_code)]
+async fn _unused_permit_compat(state: &AppState, operation: &'static str) -> Result<(), AppError> {
+    acquire_pdf_permit(state, operation).await
 }
