@@ -15,6 +15,7 @@ export type ToolSlug =
   | "pdf-ke-powerpoint";
 
 export type AcceptKind = "pdf" | "image" | "word" | "excel" | "powerpoint";
+export type ProcessingLocation = "device" | "server";
 
 export type ToolDef = {
   slug: ToolSlug;
@@ -26,6 +27,7 @@ export type ToolDef = {
   multiple: boolean;
   minFiles: number;
   group: "atur" | "optimalkan" | "konversi";
+  processing: ProcessingLocation;
 };
 
 export const TOOLS: ToolDef[] = [
@@ -39,6 +41,7 @@ export const TOOLS: ToolDef[] = [
     multiple: true,
     minFiles: 2,
     group: "atur",
+    processing: "server",
   },
   {
     slug: "pisah",
@@ -50,6 +53,7 @@ export const TOOLS: ToolDef[] = [
     multiple: false,
     minFiles: 1,
     group: "atur",
+    processing: "server",
   },
   {
     slug: "halaman",
@@ -61,6 +65,7 @@ export const TOOLS: ToolDef[] = [
     multiple: false,
     minFiles: 1,
     group: "atur",
+    processing: "server",
   },
   {
     slug: "putar",
@@ -72,17 +77,19 @@ export const TOOLS: ToolDef[] = [
     multiple: false,
     minFiles: 1,
     group: "atur",
+    processing: "server",
   },
   {
     slug: "kompres",
     title: "Kompres PDF",
     short: "Kompres",
     description: "Kecilkan ukuran agar muat WhatsApp, email, atau formulir online.",
-    hint: "Diproses di perangkatmu. Pilih 'Kecil' untuk kirim lewat chat.",
+    hint: "Diproses di server. Pilih 'Kecil' untuk kirim lewat chat.",
     accept: "pdf",
     multiple: false,
     minFiles: 1,
     group: "optimalkan",
+    processing: "server",
   },
   {
     slug: "watermark",
@@ -94,6 +101,7 @@ export const TOOLS: ToolDef[] = [
     multiple: false,
     minFiles: 1,
     group: "optimalkan",
+    processing: "device",
   },
   {
     slug: "jpg-ke-pdf",
@@ -105,6 +113,7 @@ export const TOOLS: ToolDef[] = [
     multiple: true,
     minFiles: 1,
     group: "konversi",
+    processing: "server",
   },
   {
     slug: "pdf-ke-jpg",
@@ -116,6 +125,7 @@ export const TOOLS: ToolDef[] = [
     multiple: false,
     minFiles: 1,
     group: "konversi",
+    processing: "device",
   },
   {
     slug: "word-ke-pdf",
@@ -127,61 +137,67 @@ export const TOOLS: ToolDef[] = [
     multiple: false,
     minFiles: 1,
     group: "konversi",
+    processing: "device",
   },
   {
     slug: "excel-ke-pdf",
     title: "Excel ke PDF",
     short: "Excel → PDF",
     description: "Ubah spreadsheet Excel (.xlsx) menjadi PDF.",
-    hint: "Sheet pertama diekspor sebagai tabel di PDF. Cocok untuk data tabulasi.",
+    hint: "Sheet pertama diekspor sebagai tabel di PDF. Cocok untuk data tabulasi. Diproses di server.",
     accept: "excel",
     multiple: false,
     minFiles: 1,
     group: "konversi",
+    processing: "server",
   },
   {
     slug: "powerpoint-ke-pdf",
     title: "PowerPoint ke PDF",
     short: "PowerPoint → PDF",
     description: "Ubah presentasi PowerPoint (.pptx) menjadi PDF.",
-    hint: "Teks slide diekspor ke PDF. Cocok untuk presentasi sederhana.",
+    hint: "Teks slide diekspor ke PDF. Cocok untuk presentasi sederhana. Diproses di browser.",
     accept: "powerpoint",
     multiple: false,
     minFiles: 1,
     group: "konversi",
+    processing: "device",
   },
   {
     slug: "pdf-ke-word",
     title: "PDF ke Word",
     short: "PDF → Word",
     description: "Ekstrak teks PDF menjadi dokumen Word (.docx) yang bisa diedit.",
-    hint: "Hasil terbaik untuk PDF berteks (bukan scan). Layout tidak selalu sama persis.",
+    hint: "Hasil terbaik untuk PDF berteks (bukan scan). Layout tidak selalu sama persis. Diproses di browser.",
     accept: "pdf",
     multiple: false,
     minFiles: 1,
     group: "konversi",
+    processing: "device",
   },
   {
     slug: "pdf-ke-excel",
     title: "PDF ke Excel",
     short: "PDF → Excel",
     description: "Ekstrak teks/baris dari PDF ke file Excel (.xlsx).",
-    hint: "Cocok untuk PDF berisi daftar atau tabel sederhana. Bukan OCR scan.",
+    hint: "Cocok untuk PDF berisi daftar atau tabel sederhana. Bukan OCR scan. Diproses di server.",
     accept: "pdf",
     multiple: false,
     minFiles: 1,
     group: "konversi",
+    processing: "server",
   },
   {
     slug: "pdf-ke-powerpoint",
     title: "PDF ke PowerPoint",
     short: "PDF → PowerPoint",
     description: "Ubah teks PDF menjadi presentasi PowerPoint (.pptx).",
-    hint: "Setiap halaman PDF menjadi satu slide. Layout kompleks tidak selalu sama persis.",
+    hint: "Setiap halaman PDF menjadi satu slide. Layout kompleks tidak selalu sama persis. Diproses di browser.",
     accept: "pdf",
     multiple: false,
     minFiles: 1,
     group: "konversi",
+    processing: "device",
   },
 ];
 
