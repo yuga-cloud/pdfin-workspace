@@ -39,4 +39,8 @@ export default defineConfig(({ command, isPreview }) => ({
       : []),
     viteReact(),
   ],
+  test: {
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["scripts/**/*.test.{mjs,ts,tsx}"],
+  },
 }));
