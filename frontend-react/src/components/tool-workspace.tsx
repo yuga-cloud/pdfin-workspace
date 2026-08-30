@@ -29,6 +29,7 @@ import {
   countPages,
   processTool,
   renderThumbs,
+  revokeObjectUrls,
   type ToolOptions,
 } from "@/lib/pdf/engine";
 import { cn, formatBytes, uid } from "@/lib/utils";
@@ -137,6 +138,9 @@ function ToolWorkspaceInner({
   const resultUrlRef =
     useRef<string | null>(null);
 
+  const thumbUrlsRef =
+    useRef<string[]>([]);
+
   const [items, setItems] =
     useState<Item[]>([]);
 
@@ -196,18 +200,32 @@ function ToolWorkspaceInner({
         URL.revokeObjectURL(url);
         resultUrlRef.current = null;
       }
+
+      revokeObjectUrls(
+        thumbUrlsRef.current,
+      );
+
+      thumbUrlsRef.current = [];
     };
   }, []);
 
   useEffect(() => {
+    const controller =
+      new AbortController();
+
     let cancelled = false;
+
+    setThumbs((current) => {
+      revokeObjectUrls(current);
+      thumbUrlsRef.current = [];
+      return [];
+    });
 
     async function loadMeta() {
       if (
         tool.accept !== "pdf" ||
         items.length !== 1
       ) {
-        setThumbs([]);
         setPageCount(null);
         return;
       }
@@ -216,7 +234,6 @@ function ToolWorkspaceInner({
         items[0]?.file;
 
       if (!file) {
-        setThumbs([]);
         setPageCount(null);
         return;
       }
@@ -246,22 +263,43 @@ function ToolWorkspaceInner({
 
       try {
         const urls =
-          await renderThumbs(file);
+          await renderThumbs(
+            file,
+            undefined,
+            controller.signal,
+          );
 
-        if (!cancelled) {
-          setThumbs(urls);
-
-          setOptions((current) => ({
-            ...current,
-            pageOrder:
-              urls.map(
-                (_, index) =>
-                  index,
-              ),
-          }));
+        if (
+          cancelled ||
+          controller.signal.aborted
+        ) {
+          revokeObjectUrls(urls);
+          return;
         }
+
+        setThumbs((current) => {
+          revokeObjectUrls(current);
+          thumbUrlsRef.current = urls;
+          return urls;
+        });
+
+        setOptions((current) => ({
+          ...current,
+          pageOrder:
+            urls.map(
+              (_, index) =>
+                index,
+            ),
+        }));
       } catch (err) {
-        if (!cancelled) {
+        if (
+          !cancelled &&
+          !controller.signal.aborted &&
+          !(
+            err instanceof Error &&
+            err.name === "AbortError"
+          )
+        ) {
           setError(
             err instanceof Error
               ? err.message
@@ -279,6 +317,7 @@ function ToolWorkspaceInner({
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [
     items,
