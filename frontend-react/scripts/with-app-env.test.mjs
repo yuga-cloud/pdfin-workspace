@@ -20,9 +20,10 @@ import {
 } from "./with-app-env.ts";
 
 const execFileAsync = promisify(execFile);
-const WRAPPER = join(projectRoot(), "scripts/with-app-env.ts");
+const PROJECT_ROOT = projectRoot();
+const WRAPPER = join(PROJECT_ROOT, "scripts/with-app-env.ts");
 const TSX_BIN = join(
-  projectRoot(),
+  PROJECT_ROOT,
   "node_modules",
   ".bin",
   process.platform === "win32" ? "tsx.cmd" : "tsx",
@@ -40,11 +41,9 @@ function makeWorkspace(appEnvJson) {
 }
 
 function testEnv(overrides = {}) {
-  return {
-    ...process.env,
-    VITE_AUTH_ENABLED: undefined,
-    ...overrides,
-  };
+  const env = { ...process.env };
+  delete env.VITE_AUTH_ENABLED;
+  return { ...env, ...overrides };
 }
 
 test("keeps VITE_-prefixed string entries", () => {
@@ -103,7 +102,7 @@ test("the wrapped command runs with the app env applied", async () => {
     [WRAPPER, process.execPath, "-e", PRINT_FLAG],
     { cwd: root, env: testEnv() },
   );
-  assert.equal(stdout, "undefined");
+  assert.equal(stdout, "false");
 });
 
 test("the wrapped command sees an explicit override, not the fixture value", async () => {
@@ -133,15 +132,19 @@ test("the wrapper propagates the command's exit code", async () => {
 test("a signal-killed command is never reported as success", async () => {
   const root = makeWorkspace(DEFAULT_APP_ENV);
   await assert.rejects(
-    execFileAsync(TSX_BIN, [
-      WRAPPER,
-      process.execPath,
-      "-e",
-      "process.kill(process.pid, 'SIGTERM');setTimeout(() => {}, 1000);",
-    ], {
-      cwd: root,
-      env: testEnv(),
-    }),
+    execFileAsync(
+      TSX_BIN,
+      [
+        WRAPPER,
+        process.execPath,
+        "-e",
+        "process.kill(process.pid, 'SIGTERM');setTimeout(() => {}, 1000);",
+      ],
+      {
+        cwd: root,
+        env: testEnv(),
+      },
+    ),
     (err) =>
       err.signal === "SIGTERM" ||
       (err.code !== undefined && Number(err.code) !== 0),
@@ -152,11 +155,11 @@ test("the CLI still runs when invoked through a symlinked path", async () => {
   const root = makeWorkspace(DEFAULT_APP_ENV);
   const linkRoot = mkdtempSync(join(tmpdir(), "app-env-link-"));
   const link = join(linkRoot, "scripts");
-  symlinkSync(join(projectRoot(), "scripts"), link);
+  symlinkSync(join(PROJECT_ROOT, "scripts"), link);
   const { stdout } = await execFileAsync(
     TSX_BIN,
     [join(link, "with-app-env.ts"), process.execPath, "-e", PRINT_FLAG],
     { cwd: root, env: testEnv() },
   );
-  assert.equal(stdout, "undefined");
+  assert.equal(stdout, "false");
 });
