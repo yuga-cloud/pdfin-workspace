@@ -11,13 +11,9 @@ export class ApiError extends Error {
 
   constructor(
     message: string,
-    options: {
-      code?: string;
-      status: number;
-    },
+    options: { code?: string; status: number },
   ) {
     super(message);
-
     this.name = "ApiError";
     this.code = options.code ?? "api_error";
     this.status = options.status;
@@ -25,36 +21,52 @@ export class ApiError extends Error {
 }
 
 export const DEFAULT_API_TIMEOUT_MS = 130_000;
+export const MAX_REQUEST_BODY_BYTES = 50 * 1024 * 1024;
+export const MAX_FIELD_TEXT_LENGTH = 16 * 1024;
+export const MAX_ERROR_MESSAGE_LENGTH = 2_000;
 
-async function parseError(
-  response: Response,
-): Promise<ApiError> {
-  const contentType =
-    response.headers.get("content-type") ?? "";
+function validateUploadSize(file: File | Blob): void {
+  if (file.size > MAX_REQUEST_BODY_BYTES) {
+    throw new ApiError(
+      `Ukuran file melebihi batas upload ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MiB.`,
+      { status: 0, code: "file_too_large" },
+    );
+  }
+}
+
+function validateTextField(fieldName: string, value: string): void {
+  if (value.length > MAX_FIELD_TEXT_LENGTH) {
+    throw new ApiError(`Nilai field ${fieldName} terlalu panjang.`, {
+      status: 0,
+      code: "field_too_large",
+    });
+  }
+}
+
+async function parseError(response: Response): Promise<ApiError> {
+  const contentType = response.headers.get("content-type") ?? "";
 
   if (contentType.toLowerCase().includes("application/json")) {
     try {
       const payload = (await response.json()) as ApiErrorPayload;
       const error = payload.error;
+      const message =
+        typeof error?.message === "string"
+          ? error.message.slice(0, MAX_ERROR_MESSAGE_LENGTH)
+          : `Request gagal (${response.status}).`;
 
-      return new ApiError(
-        error?.message ?? `Request gagal (${response.status}).`,
-        {
-          code: error?.code,
-          status: response.status,
-        },
-      );
+      return new ApiError(message, {
+        code: error?.code,
+        status: response.status,
+      });
     } catch {
-      // Lanjut ke error fallback.
+      // Fallback ke pesan status HTTP.
     }
   }
 
-  return new ApiError(
-    `Request gagal (${response.status}).`,
-    {
-      status: response.status,
-    },
-  );
+  return new ApiError(`Request gagal (${response.status}).`, {
+    status: response.status,
+  });
 }
 
 export async function postMultipart(
@@ -62,6 +74,20 @@ export async function postMultipart(
   formData: FormData,
   timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
+  if (!endpoint.trim()) {
+    throw new ApiError("Endpoint API tidak valid.", {
+      status: 0,
+      code: "invalid_endpoint",
+    });
+  }
+
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new ApiError("Timeout API tidak valid.", {
+      status: 0,
+      code: "invalid_timeout",
+    });
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
@@ -109,10 +135,9 @@ export async function postFile(
   file: File | Blob,
   timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
+  validateUploadSize(file);
   const formData = new FormData();
-
   formData.append("file", file);
-
   return postMultipart(endpoint, formData, timeoutMs);
 }
 
@@ -123,10 +148,10 @@ export async function postFileWithText(
   value: string,
   timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
+  validateUploadSize(file);
+  validateTextField(fieldName, value);
   const formData = new FormData();
-
   formData.append("file", file);
   formData.append(fieldName, value);
-
   return postMultipart(endpoint, formData, timeoutMs);
 }
