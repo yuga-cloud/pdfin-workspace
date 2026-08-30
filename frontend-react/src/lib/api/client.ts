@@ -5,6 +5,8 @@ export type ApiErrorPayload = {
   };
 };
 
+export const API_REQUEST_TIMEOUT_MS = 130_000;
+
 export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
@@ -24,11 +26,8 @@ export class ApiError extends Error {
   }
 }
 
-async function parseError(
-  response: Response,
-): Promise<ApiError> {
-  const contentType =
-    response.headers.get("content-type") ?? "";
+async function parseError(response: Response): Promise<ApiError> {
+  const contentType = response.headers.get("content-type") ?? "";
 
   if (contentType.toLowerCase().includes("application/json")) {
     try {
@@ -47,30 +46,41 @@ async function parseError(
     }
   }
 
-  return new ApiError(
-    `Request gagal (${response.status}).`,
-    {
-      status: response.status,
-    },
-  );
+  return new ApiError(`Request gagal (${response.status}).`, {
+    status: response.status,
+  });
 }
 
 export async function postMultipart(
   endpoint: string,
   formData: FormData,
+  timeoutMs: number = API_REQUEST_TIMEOUT_MS,
 ): Promise<Blob> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   let response: Response;
 
   try {
     response = await fetch(endpoint, {
       method: "POST",
       body: formData,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError("Permintaan ke server melebihi batas waktu.", {
+        status: 408,
+        code: "request_timeout",
+      });
+    }
+
     throw new ApiError("Tidak dapat terhubung ke server.", {
       status: 0,
       code: "network_error",
     });
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (!response.ok) {
@@ -92,12 +102,13 @@ export async function postMultipart(
 export async function postFile(
   endpoint: string,
   file: File | Blob,
+  timeoutMs?: number,
 ): Promise<Blob> {
   const formData = new FormData();
 
   formData.append("file", file);
 
-  return postMultipart(endpoint, formData);
+  return postMultipart(endpoint, formData, timeoutMs);
 }
 
 export async function postFileWithText(
@@ -105,11 +116,12 @@ export async function postFileWithText(
   file: File | Blob,
   fieldName: string,
   value: string,
+  timeoutMs?: number,
 ): Promise<Blob> {
   const formData = new FormData();
 
   formData.append("file", file);
   formData.append(fieldName, value);
 
-  return postMultipart(endpoint, formData);
+  return postMultipart(endpoint, formData, timeoutMs);
 }
