@@ -4,6 +4,11 @@ use lopdf::{Document, Object, ObjectId};
 
 use super::common::validate_pdf;
 
+const MAX_MERGE_INPUTS: usize = 32;
+const MAX_TOTAL_INPUT_BYTES: usize = 500 * 1024 * 1024;
+const MAX_MERGED_PAGES: usize = 10_000;
+const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
+
 /// Menggabungkan beberapa PDF menjadi satu dokumen.
 ///
 /// Urutan halaman dijaga berdasarkan urutan halaman asli
@@ -14,6 +19,24 @@ use super::common::validate_pdf;
 pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
     if pdfs.is_empty() {
         return Err("Tidak ada file PDF yang akan digabungkan".to_owned());
+    }
+
+    if pdfs.len() > MAX_MERGE_INPUTS {
+        return Err(format!(
+            "Jumlah PDF melebihi batas maksimum ({MAX_MERGE_INPUTS})"
+        ));
+    }
+
+    let total_input_bytes = pdfs
+        .iter()
+        .try_fold(0usize, |total, pdf| total.checked_add(pdf.len()))
+        .ok_or_else(|| "Total ukuran PDF melebihi batas numerik yang didukung".to_owned())?;
+
+    if total_input_bytes > MAX_TOTAL_INPUT_BYTES {
+        return Err(format!(
+            "Total ukuran PDF melebihi batas maksimum ({} MB)",
+            MAX_TOTAL_INPUT_BYTES / 1024 / 1024
+        ));
     }
 
     for (index, pdf) in pdfs.iter().enumerate() {
@@ -102,6 +125,16 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
          * supaya urutan halaman tetap benar.
          */
         let pages = document.get_pages();
+
+        if pages_in_order
+            .len()
+            .saturating_add(pages.len())
+            > MAX_MERGED_PAGES
+        {
+            return Err(format!(
+                "Jumlah halaman hasil merge melebihi batas maksimum ({MAX_MERGED_PAGES})"
+            ));
+        }
 
         for object_id in pages.values().copied() {
             let object = document
@@ -301,6 +334,13 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
 
     if result.is_empty() {
         return Err("PDF hasil merge kosong.".to_owned());
+    }
+
+    if result.len() > MAX_OUTPUT_BYTES {
+        return Err(format!(
+            "PDF hasil merge melebihi batas maksimum ({} MB)",
+            MAX_OUTPUT_BYTES / 1024 / 1024
+        ));
     }
 
     Ok(result)
