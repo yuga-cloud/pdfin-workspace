@@ -12,7 +12,7 @@
     "build:dev": "tsx scripts/with-app-env.ts vite build --mode development",
     "preview": "tsx scripts/with-app-env.ts vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --test 'scripts/**/*.test.mjs' && vitest run",
+    "test": "tsx --test 'scripts/**/*.test.ts' && vitest run",
     "test:unit": "vitest run",
     "lint": "eslint .",
     "format": "prettier --write ."
