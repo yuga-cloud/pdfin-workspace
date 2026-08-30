@@ -1,4 +1,8 @@
-use axum::{body::Bytes, extract::{Multipart, State}, response::Response};
+use axum::{
+    body::Bytes,
+    extract::{Multipart, State},
+    response::Response,
+};
 use tokio::task;
 use tracing::error;
 
@@ -7,7 +11,7 @@ use crate::{
     error::AppError,
     features::convert::response::attachment_response,
     state::AppState,
-    zip::{create_stored_zip, ZipEntry},
+    zip::{ZipEntry, create_stored_zip},
 };
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
@@ -78,7 +82,10 @@ pub async fn split_pdf(
 
     let archive = create_stored_zip(&entries).map_err(|error| {
         error!(%error, "Gagal membuat ZIP hasil split PDF");
-        AppError::internal("split_zip_failed", "Gagal membuat arsip hasil pemisahan PDF")
+        AppError::internal(
+            "split_zip_failed",
+            "Gagal membuat arsip hasil pemisahan PDF",
+        )
     })?;
 
     Ok(attachment_response(
