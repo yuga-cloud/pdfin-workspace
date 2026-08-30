@@ -1,25 +1,14 @@
 ﻿/**
  * Brand-asset gate shared by browser-smoke.mjs (and unit-testable without a
  * browser): a canvas app is almost always a game / visually rich app, and
- * those must ship a custom share card  -  the default og.example.com placeholder is
- * not acceptable for them (see .app/skills/og/SKILL.md).
- *
- * Games must also set type=x:game in src/lib/og/site.json so the platform
- * injector emits og:type for X game-card unfurls, and public/x-banner.jpg for
- * the 50:11 X feed card. A card file is enough for bake to emit /og.jpg, but
- * brand-check still requires site.json `"card": "custom"` so the agent-facing
- * contract stays explicit.
- *
- * Checked on the filesystem (not the served head) so preview and mid-scaffold
- * workspaces are judged the same way.
+ * those must ship a custom share card. Games must also declare x:game in
+ * src/lib/og/site.json and provide the X feed card.
  */
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { OG_SITE_REL_PATH, readOgSite, siteHasCustomCard } from "./pwa-shared.ts";
 
-// Over this, link scrapers (X card previews included) time out or skip the
-// image, so the guard applies to any generated custom card.
-export const MAX_CARD_BYTES = 2 * 1024 * 1024;
+export const MAX_CARD_BYTES = 600 * 1024;
 
 function fileBytes(root, relativePath) {
   const path = join(root, relativePath);
@@ -45,29 +34,40 @@ export function computeBrandWarnings({ hasCanvas, workspaceRoot }) {
   const site = readOgSite(workspaceRoot);
   const cardPath = customCardPath(workspaceRoot);
   const customSiteCard = siteHasCustomCard(site);
+  const gameType = siteDeclaresOgTypeGame(site);
 
-  if (hasCanvas && !customSiteCard) {
-    warnings.push('BRAND WARNING: canvas apps must declare `"card": "custom"` in src/lib/og/site.json.');
+  if (hasCanvas && !cardPath) {
+    warnings.push(
+      'BRAND WARNING: public/og.jpg is missing; canvas apps are not done without a custom share card.',
+    );
+  } else if (hasCanvas && !customSiteCard) {
+    warnings.push(
+      'BRAND WARNING: canvas apps must declare `"card": "custom"` in src/lib/og/site.json.',
+    );
   } else if (!hasCanvas && cardPath && !customSiteCard) {
-    warnings.push('BRAND WARNING: custom card file found without `"card": "custom"` in src/lib/og/site.json.');
+    warnings.push(
+      'BRAND WARNING: custom card file found without `"card": "custom"` in src/lib/og/site.json.',
+    );
   } else if (!hasCanvas && !cardPath && !customSiteCard) {
     warnings.push("BRAND NOTE: plain utility app; no custom share card configured.");
   }
 
   if (cardPath && fileBytes(workspaceRoot, cardPath) > MAX_CARD_BYTES) {
-    warnings.push(`BRAND WARNING: custom card exceeds ${MAX_CARD_BYTES} bytes.`);
+    warnings.push(`BRAND WARNING: custom card is over 600 KB (${MAX_CARD_BYTES} bytes).`);
   }
 
-  if (siteDeclaresOgTypeGame(site) && !customSiteCard) {
-    warnings.push('BRAND WARNING: `type=x:game` requires `"card": "custom"`.');
+  if (hasCanvas && !gameType) {
+    warnings.push(
+      'BRAND WARNING: canvas apps must declare `type": "x:game"` in src/lib/og/site.json.',
+    );
   }
 
-  if (siteDeclaresOgTypeGame(site)) {
+  if (gameType) {
     const banner = fileBytes(workspaceRoot, "public/x-banner.jpg");
     if (!banner) {
       warnings.push("BRAND WARNING: x:game requires public/x-banner.jpg.");
     } else if (banner > MAX_CARD_BYTES) {
-      warnings.push(`BRAND WARNING: public/x-banner.jpg exceeds ${MAX_CARD_BYTES} bytes.`);
+      warnings.push("BRAND WARNING: x-banner.jpg is over 600 KB.");
     }
   }
 
