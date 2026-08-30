@@ -9,22 +9,15 @@ use super::pdf_table::{Table, detect_tables, extract_pdf_words, model::PdfWord};
 
 const MIN_COLUMN_WIDTH: f64 = 10.0;
 const MAX_COLUMN_WIDTH: f64 = 60.0;
+const MAX_OCR_TABLES: usize = 100;
 
 const HEADER_COLOR: u32 = 0x44C7E6;
-
-/* -------------------------------------------------------------------------- */
-/* PUBLIC API                                                                 */
-/* -------------------------------------------------------------------------- */
 
 pub fn pdf_to_excel(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
     validate_input(pdf_bytes, "PDF")?;
 
     tracing::info!("Memulai PDF → Excel");
 
-    /*
-     * Tahap 1:
-     * PDFium mencoba membaca text layer PDF.
-     */
     let tables = match extract_pdf_words(pdf_bytes) {
         Ok(pages) => {
             tracing::info!(
@@ -32,10 +25,6 @@ pub fn pdf_to_excel(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
                 "PDF text berhasil diekstrak menggunakan PDFium"
             );
 
-            /*
-             * Tahap 2:
-             * Deteksi struktur tabel berdasarkan posisi text.
-             */
             detect_tables(&pages)
         }
         Err(error) => {
@@ -57,21 +46,11 @@ pub fn pdf_to_excel(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
         return build_workbook(&tables);
     }
 
-    /*
-     * Jika PDFium tidak menemukan struktur tabel,
-     * gunakan OCR sebagai fallback.
-     */
     tracing::warn!("Struktur tabel tidak ditemukan menggunakan PDFium, menggunakan OCR fallback");
 
     pdf_to_excel_ocr(pdf_bytes)
 }
 
-/* -------------------------------------------------------------------------- */
-/* OCR FALLBACK                                                               */
-/* -------------------------------------------------------------------------- */
-
-/// Mengonversi item OCR (OcrTextItem) menjadi PdfWord agar dapat
-/// diproses oleh algoritma detektor tabel yang sama dengan PDF native.
 fn ocr_items_to_pdf_words(items: &[tesseract::OcrTextItem]) -> Vec<PdfWord> {
     items
         .iter()
@@ -96,9 +75,17 @@ fn pdf_to_excel_ocr(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
         return Err("OCR renderer tidak menghasilkan halaman gambar.".to_owned());
     }
 
-    let mut pages_of_words = Vec::with_capacity(image_paths.len());
+    let mut tables = Vec::new();
 
     for (index, image_path) in image_paths.iter().enumerate() {
+        if tables.len() >= MAX_OCR_TABLES {
+            tracing::warn!(
+                max_tables = MAX_OCR_TABLES,
+                "Batas jumlah tabel OCR tercapai; pemrosesan dihentikan"
+            );
+            break;
+        }
+
         tracing::debug!(
             page = index + 1,
             image = %image_path.display(),
@@ -113,23 +100,15 @@ fn pdf_to_excel_ocr(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
                     %error,
                     "Tesseract gagal memproses halaman ini, dilewati"
                 );
-
-                pages_of_words.push(Vec::new());
                 continue;
             }
         };
 
         if items.is_empty() {
             tracing::warn!(page = index + 1, "Tesseract tidak menemukan text");
-
-            pages_of_words.push(Vec::new());
             continue;
         }
 
-        /*
-         * Ubah OcrTextItem menjadi PdfWord agar seragam
-         * dengan pipeline deteksi tabel native.
-         */
         let words = ocr_items_to_pdf_words(&items);
 
         tracing::debug!(
@@ -138,19 +117,12 @@ fn pdf_to_excel_ocr(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
             "OCR page berhasil diproses ke PdfWord"
         );
 
-        pages_of_words.push(words);
+        // Hanya satu halaman yang hidup di memory selama detection.
+        let page_tables = detect_tables(std::slice::from_ref(&words));
+        tables.extend(page_tables);
     }
 
-    /*
-     * Cleanup dilakukan setelah seluruh OCR selesai
-     * supaya file gambar masih tersedia selama proses pembacaan.
-     */
     cleanup_ocr_files(&image_paths);
-
-    /*
-     * Jalankan detektor tabel yang sama persis dengan PDF native.
-     */
-    let tables = detect_tables(&pages_of_words);
 
     if tables.is_empty() {
         return Err("OCR tidak menghasilkan struktur tabel yang valid.".to_owned());
@@ -163,10 +135,6 @@ fn pdf_to_excel_ocr(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
 
     build_workbook(&tables)
 }
-
-/* -------------------------------------------------------------------------- */
-/* OCR CLEANUP                                                               */
-/* -------------------------------------------------------------------------- */
 
 fn cleanup_ocr_files(image_paths: &[PathBuf]) {
     let Some(parent) = image_paths.first().and_then(|path| path.parent()) else {
@@ -186,10 +154,6 @@ fn cleanup_ocr_files(image_paths: &[PathBuf]) {
         );
     }
 }
-
-/* -------------------------------------------------------------------------- */
-/* TABLE → XLSX WORKBOOK BUILDER                                              */
-/* -------------------------------------------------------------------------- */
 
 fn build_workbook(tables: &[Table]) -> Result<Vec<u8>, String> {
     let mut workbook = Workbook::new();
@@ -216,10 +180,6 @@ fn build_workbook(tables: &[Table]) -> Result<Vec<u8>, String> {
         .save_to_buffer()
         .map_err(|error| format!("Gagal membuat XLSX: {error}"))
 }
-
-/* -------------------------------------------------------------------------- */
-/* XLSX WRITER                                                                */
-/* -------------------------------------------------------------------------- */
 
 fn write_rows_to_sheet(
     worksheet: &mut rust_xlsxwriter::Worksheet,
@@ -260,11 +220,6 @@ fn write_rows_to_sheet(
 
     let mut widths = vec![MIN_COLUMN_WIDTH; column_count];
 
-    /*
-     * TAHAP BARU: Deteksi Header Asli Dinamis
-     * Mencari baris mana yang merupakan header utama (seperti baris "No" / "Date In").
-     * Cirinya: Kolom index 0 terisi, dan baris ini punya minimal 2 kolom yg terisi.
-     */
     let mut actual_header_row = 0;
     for (i, row) in rows.iter().enumerate() {
         let starts_on_left = row.first().is_some_and(|cell| !cell.trim().is_empty());
@@ -285,9 +240,6 @@ fn write_rows_to_sheet(
             let row_number = row_index as u32;
             let column_number = column_index as u16;
 
-            /*
-             * Baris dinamis dianggap sebagai header untuk pewarnaan biru
-             */
             if row_index == actual_header_row {
                 worksheet
                     .write_string_with_format(row_number, column_number, value, &header_format)
@@ -304,9 +256,6 @@ fn write_rows_to_sheet(
         }
     }
 
-    /*
-     * Atur lebar kolom secara otomatis berdasarkan panjang text.
-     */
     for (column_index, width) in widths.iter().enumerate() {
         worksheet
             .set_column_width(
@@ -316,19 +265,12 @@ fn write_rows_to_sheet(
             .map_err(|error| format!("Gagal mengatur lebar kolom: {error}"))?;
     }
 
-    /*
-     * Freeze baris tepat di bawah header asli
-     */
     worksheet
         .set_freeze_panes(actual_header_row as u32 + 1, 0)
         .map_err(|error| format!("Gagal mengatur freeze panes: {error}"))?;
 
     Ok(())
 }
-
-/* -------------------------------------------------------------------------- */
-/* NUMBER PARSER                                                              */
-/* -------------------------------------------------------------------------- */
 
 fn parse_number(value: &str) -> Option<f64> {
     let value = value.trim();
