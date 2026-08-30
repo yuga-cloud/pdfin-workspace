@@ -13,8 +13,11 @@ tokio = {
         "rt-multi-thread",
         "net",
         "signal",
+        "sync",
     ],
 }
+
+tower = { version = "0.5.2", features = ["limit"] }
 
 tower-http = {
     version = "0.7.0",
@@ -44,3 +47,5 @@ tempfile = { workspace = true }
 
 pdfium-render = "0.9.3"
 pdfium-bundled = "0.1.1"
+
+docx-rs = "0.4.22"

@@ -4,25 +4,20 @@ use axum::{
 };
 
 use crate::{
-    engines::office::pdf_to_powerpoint::pdf_to_powerpoint as pdf_to_powerpoint_engine,
-    error::AppError, state::AppState,
+    error::{error_code, AppError},
+    state::AppState,
 };
 
-use super::super::{
-    response::binary_response,
-    service::{read_single_file, run_conversion},
-};
-
-const POWERPOINT_CONTENT_TYPE: &str =
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+use super::super::service::read_single_file;
 
 pub async fn handler(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     multipart: Multipart,
 ) -> Result<Response, AppError> {
-    let data = read_single_file(multipart).await?;
+    let _ = read_single_file(multipart).await?;
 
-    let output = run_conversion(state, data, pdf_to_powerpoint_engine, "PDF → PowerPoint").await?;
-
-    Ok(binary_response(POWERPOINT_CONTENT_TYPE, output))
+    Err(AppError::not_implemented(
+        error_code::CONVERSION_NOT_IMPLEMENTED,
+        "Konversi PDF ke PowerPoint belum tersedia.",
+    ))
 }
