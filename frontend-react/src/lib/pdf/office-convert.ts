@@ -29,6 +29,36 @@ async function loadPptxGenJs() {
   return import("pptxgenjs");
 }
 
+type PdfTextItem = {
+  transform: number[];
+  str: string;
+};
+
+function isPdfTextItem(item: unknown): item is PdfTextItem {
+  if (!item || typeof item !== "object") {
+    return false;
+  }
+
+  const candidate = item as {
+    transform?: unknown;
+    str?: unknown;
+  };
+
+  return (
+    Array.isArray(candidate.transform) &&
+    candidate.transform.length >= 6 &&
+    candidate.transform.every(
+      (value) =>
+        typeof value === "number" && Number.isFinite(value),
+    ) &&
+    typeof candidate.str === "string"
+  );
+}
+
+function getPdfTextItems(items: unknown[]): PdfTextItem[] {
+  return items.filter(isPdfTextItem);
+}
+
 // ─────────────────────────────────────────────────────────────
 // Word → PDF
 // ─────────────────────────────────────────────────────────────
@@ -577,111 +607,130 @@ export async function pdfToWord(
   const pdf =
     await task.promise;
 
-  const total =
-    pdf.numPages;
+  try {
+    const total =
+      pdf.numPages;
 
-  const docParagraphs:
-    InstanceType<
-      typeof Paragraph
-    >[] = [];
-
-  for (
-    let pageNumber = 1;
-    pageNumber <= total;
-    pageNumber += 1
-  ) {
-    onProgress?.(
-      0.1 +
-        (pageNumber /
-          total) *
-          0.7,
-      1,
-      `Mengekstrak teks halaman ${pageNumber}...`,
-    );
-
-    const page =
-      await pdf.getPage(
-        pageNumber,
-      );
-
-    const textContent =
-      await page.getTextContent();
-
-    const items =
-      textContent.items as Array<{
-        transform: number[];
-        str: string;
-      }>;
-
-    const sortedItems =
-      [...items].sort(
-        (a, b) => {
-          const yA =
-            a.transform[5];
-
-          const yB =
-            b.transform[5];
-
-          if (
-            Math.abs(
-              yA - yB,
-            ) < 5
-          ) {
-            return (
-              a.transform[4] -
-              b.transform[4]
-            );
-          }
-
-          return yB - yA;
-        },
-      );
-
-    let currentY = -1;
-    let currentLine = "";
-
-    docParagraphs.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text:
-              `--- Halaman ${pageNumber} ---`,
-            bold: true,
-          }),
-        ],
-      }),
-    );
+    const docParagraphs:
+      InstanceType<
+        typeof Paragraph
+      >[] = [];
 
     for (
-      const item of sortedItems
+      let pageNumber = 1;
+      pageNumber <= total;
+      pageNumber += 1
     ) {
-      const y =
-        item.transform[5];
+      onProgress?.(
+        0.1 +
+          (pageNumber /
+            total) *
+            0.7,
+        1,
+        `Mengekstrak teks halaman ${pageNumber}...`,
+      );
 
-      if (
-        currentY === -1
-      ) {
-        currentY = y;
-        currentLine =
-          item.str;
-      } else if (
-        Math.abs(
-          currentY - y,
-        ) < 5
-      ) {
-        currentLine +=
-          currentLine.endsWith(
-            " ",
-          ) ||
-          item.str.startsWith(
-            " ",
-          )
-            ? ""
-            : " ";
+      const page =
+        await pdf.getPage(
+          pageNumber,
+        );
 
-        currentLine +=
-          item.str;
-      } else {
+      try {
+        const textContent =
+          await page.getTextContent();
+
+        const items =
+          getPdfTextItems(textContent.items);
+
+        const sortedItems =
+          [...items].sort(
+            (a, b) => {
+              const yA =
+                a.transform[5];
+
+              const yB =
+                b.transform[5];
+
+              if (
+                Math.abs(
+                  yA - yB,
+                ) < 5
+              ) {
+                return (
+                  a.transform[4] -
+                  b.transform[4]
+                );
+              }
+
+              return yB - yA;
+            },
+          );
+
+        let currentY = -1;
+        let currentLine = "";
+
+        docParagraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text:
+                  `--- Halaman ${pageNumber} ---`,
+                bold: true,
+              }),
+            ],
+          }),
+        );
+
+        for (
+          const item of sortedItems
+        ) {
+          const y =
+            item.transform[5];
+
+          if (
+            currentY === -1
+          ) {
+            currentY = y;
+            currentLine =
+              item.str;
+          } else if (
+            Math.abs(
+              currentY - y,
+            ) < 5
+          ) {
+            currentLine +=
+              currentLine.endsWith(
+                " ",
+              ) ||
+              item.str.startsWith(
+                " ",
+              )
+                ? ""
+                : " ";
+
+            currentLine +=
+              item.str;
+          } else {
+            if (
+              currentLine.trim()
+            ) {
+              docParagraphs.push(
+                new Paragraph({
+                  children: [
+                    new TextRun(
+                      currentLine.trim(),
+                    ),
+                  ],
+                }),
+              );
+            }
+
+            currentY = y;
+            currentLine =
+              item.str;
+          }
+        }
+
         if (
           currentLine.trim()
         ) {
@@ -696,74 +745,60 @@ export async function pdfToWord(
           );
         }
 
-        currentY = y;
-        currentLine =
-          item.str;
+        docParagraphs.push(
+          new Paragraph({
+            children: [],
+          }),
+        );
+      } finally {
+        page.cleanup();
       }
+
+      await yieldToUi();
     }
 
-    if (
-      currentLine.trim()
-    ) {
-      docParagraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun(
-              currentLine.trim(),
-            ),
-          ],
-        }),
+    onProgress?.(
+      0.85,
+      1,
+      "Mengemas dokumen Word...",
+    );
+
+    const doc =
+      new Document({
+        sections: [
+          {
+            properties: {},
+            children:
+              docParagraphs,
+          },
+        ],
+      });
+
+    const docxBlob =
+      await Packer.toBlob(
+        doc,
       );
+
+    onProgress?.(
+      1,
+      1,
+      "Selesai!",
+    );
+
+    return {
+      blob: docxBlob,
+      filename:
+        `${stem(file.name)}.docx`,
+      mime:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+  } finally {
+    try {
+      await pdf.cleanup();
+    } finally {
+      await task.destroy();
     }
-
-    docParagraphs.push(
-      new Paragraph({
-        children: [],
-      }),
-    );
-
-    page.cleanup();
-
-    await yieldToUi();
   }
-
-  await pdf.cleanup();
-
-  onProgress?.(
-    0.85,
-    1,
-    "Mengemas dokumen Word...",
-  );
-
-  const doc =
-    new Document({
-      sections: [
-        {
-          properties: {},
-          children:
-            docParagraphs,
-        },
-      ],
-    });
-
-  const docxBlob =
-    await Packer.toBlob(
-      doc,
-    );
-
-  onProgress?.(
-    1,
-    1,
-    "Selesai!",
-  );
-
-  return {
-    blob: docxBlob,
-    filename:
-      `${stem(file.name)}.docx`,
-    mime:
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -800,100 +835,113 @@ export async function pdfToPowerpoint(
   const pdf =
     await task.promise;
 
-  const total =
-    pdf.numPages;
+  try {
+    const total =
+      pdf.numPages;
 
-  const pptx =
-    new PptxGenJS();
-
-  for (
-    let pageNumber = 1;
-    pageNumber <= total;
-    pageNumber += 1
-  ) {
-    onProgress?.(
-      0.1 +
-        (pageNumber /
-          total) *
-          0.7,
-      1,
-      `Mengekstrak teks halaman ${pageNumber}...`,
-    );
-
-    const page =
-      await pdf.getPage(
-        pageNumber,
-      );
-
-    const textContent =
-      await page.getTextContent();
-
-    const items =
-      textContent.items as Array<{
-        transform: number[];
-        str: string;
-      }>;
-
-    const sortedItems =
-      [...items].sort(
-        (a, b) => {
-          const yA =
-            a.transform[5];
-
-          const yB =
-            b.transform[5];
-
-          if (
-            Math.abs(
-              yA - yB,
-            ) < 5
-          ) {
-            return (
-              a.transform[4] -
-              b.transform[4]
-            );
-          }
-
-          return yB - yA;
-        },
-      );
-
-    const textLines: string[] =
-      [];
-
-    let currentY = -1;
-    let currentLine = "";
+    const pptx =
+      new PptxGenJS();
 
     for (
-      const item of sortedItems
+      let pageNumber = 1;
+      pageNumber <= total;
+      pageNumber += 1
     ) {
-      const y =
-        item.transform[5];
+      onProgress?.(
+        0.1 +
+          (pageNumber /
+            total) *
+            0.7,
+        1,
+        `Mengekstrak teks halaman ${pageNumber}...`,
+      );
 
-      if (
-        currentY === -1
-      ) {
-        currentY = y;
-        currentLine =
-          item.str;
-      } else if (
-        Math.abs(
-          currentY - y,
-        ) < 5
-      ) {
-        currentLine +=
-          currentLine.endsWith(
-            " ",
-          ) ||
-          item.str.startsWith(
-            " ",
-          )
-            ? ""
-            : " ";
+      const page =
+        await pdf.getPage(
+          pageNumber,
+        );
 
-        currentLine +=
-          item.str;
-      } else {
+      try {
+        const textContent =
+          await page.getTextContent();
+
+        const items =
+          getPdfTextItems(textContent.items);
+
+        const sortedItems =
+          [...items].sort(
+            (a, b) => {
+              const yA =
+                a.transform[5];
+
+              const yB =
+                b.transform[5];
+
+              if (
+                Math.abs(
+                  yA - yB,
+                ) < 5
+              ) {
+                return (
+                  a.transform[4] -
+                  b.transform[4]
+                );
+              }
+
+              return yB - yA;
+            },
+          );
+
+        const textLines: string[] =
+          [];
+
+        let currentY = -1;
+        let currentLine = "";
+
+        for (
+          const item of sortedItems
+        ) {
+          const y =
+            item.transform[5];
+
+          if (
+            currentY === -1
+          ) {
+            currentY = y;
+            currentLine =
+              item.str;
+          } else if (
+            Math.abs(
+              currentY - y,
+            ) < 5
+          ) {
+            currentLine +=
+              currentLine.endsWith(
+                " ",
+              ) ||
+              item.str.startsWith(
+                " ",
+              )
+                ? ""
+                : " ";
+
+            currentLine +=
+              item.str;
+          } else {
+            if (
+              currentLine.trim()
+            ) {
+              textLines.push(
+                currentLine.trim(),
+              );
+            }
+
+            currentY = y;
+            currentLine =
+              item.str;
+          }
+        }
+
         if (
           currentLine.trim()
         ) {
@@ -902,107 +950,99 @@ export async function pdfToPowerpoint(
           );
         }
 
-        currentY = y;
-        currentLine =
-          item.str;
+        const slide =
+          pptx.addSlide();
+
+        if (
+          textLines.length > 0
+        ) {
+          const title =
+            textLines[0];
+
+          slide.addText(
+            title,
+            {
+              x: 0.5,
+              y: 0.5,
+              w: 9,
+              h: 0.8,
+              fontSize: 24,
+              bold: true,
+              color:
+                "1B365D",
+            },
+          );
+
+          const bodyText =
+            textLines
+              .slice(1)
+              .join("\n");
+
+          if (
+            bodyText.trim()
+          ) {
+            slide.addText(
+              bodyText,
+              {
+                x: 0.5,
+                y: 1.5,
+                w: 9,
+                h: 4.5,
+                fontSize: 14,
+                color:
+                  "333333",
+                valign:
+                  "top",
+              },
+            );
+          }
+        } else {
+          slide.addText(
+            `Slide ${pageNumber}`,
+            {
+              x: 0.5,
+              y: 0.5,
+              fontSize: 24,
+              bold: true,
+            },
+          );
+        }
+      } finally {
+        page.cleanup();
       }
+
+      await yieldToUi();
     }
 
-    if (
-      currentLine.trim()
-    ) {
-      textLines.push(
-        currentLine.trim(),
-      );
+    onProgress?.(
+      0.9,
+      1,
+      "Menghasilkan slide PowerPoint...",
+    );
+
+    const pptxBlob =
+      (await pptx.write({
+        outputType: "blob",
+      })) as Blob;
+
+    onProgress?.(
+      1,
+      1,
+      "Selesai!",
+    );
+
+    return {
+      blob: pptxBlob,
+      filename:
+        `${stem(file.name)}.pptx`,
+      mime:
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    };
+  } finally {
+    try {
+      await pdf.cleanup();
+    } finally {
+      await task.destroy();
     }
-
-    const slide =
-      pptx.addSlide();
-
-    if (
-      textLines.length > 0
-    ) {
-      const title =
-        textLines[0];
-
-      slide.addText(
-        title,
-        {
-          x: 0.5,
-          y: 0.5,
-          w: 9,
-          h: 0.8,
-          fontSize: 24,
-          bold: true,
-          color:
-            "1B365D",
-        },
-      );
-
-      const bodyText =
-        textLines
-          .slice(1)
-          .join("\n");
-
-      if (
-        bodyText.trim()
-      ) {
-        slide.addText(
-          bodyText,
-          {
-            x: 0.5,
-            y: 1.5,
-            w: 9,
-            h: 4.5,
-            fontSize: 14,
-            color:
-              "333333",
-            valign:
-              "top",
-          },
-        );
-      }
-    } else {
-      slide.addText(
-        `Slide ${pageNumber}`,
-        {
-          x: 0.5,
-          y: 0.5,
-          fontSize: 24,
-          bold: true,
-        },
-      );
-    }
-
-    page.cleanup();
-
-    await yieldToUi();
   }
-
-  await pdf.cleanup();
-
-  onProgress?.(
-    0.9,
-    1,
-    "Menghasilkan slide PowerPoint...",
-  );
-
-  const pptxBlob =
-    (await pptx.write({
-      outputType: "blob",
-    })) as Blob;
-
-  onProgress?.(
-    1,
-    1,
-    "Selesai!",
-  );
-
-  return {
-    blob: pptxBlob,
-    filename:
-      `${stem(file.name)}.pptx`,
-    mime:
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  };
 }
