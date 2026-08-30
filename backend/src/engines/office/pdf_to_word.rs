@@ -2,7 +2,10 @@ use std::io::Cursor;
 
 use docx_rs::{BreakType, Docx, Paragraph, Run};
 
-use crate::engines::{common::validate_input, office::pdf_table::extract_pdf_words};
+use crate::engines::{
+    common::validate_input,
+    office::pdf_table::extract_pdf_words,
+};
 
 pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
     validate_input(pdf_bytes, "PDF")?;
@@ -23,7 +26,11 @@ pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
             a.top
                 .partial_cmp(&b.top)
                 .unwrap_or(std::cmp::Ordering::Equal)
-                .then_with(|| a.left.partial_cmp(&b.left).unwrap_or(std::cmp::Ordering::Equal))
+                .then_with(|| {
+                    a.left
+                        .partial_cmp(&b.left)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
         });
 
         let mut previous_top: Option<f32> = None;
