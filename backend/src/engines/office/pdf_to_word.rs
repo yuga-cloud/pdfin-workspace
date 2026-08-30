@@ -16,8 +16,6 @@ pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
     let mut document = Docx::new();
 
     for (page_index, words) in pages.iter().enumerate() {
-        let mut paragraph = Paragraph::new();
-
         let mut ordered = words.clone();
         ordered.sort_by(|a, b| {
             a.top
@@ -30,13 +28,16 @@ pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
                 })
         });
 
+        let mut paragraph = Paragraph::new();
         let mut previous_top: Option<f32> = None;
         let mut has_text = false;
 
         for word in ordered {
             if let Some(top) = previous_top {
-                if (word.top - top).abs() > 10.0 {
-                    paragraph = paragraph.add_run(Run::new().add_break(BreakType::Line));
+                if (word.top - top).abs() > 10.0 && has_text {
+                    document = document.add_paragraph(paragraph);
+                    paragraph = Paragraph::new();
+                    has_text = false;
                 }
             }
 
