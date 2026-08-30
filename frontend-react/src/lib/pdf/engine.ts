@@ -82,6 +82,43 @@ export async function loadPdfjs() {
   return pdfjs;
 }
 
+async function normalizeImageToJpeg(file: File): Promise<Blob> {
+  if (file.type === "image/jpeg" || /\.jpe?g$/i.test(file.name)) {
+    return file;
+  }
+
+  if (typeof createImageBitmap !== "function") {
+    fail("Browser tidak mendukung konversi format gambar ini.");
+  }
+
+  const bitmap = await createImageBitmap(file);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      fail("Browser tidak mendukung canvas.");
+    }
+
+    context.drawImage(bitmap, 0, 0);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) =>
+          blob
+            ? resolve(blob)
+            : reject(new Error("Gagal mengonversi gambar ke JPEG.")),
+        "image/jpeg",
+        0.92,
+      );
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
 async function fileBytes(
   file: File,
 ): Promise<Uint8Array> {
@@ -1084,9 +1121,14 @@ export async function processTool(
         "Mengubah JPG ke PDF di server Rust...",
       );
 
+      const jpegFiles =
+        await Promise.all(
+          files.map(normalizeImageToJpeg),
+        );
+
       const blob =
         await jpgToPdfApi(
-          files[0],
+          jpegFiles,
         );
 
       onProgress?.(
