@@ -1,7 +1,10 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
+    sync::OnceLock,
+    thread,
+    time::{Duration, Instant},
 };
 
 use lopdf::Document;
@@ -16,6 +19,12 @@ const QPDF_CANDIDATES: [&str; 2] = ["qpdf", "/usr/bin/qpdf"];
 const GHOSTSCRIPT_CANDIDATES: [&str; 3] = ["gs", "ghostscript", "/usr/bin/gs"];
 
 const MIN_PRIMARY_REDUCTION_PERCENT: usize = 5;
+const SUBPROCESS_TIMEOUT: Duration = Duration::from_secs(90);
+const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(20);
+
+static PYTHON_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
+static QPDF_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
+static GHOSTSCRIPT_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompressionQuality {
@@ -45,26 +54,6 @@ impl CompressionQuality {
 
 /// Mengompresi PDF menggunakan pipeline yang dipilih
 /// berdasarkan kualitas.
-///
-/// Strategi:
-///
-/// HIGH:
-///     PyMuPDF lossless
-///     -> qpdf hanya sebagai fallback
-///
-/// MEDIUM:
-///     PyMuPDF balanced
-///     -> Ghostscript balanced sebagai fallback
-///
-/// LOW:
-///     PyMuPDF strong
-///     -> Ghostscript strong sebagai fallback
-///
-/// Berbeda dengan pipeline lama, kita TIDAK menjalankan
-/// semua engine untuk setiap request.
-///
-/// Ini penting untuk PDF besar karena satu PDF dapat
-/// berisi ratusan atau ribuan halaman.
 pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec<u8>, String> {
     validate_input(pdf_bytes, "PDF")?;
 
@@ -89,12 +78,6 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
     fs::write(&input_path, pdf_bytes)
         .map_err(|error| format!("Gagal menulis PDF sementara: {error}"))?;
 
-    /*
-     * ---------------------------------------------------------
-     * PRIMARY ENGINE: PyMuPDF
-     * ---------------------------------------------------------
-     */
-
     if let Some(python) = resolve_python()
         && let Some(script) = resolve_python_script()
     {
@@ -104,21 +87,10 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
 
         match run_pymupdf(&python, &script, quality, &input_path, &output_path) {
             Ok(output) if is_valid_pdf(&output, input_pages) => {
-                /*
-                 * Jika PyMuPDF sudah menghasilkan pengurangan
-                 * yang berarti, jangan jalankan engine kedua.
-                 *
-                 * Ini sangat penting untuk PDF besar.
-                 */
                 if has_meaningful_reduction(output.len(), pdf_bytes.len()) {
                     return Ok(output);
                 }
 
-                /*
-                 * Jika hasil PyMuPDF hanya sedikit lebih kecil,
-                 * kita masih memberikan kesempatan kepada
-                 * fallback engine.
-                 */
                 if output.len() < pdf_bytes.len() {
                     match run_fallback(
                         pdf_bytes,
@@ -144,16 +116,6 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
         }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * FALLBACK ENGINE
-     * ---------------------------------------------------------
-     *
-     * Kalau PyMuPDF tidak tersedia, gagal, atau hasilnya
-     * tidak memberikan pengurangan yang cukup, kita gunakan
-     * qpdf / Ghostscript.
-     */
-
     if let Some(fallback) = run_fallback(
         pdf_bytes,
         quality,
@@ -164,12 +126,6 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
         return Ok(fallback);
     }
 
-    /*
-     * Tidak ada engine yang menghasilkan file lebih kecil.
-     *
-     * Jangan pernah membuat hasil kompresi lebih besar
-     * daripada file asli.
-     */
     Ok(pdf_bytes.to_vec())
 }
 
@@ -182,15 +138,10 @@ fn run_fallback(
 ) -> Option<Vec<u8>> {
     match quality {
         CompressionQuality::High => {
-            let qpdf = resolve_program(&QPDF_CANDIDATES)?;
-
+            let qpdf = resolve_qpdf()?;
             let output = run_qpdf(&qpdf, input_path, temp_dir).ok()?;
 
-            if !is_valid_pdf(&output, expected_pages) {
-                return None;
-            }
-
-            if output.len() >= original_bytes.len() {
+            if !is_valid_pdf(&output, expected_pages) || output.len() >= original_bytes.len() {
                 return None;
             }
 
@@ -198,16 +149,11 @@ fn run_fallback(
         }
 
         CompressionQuality::Medium => {
-            let gs = resolve_program(&GHOSTSCRIPT_CANDIDATES)?;
-
+            let gs = resolve_ghostscript()?;
             let output =
                 run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Medium).ok()?;
 
-            if !is_valid_pdf(&output, expected_pages) {
-                return None;
-            }
-
-            if output.len() >= original_bytes.len() {
+            if !is_valid_pdf(&output, expected_pages) || output.len() >= original_bytes.len() {
                 return None;
             }
 
@@ -215,16 +161,11 @@ fn run_fallback(
         }
 
         CompressionQuality::Low => {
-            let gs = resolve_program(&GHOSTSCRIPT_CANDIDATES)?;
-
+            let gs = resolve_ghostscript()?;
             let output =
                 run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Low).ok()?;
 
-            if !is_valid_pdf(&output, expected_pages) {
-                return None;
-            }
-
-            if output.len() >= original_bytes.len() {
+            if !is_valid_pdf(&output, expected_pages) || output.len() >= original_bytes.len() {
                 return None;
             }
 
@@ -283,24 +224,18 @@ fn run_pymupdf(
     input_path: &Path,
     output_path: &Path,
 ) -> Result<Vec<u8>, String> {
-    let result = Command::new(python)
+    let mut command = Command::new(python);
+
+    command
         .arg(script)
         .arg(quality.as_str())
         .arg(input_path)
-        .arg(output_path)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("Gagal menjalankan PyMuPDF: {error}"))?;
+        .arg(output_path);
 
-    if !result.status.success() {
-        let stderr = String::from_utf8_lossy(&result.stderr);
+    let result = run_command_with_timeout(&mut command, "PyMuPDF")?;
 
-        return Err(format!(
-            "PyMuPDF gagal pada mode `{}`:\n{}",
-            quality.as_str(),
-            stderr
-        ));
+    if !result.success {
+        return Err(format!("PyMuPDF gagal pada mode `{}`", quality.as_str()));
     }
 
     fs::read(output_path).map_err(|error| format!("Gagal membaca output PyMuPDF: {error}"))
@@ -308,8 +243,9 @@ fn run_pymupdf(
 
 fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, String> {
     let output_path = temp_dir.join("qpdf-output.pdf");
+    let mut command = Command::new(qpdf);
 
-    let result = Command::new(qpdf)
+    command
         .arg("--object-streams=generate")
         .arg("--compress-streams=y")
         .arg("--recompress-flate")
@@ -317,16 +253,12 @@ fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, 
         .arg("--optimize-images")
         .arg("--jpeg-quality=75")
         .arg(input_path)
-        .arg(&output_path)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("Gagal menjalankan qpdf: {error}"))?;
+        .arg(&output_path);
 
-    if !result.status.success() {
-        let stderr = String::from_utf8_lossy(&result.stderr);
+    let result = run_command_with_timeout(&mut command, "qpdf")?;
 
-        return Err(format!("qpdf gagal:\n{stderr}"));
+    if !result.success {
+        return Err("qpdf gagal".to_owned());
     }
 
     fs::read(&output_path).map_err(|error| format!("Gagal membaca hasil qpdf: {error}"))
@@ -349,7 +281,9 @@ fn run_ghostscript(
            /VSamples [2 1 1 2] >>"
     );
 
-    let result = Command::new(gs)
+    let mut command = Command::new(gs);
+
+    command
         .arg("-dSAFER")
         .arg("-dBATCH")
         .arg("-dNOPAUSE")
@@ -380,19 +314,63 @@ fn run_ghostscript(
         .arg("-dPreserveEPSInfo=true")
         .arg("-dMaxInlineImageSize=0")
         .arg(format!("-sOutputFile={}", output_path.display()))
-        .arg(input_path)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("Gagal menjalankan Ghostscript: {error}"))?;
+        .arg(input_path);
 
-    if !result.status.success() {
-        let stderr = String::from_utf8_lossy(&result.stderr);
+    let result = run_command_with_timeout(&mut command, "Ghostscript")?;
 
-        return Err(format!("Ghostscript gagal:\n{stderr}"));
+    if !result.success {
+        return Err("Ghostscript gagal".to_owned());
     }
 
     fs::read(&output_path).map_err(|error| format!("Gagal membaca hasil Ghostscript: {error}"))
+}
+
+struct CommandResult {
+    success: bool,
+}
+
+fn run_command_with_timeout(
+    command: &mut Command,
+    name: &str,
+) -> Result<CommandResult, String> {
+    let mut child = command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("Gagal menjalankan {name}: {error}"))?;
+
+    wait_for_child(&mut child, name)
+}
+
+fn wait_for_child(child: &mut Child, name: &str) -> Result<CommandResult, String> {
+    let deadline = Instant::now() + SUBPROCESS_TIMEOUT;
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                return Ok(CommandResult {
+                    success: status.success(),
+                });
+            }
+
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+
+                return Err(format!("{name} melebihi batas waktu pemrosesan"));
+            }
+
+            Ok(None) => thread::sleep(PROCESS_POLL_INTERVAL),
+
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+
+                return Err(format!("Gagal memeriksa proses {name}: {error}"));
+            }
+        }
+    }
 }
 
 fn has_meaningful_reduction(output_size: usize, input_size: usize) -> bool {
@@ -420,36 +398,25 @@ fn is_valid_pdf(bytes: &[u8], expected_pages: usize) -> bool {
 
 fn resolve_python_script() -> Option<PathBuf> {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-
     let script = manifest_dir.join(PYTHON_SCRIPT_RELATIVE);
 
     script.is_file().then_some(script)
 }
 
 fn resolve_python() -> Option<PathBuf> {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    PYTHON_PATH
+        .get_or_init(resolve_python_uncached)
+        .clone()
+}
 
-    /*
-     * Prioritas pertama:
-     *
-     * backend/.venv/bin/python
-     *
-     * Jadi cargo run tetap menemukan PyMuPDF
-     * walaupun shell tidak sedang melakukan
-     * `source .venv/bin/activate`.
-     */
+fn resolve_python_uncached() -> Option<PathBuf> {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let venv_python = manifest_dir.join(".venv/bin/python");
 
     if venv_python.is_file() && python_has_pymupdf(&venv_python) {
         return Some(venv_python);
     }
 
-    /*
-     * Fallback ke PATH.
-     *
-     * Ini memungkinkan deployment production
-     * menggunakan Python system/container.
-     */
     let candidates = ["python3", "python", "/usr/bin/python3"];
 
     for candidate in candidates {
@@ -468,13 +435,26 @@ fn resolve_python() -> Option<PathBuf> {
 }
 
 fn python_has_pymupdf(python: &Path) -> bool {
-    Command::new(python)
+    let mut command = Command::new(python);
+
+    command
         .arg("-c")
         .arg("import pymupdf")
+        .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_ok_and(|status| status.success())
+        .stderr(Stdio::null());
+
+    command.status().is_ok_and(|status| status.success())
+}
+
+fn resolve_qpdf() -> Option<PathBuf> {
+    QPDF_PATH.get_or_init(|| resolve_program(&QPDF_CANDIDATES)).clone()
+}
+
+fn resolve_ghostscript() -> Option<PathBuf> {
+    GHOSTSCRIPT_PATH
+        .get_or_init(|| resolve_program(&GHOSTSCRIPT_CANDIDATES))
+        .clone()
 }
 
 fn resolve_program(candidates: &[&str]) -> Option<PathBuf> {
@@ -489,13 +469,14 @@ fn resolve_program(candidates: &[&str]) -> Option<PathBuf> {
             continue;
         }
 
-        let status = Command::new(candidate)
+        let mut command = Command::new(candidate);
+        command
             .arg("--version")
+            .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
+            .stderr(Stdio::null());
 
-        if let Ok(status) = status
+        if let Ok(status) = command.status()
             && status.success()
         {
             return Some(path);
