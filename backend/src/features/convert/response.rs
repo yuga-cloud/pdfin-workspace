@@ -7,11 +7,7 @@ pub fn binary_response(content_type: &'static str, bytes: Vec<u8>) -> Response {
         .expect("binary response harus valid")
 }
 
-pub fn attachment_response(
-    content_type: &'static str,
-    filename: &str,
-    bytes: Vec<u8>,
-) -> Response {
+pub fn attachment_response(content_type: &'static str, filename: &str, bytes: Vec<u8>) -> Response {
     let disposition = format!("attachment; filename=\"{filename}\"");
 
     Response::builder()
