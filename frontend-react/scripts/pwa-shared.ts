@@ -224,6 +224,7 @@ export type HeadContext = {
   host?: string | null;
   cwd?: string;
   site?: OgSite;
+  detectFs?: boolean;
 };
 
 export function readOgSite(cwd = process.cwd()): OgSite {
@@ -400,7 +401,7 @@ export function normalizeHeadContext(ctx: HeadContext = {}): {
     host: ctx.host ?? "",
     cwd,
     site,
-    detectFs: ctx.site === undefined,
+    detectFs: ctx.detectFs ?? ctx.site === undefined,
   };
 }
 
