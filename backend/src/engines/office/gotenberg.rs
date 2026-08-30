@@ -5,6 +5,9 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
+const MAX_OUTPUT_SIZE_BYTES: usize = 200 * 1024 * 1024;
+
 fn unique_temp_dir() -> Result<PathBuf, String> {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -27,6 +30,13 @@ pub fn convert_to_pdf(
         return Err(format!("{document_type} kosong"));
     }
 
+    if document_bytes.len() > MAX_INPUT_SIZE_BYTES {
+        return Err(format!(
+            "{document_type} melebihi batas ukuran {} MB",
+            MAX_INPUT_SIZE_BYTES / 1024 / 1024
+        ));
+    }
+
     let temp_dir = unique_temp_dir()?;
 
     let input_path = temp_dir.join(format!("input.{input_extension}"));
@@ -36,6 +46,7 @@ pub fn convert_to_pdf(
 
     let output = Command::new("libreoffice")
         .arg("--headless")
+        .arg("--norestore")
         .arg("--convert-to")
         .arg("pdf")
         .arg("--outdir")
@@ -49,11 +60,11 @@ pub fn convert_to_pdf(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-
         let _ = fs::remove_dir_all(&temp_dir);
 
         return Err(format!(
-            "LibreOffice gagal mengonversi {document_type}: {stderr}"
+            "LibreOffice gagal mengonversi {document_type}: {}",
+            stderr.trim()
         ));
     }
 
@@ -64,6 +75,17 @@ pub fn convert_to_pdf(
     })?;
 
     let _ = fs::remove_dir_all(&temp_dir);
+
+    if pdf_bytes.is_empty() {
+        return Err("LibreOffice menghasilkan PDF kosong".to_owned());
+    }
+
+    if pdf_bytes.len() > MAX_OUTPUT_SIZE_BYTES {
+        return Err(format!(
+            "Hasil PDF melebihi batas ukuran {} MB",
+            MAX_OUTPUT_SIZE_BYTES / 1024 / 1024
+        ));
+    }
 
     Ok(pdf_bytes)
 }
