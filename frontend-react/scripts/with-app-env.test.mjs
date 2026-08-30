@@ -24,14 +24,7 @@ const TSX_BIN = join(
 );
 const PRINT_FLAG = "process.stdout.write(String(process.env.VITE_AUTH_ENABLED));";
 
-type ProcessEnvJson = string | undefined;
-
-type ProcessError = {
-  code?: number | string;
-  signal?: string;
-};
-
-function makeWorkspace(appEnvJson: ProcessEnvJson): string {
+function makeWorkspace(appEnvJson) {
   const root = mkdtempSync(join(tmpdir(), "app-env-"));
   if (appEnvJson !== undefined) {
     mkdirSync(join(root, ".app"), { recursive: true });
@@ -47,9 +40,10 @@ test("keeps VITE_-prefixed string entries", () => {
 });
 
 test("drops non-VITE keys, non-string values and malformed documents", () => {
-  assert.deepEqual(parseAppEnv('{"DATABASE_URL":"postgres://x","VITE_N":1,"VITE_OK":"y"}'), {
-    VITE_OK: "y",
-  });
+  assert.deepEqual(
+    parseAppEnv('{"DATABASE_URL":"postgres://x","VITE_N":1,"VITE_OK":"y"}'),
+    { VITE_OK: "y" },
+  );
   assert.deepEqual(parseAppEnv("not json"), {});
   assert.deepEqual(parseAppEnv('["VITE_AUTH_ENABLED"]'), {});
   assert.deepEqual(parseAppEnv("null"), {});
@@ -105,7 +99,7 @@ test("the wrapped command sees an explicit override, not the file value", async 
 test("the wrapper propagates the command's exit code", async () => {
   await assert.rejects(
     execFileAsync(TSX_BIN, [WRAPPER, process.execPath, "-e", "process.exit(3)"]),
-    (err: ProcessError) => Number(err.code) === 3,
+    (err) => Number(err.code) === 3,
   );
 });
 
@@ -117,8 +111,9 @@ test("a signal-killed command is never reported as success", async () => {
       "-e",
       "process.kill(process.pid, 'SIGTERM');setTimeout(() => {}, 1000);",
     ]),
-    (err: ProcessError) =>
-      err.signal === "SIGTERM" || (err.code !== undefined && Number(err.code) !== 0),
+    (err) =>
+      err.signal === "SIGTERM" ||
+      (err.code !== undefined && Number(err.code) !== 0),
   );
 });
 
