@@ -1,10 +1,13 @@
-use axum::{extract::{Multipart, State}, response::Response};
+use axum::{
+    extract::{Multipart, State},
+    response::Response,
+};
 
 use crate::{
     engines::rendering::pdf_to_jpg::pdf_to_jpg as pdf_to_jpg_engine,
     error::AppError,
     state::AppState,
-    zip::{create_stored_zip, ZipEntry},
+    zip::{ZipEntry, create_stored_zip},
 };
 
 use super::super::{
@@ -34,7 +37,11 @@ pub async fn handler(
             .into_iter()
             .next()
             .expect("single JPG result harus tersedia");
-        return Ok(attachment_response(JPEG_CONTENT_TYPE, "page-001.jpg", image));
+        return Ok(attachment_response(
+            JPEG_CONTENT_TYPE,
+            "page-001.jpg",
+            image,
+        ));
     }
 
     let names = (1..=images.len())
@@ -50,7 +57,10 @@ pub async fn handler(
         .collect::<Vec<_>>();
 
     let archive = create_stored_zip(&entries).map_err(|error| {
-        AppError::internal("jpg_zip_failed", format!("Gagal membuat arsip JPG: {error}"))
+        AppError::internal(
+            "jpg_zip_failed",
+            format!("Gagal membuat arsip JPG: {error}"),
+        )
     })?;
 
     Ok(attachment_response(
