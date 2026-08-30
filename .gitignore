@@ -1,7 +1,6 @@
 # Rust / Cargo
 /target/
 **/target/
-Cargo.lock
 
 # Node.js & React Frontend
 **/node_modules/
