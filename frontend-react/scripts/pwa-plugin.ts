@@ -11,7 +11,7 @@ import {
   renderInstallPageHtml,
   renderWebManifest,
   snapshotOgIdentity,
-} from "./pwa-shared";
+} from "./pwa-shared.ts";
 
 export const OG_IDENTITY_ID = "virtual:og-identity";
 
@@ -118,86 +118,3 @@ function wrapHtmlResponses(middlewares: MiddlewareServer["middlewares"], cwd: st
     }
 
     const originalWrite = response.write.bind(response);
-    const originalEnd = response.end.bind(response);
-    const host = requestHost(request);
-    const injector = createHeadInjector({ host, cwd });
-    let mode: "inject" | "passthrough" | null = null;
-
-    const decideMode = (): "inject" | "passthrough" => {
-      if (mode) return mode;
-      const contentType = String(response.getHeader("content-type") ?? "");
-      const isHtml = contentType.includes("text/html");
-      const encoded = Boolean(response.getHeader("content-encoding"));
-      mode = isHtml && !encoded ? "inject" : "passthrough";
-      if (mode === "inject" && !response.headersSent) response.removeHeader("content-length");
-      return mode;
-    };
-
-    const toBuffer = (chunk: Uint8Array | string, encoding?: BufferEncoding): Buffer => {
-      if (Buffer.isBuffer(chunk)) return chunk;
-      if (typeof chunk === "string") return Buffer.from(chunk, encoding ?? "utf8");
-      return Buffer.from(chunk);
-    };
-
-    response.write = (chunk, encoding, callback) => {
-      if (decideMode() === "passthrough") return originalWrite(chunk, encoding as BufferEncoding, callback);
-      const done = typeof encoding === "function" ? encoding : callback;
-      if (chunk) {
-        for (const output of injector.push(toBuffer(chunk, typeof encoding === "string" ? encoding : undefined))) {
-          originalWrite(output);
-        }
-      }
-      if (typeof done === "function") done();
-      return true;
-    };
-
-    response.end = (chunk, encoding, callback) => {
-      const done = typeof encoding === "function" ? encoding : callback;
-      if (decideMode() === "passthrough") return originalEnd(chunk, encoding as BufferEncoding, callback);
-      if (chunk) {
-        for (const output of injector.push(toBuffer(chunk, typeof encoding === "string" ? encoding : undefined))) {
-          originalWrite(output);
-        }
-      }
-      for (const output of injector.flush()) originalWrite(output);
-      return originalEnd(undefined, undefined, done);
-    };
-
-    next();
-  }) as Middleware);
-}
-
-export function pwaPlugin(): Plugin {
-  let root = process.cwd();
-
-  return {
-    name: "app-builder:pwa",
-    configResolved(config) {
-      root = config.root;
-    },
-    resolveId(id) {
-      if (id === OG_IDENTITY_ID) return `\0${OG_IDENTITY_ID}`;
-      return null;
-    },
-    load(id) {
-      if (id !== `\0${OG_IDENTITY_ID}`) return null;
-      return `export const ogIdentity = ${JSON.stringify(snapshotOgIdentity(root))};`;
-    },
-    transformIndexHtml(html) {
-      return injectPwaHead(html, {
-        host: process.env.VITE_PUBLIC_HOSTNAME ?? "",
-        cwd: root,
-      });
-    },
-    configureServer(server) {
-      servePwa(server.middlewares);
-      wrapHtmlResponses(server.middlewares, root);
-    },
-    configurePreviewServer(server) {
-      servePwa(server.middlewares);
-      return () => {
-        wrapHtmlResponses(server.middlewares, root);
-      };
-    },
-  };
-}
