@@ -107,16 +107,24 @@ pub async fn split_pdf(
 
     drop(permit);
 
-    let first_pdf = pdf_files.into_iter().next().ok_or_else(|| {
-        AppError::internal(
-            "empty_split_result",
-            "Pemisahan PDF tidak menghasilkan file",
-        )
-    })?;
+    let pdf_bytes = if pdf_files.len() == 1 {
+        pdf_files[0].clone()
+    } else {
+        let file_refs: Vec<&[u8]> = pdf_files.iter().map(Vec::as_slice).collect();
+
+        merge_pdf_engine(&file_refs).map_err(|error| {
+            error!(%error, "Gagal menggabungkan hasil pemisahan PDF");
+
+            AppError::internal(
+                "split_merge_failed",
+                "Gagal menggabungkan hasil pemisahan PDF",
+            )
+        })?
+    };
 
     Ok((
         [(header::CONTENT_TYPE, PDF_CONTENT_TYPE)],
-        Bytes::from(first_pdf),
+        Bytes::from(pdf_bytes),
     ))
 }
 
