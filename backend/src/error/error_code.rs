@@ -5,5 +5,6 @@ pub const INVALID_MULTIPART: &str = "invalid_multipart";
 
 pub const CONVERSION_FAILED: &str = "conversion_failed";
 pub const CONVERSION_WORKER_FAILED: &str = "conversion_worker_failed";
+pub const CONVERSION_NOT_IMPLEMENTED: &str = "conversion_not_implemented";
 
 pub const PDF_BUSY: &str = "pdf_busy";
