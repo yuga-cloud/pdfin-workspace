@@ -1,6 +1,5 @@
 use std::{
     fs,
-    path::PathBuf,
     process::{Command, Stdio},
 };
 
