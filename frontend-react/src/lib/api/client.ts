@@ -25,6 +25,31 @@ export const MAX_REQUEST_BODY_BYTES = 50 * 1024 * 1024;
 export const MAX_FIELD_TEXT_LENGTH = 16 * 1024;
 export const MAX_ERROR_MESSAGE_LENGTH = 2_000;
 
+function validateFormData(formData: FormData): void {
+  let totalBytes = 0;
+
+  for (const [, value] of formData.entries()) {
+    if (value instanceof Blob) {
+      totalBytes += value.size;
+    } else if (value.length > MAX_FIELD_TEXT_LENGTH) {
+      throw new ApiError("Nilai field multipart terlalu panjang.", {
+        status: 0,
+        code: "field_too_large",
+      });
+    }
+
+    if (totalBytes > MAX_REQUEST_BODY_BYTES) {
+      throw new ApiError(
+        `Total ukuran upload melebihi batas ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MiB.`,
+        {
+          status: 0,
+          code: "request_too_large",
+        },
+      );
+    }
+  }
+}
+
 function validateUploadSize(file: File | Blob): void {
   if (file.size > MAX_REQUEST_BODY_BYTES) {
     throw new ApiError(
@@ -87,6 +112,8 @@ export async function postMultipart(
       code: "invalid_timeout",
     });
   }
+
+  validateFormData(formData);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
