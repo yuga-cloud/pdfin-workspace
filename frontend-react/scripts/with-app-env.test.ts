@@ -12,7 +12,7 @@ import {
   parseAppEnv,
   projectRoot,
   readAppEnv,
-} from "./with-app-env.ts";
+} from "./with-app-env";
 
 const execFileAsync = promisify(execFile);
 const WRAPPER = join(projectRoot(), "scripts/with-app-env.ts");
@@ -25,6 +25,11 @@ const TSX_BIN = join(
 const PRINT_FLAG = "process.stdout.write(String(process.env.VITE_AUTH_ENABLED));";
 
 type ProcessEnvJson = string | undefined;
+
+type ProcessError = {
+  code?: number | string;
+  signal?: string;
+};
 
 function makeWorkspace(appEnvJson: ProcessEnvJson): string {
   const root = mkdtempSync(join(tmpdir(), "app-env-"));
@@ -100,7 +105,7 @@ test("the wrapped command sees an explicit override, not the file value", async 
 test("the wrapper propagates the command's exit code", async () => {
   await assert.rejects(
     execFileAsync(TSX_BIN, [WRAPPER, process.execPath, "-e", "process.exit(3)"]),
-    (err: NodeJS.ErrnoException) => err.code === 3,
+    (err: ProcessError) => Number(err.code) === 3,
   );
 });
 
@@ -112,8 +117,8 @@ test("a signal-killed command is never reported as success", async () => {
       "-e",
       "process.kill(process.pid, 'SIGTERM');setTimeout(() => {}, 1000);",
     ]),
-    (err: NodeJS.ErrnoException & { signal?: string }) =>
-      err.signal === "SIGTERM" || err.code !== 0,
+    (err: ProcessError) =>
+      err.signal === "SIGTERM" || (err.code !== undefined && Number(err.code) !== 0),
   );
 });
 
