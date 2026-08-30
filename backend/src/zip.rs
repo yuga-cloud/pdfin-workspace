@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::Write;
 
 const ZIP_LOCAL_FILE_HEADER: u32 = 0x0403_4b50;
 const ZIP_CENTRAL_DIRECTORY_HEADER: u32 = 0x0201_4b50;
@@ -122,12 +122,12 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
     Ok(output)
 }
 
-fn write_u16(output: &mut Vec<u8>, value: u16) -> io::Result<()> {
+fn write_u16(output: &mut Vec<u8>, value: u16) -> Result<(), String> {
     output.extend_from_slice(&value.to_le_bytes());
     Ok(())
 }
 
-fn write_u32(output: &mut Vec<u8>, value: u32) -> io::Result<()> {
+fn write_u32(output: &mut Vec<u8>, value: u32) -> Result<(), String> {
     output.extend_from_slice(&value.to_le_bytes());
     Ok(())
 }
