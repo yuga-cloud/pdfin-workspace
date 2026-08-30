@@ -89,9 +89,7 @@ export function publicAppHost(hostHeader: string | null | undefined): string {
 }
 
 export function resolvePublicHost(hostHeader: string | null | undefined): string {
-  return (
-    publicAppHost(process.env?.VITE_PUBLIC_HOSTNAME) || publicAppHost(hostHeader)
-  );
+  return publicAppHost(process.env?.VITE_PUBLIC_HOSTNAME) || publicAppHost(hostHeader);
 }
 
 export function isInstallQuery(url: string | null | undefined): boolean {
@@ -164,6 +162,7 @@ export function renderWebManifest(hostHeader: string | null | undefined): string
 export function pwaHeadTags(appName = DEFAULT_APP_NAME): Array<[string, string]> {
   return [
     ["manifest", '<link rel="manifest" href="/__app/manifest.webmanifest">'],
+    ["apple-touch-icon", '<link rel="apple-touch-icon" sizes="180x180" href="/__app/icon-180.png">'],
     ["apple-mobile-web-app-capable", '<meta name="apple-mobile-web-app-capable" content="yes">'],
     ["apple-mobile-web-app-status-bar-style", '<meta name="apple-mobile-web-app-status-bar-style" content="black">'],
     ["apple-mobile-web-app-title", `<meta name="apple-mobile-web-app-title" content="${escapeHtml(appName)}">`],
@@ -414,6 +413,7 @@ export function injectPwaHead(html: string, ctx: HeadContext = {}): string {
   const missing = pwaHeadTags(appName)
     .filter(([key]) => {
       if (key === "manifest") return !next.includes('href="/__app/manifest.webmanifest"');
+      if (key === "apple-touch-icon") return !next.includes('rel="apple-touch-icon"');
       if (key === "apple-mobile-web-app-capable") return !next.includes('name="apple-mobile-web-app-capable"');
       if (key === "apple-mobile-web-app-status-bar-style") return !next.includes('name="apple-mobile-web-app-status-bar-style"');
       if (key === "apple-mobile-web-app-title") return !next.includes('name="apple-mobile-web-app-title"');
