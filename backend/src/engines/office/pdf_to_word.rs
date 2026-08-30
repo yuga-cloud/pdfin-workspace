@@ -33,12 +33,13 @@ pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
         let mut has_text = false;
 
         for word in ordered {
-            if let Some(top) = previous_top {
-                if (word.top - top).abs() > 10.0 && has_text {
-                    document = document.add_paragraph(paragraph);
-                    paragraph = Paragraph::new();
-                    has_text = false;
-                }
+            if let Some(top) = previous_top
+                && (word.top - top).abs() > 10.0
+                && has_text
+            {
+                document = document.add_paragraph(paragraph);
+                paragraph = Paragraph::new();
+                has_text = false;
             }
 
             if has_text {
