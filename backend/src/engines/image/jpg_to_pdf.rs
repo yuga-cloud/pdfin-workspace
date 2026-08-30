@@ -78,9 +78,7 @@ pub fn jpg_to_pdf(image_bytes: &[u8]) -> Result<Vec<u8>, String> {
 
     document
         .add_xobject(page_id, image_name, image_id)
-        .map_err(|error| {
-            format!("Gagal memasang JPEG ke halaman PDF: {error}")
-        })?;
+        .map_err(|error| format!("Gagal memasang JPEG ke halaman PDF: {error}"))?;
 
     document.objects.insert(
         pages_id,
