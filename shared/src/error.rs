@@ -34,7 +34,8 @@ mod tests {
     fn round_trips_through_json() {
         let error = ApiError::new("request_timeout", "Request terlalu lama.");
         let json = serde_json::to_string(&error).expect("ApiError harus dapat diserialisasi");
-        let restored: ApiError = serde_json::from_str(&json).expect("ApiError harus dapat diparsing");
+        let restored: ApiError =
+            serde_json::from_str(&json).expect("ApiError harus dapat diparsing");
 
         assert_eq!(restored, error);
     }
