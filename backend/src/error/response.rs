@@ -3,17 +3,11 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use serde::Serialize;
+use shared::ApiError;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct ErrorResponse {
-    pub error: ErrorBody,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
+    pub error: ApiError,
 }
 
 pub fn json_error_response(
@@ -24,10 +18,7 @@ pub fn json_error_response(
     (
         status,
         Json(ErrorResponse {
-            error: ErrorBody {
-                code: code.into(),
-                message: message.into(),
-            },
+            error: ApiError::new(code, message),
         }),
     )
         .into_response()
