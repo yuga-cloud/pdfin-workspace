@@ -112,13 +112,6 @@ export function ToolWorkspace({
 }: {
   tool: ToolDef;
 }) {
-  /*
-   * key berdasarkan slug membuat seluruh state internal
-   * otomatis di-reset ketika tool berubah.
-   *
-   * Ini menghindari reset state secara synchronous
-   * di dalam useEffect.
-   */
   return (
     <ToolWorkspaceInner
       key={tool.slug}
@@ -192,10 +185,11 @@ function ToolWorkspaceInner({
       ? "File dikirim ke server untuk diproses."
       : "File diproses di perangkat ini.";
 
-  /*
-   * Hapus object URL ketika component benar-benar
-   * di-unmount.
-   */
+  const processButtonLabel =
+    tool.processing === "server"
+      ? "Proses di server"
+      : "Proses di perangkat ini";
+
   useEffect(() => {
     return () => {
       const url =
@@ -1029,7 +1023,7 @@ function ToolWorkspaceInner({
               Memproses
             </>
           ) : (
-            "Proses di perangkat ini"
+            processButtonLabel
           )}
         </Button>
 
