@@ -23,8 +23,7 @@ use crate::{
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 
 fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
-    validate_input(bytes, "PDF")
-        .map_err(|message| AppError::bad_request("invalid_input", message))
+    validate_input(bytes, "PDF").map_err(|message| AppError::bad_request("invalid_input", message))
 }
 
 pub async fn compress_pdf(
