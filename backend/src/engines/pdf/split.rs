@@ -96,3 +96,21 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
 
     Ok(outputs)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_empty_ranges() {
+        let result = split_pdf(b"%PDF-1.7\n...", &[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_more_than_max_outputs() {
+        let ranges = vec![(1_u32, 1_u32); MAX_SPLIT_OUTPUTS + 1];
+        let result = split_pdf(b"%PDF-1.7\n...", &ranges);
+        assert!(result.is_err());
+    }
+}
