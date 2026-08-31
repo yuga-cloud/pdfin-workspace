@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use lopdf::{Document, Object, ObjectId};
 
@@ -66,16 +66,13 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
             ));
         }
 
-        let page_ids = pages.values().copied().collect::<BTreeSet<_>>();
-        let mut current_pages = Vec::with_capacity(page_ids.len());
-
-        for object_id in page_ids {
-            current_pages.push(object_id);
-        }
+        let page_ids: Vec<ObjectId> = pages.values().copied().collect();
+        let page_id_set: HashSet<ObjectId> = page_ids.iter().copied().collect();
+        let mut page_objects = HashMap::with_capacity(page_ids.len());
 
         for (object_id, object) in document.objects {
-            if current_pages.binary_search(&object_id).is_ok() {
-                pages_in_order.push((object_id, object));
+            if page_id_set.contains(&object_id) {
+                page_objects.insert(object_id, object);
                 continue;
             }
 
@@ -95,6 +92,13 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
                     document_objects.insert(object_id, object);
                 }
             }
+        }
+
+        for object_id in page_ids {
+            let object = page_objects
+                .remove(&object_id)
+                .ok_or_else(|| format!("Object halaman {:?} tidak ditemukan.", object_id))?;
+            pages_in_order.push((object_id, object));
         }
     }
 
