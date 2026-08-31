@@ -4,6 +4,7 @@ use super::common::validate_pdf;
 
 const MAX_SPLIT_OUTPUTS: usize = 64;
 const MAX_SPLIT_RANGE_PAGES: u32 = 10_000;
+const MAX_SPLIT_TOTAL_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 
 /// Memisahkan PDF berdasarkan rentang halaman.
 ///
@@ -54,6 +55,7 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
     }
 
     let mut outputs = Vec::with_capacity(ranges.len());
+    let mut total_output_bytes = 0usize;
 
     for &(start, end) in ranges {
         let mut document = source.clone();
@@ -81,8 +83,37 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
             return Err(format!("Hasil split halaman {start}-{end} kosong"));
         }
 
+        total_output_bytes = total_output_bytes
+            .checked_add(output.len())
+            .ok_or_else(|| "Ukuran total hasil split terlalu besar".to_owned())?;
+
+        if total_output_bytes > MAX_SPLIT_TOTAL_OUTPUT_BYTES {
+            return Err(format!(
+                "Ukuran total hasil split melebihi batas maksimum ({} MiB)",
+                MAX_SPLIT_TOTAL_OUTPUT_BYTES / 1024 / 1024
+            ));
+        }
+
         outputs.push(output);
     }
 
     Ok(outputs)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_empty_ranges() {
+        let result = split_pdf(b"%PDF-1.7\n...", &[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_more_than_max_outputs() {
+        let ranges = vec![(1_u32, 1_u32); MAX_SPLIT_OUTPUTS + 1];
+        let result = split_pdf(b"%PDF-1.7\n...", &ranges);
+        assert!(result.is_err());
+    }
 }
