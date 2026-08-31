@@ -29,9 +29,9 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
         ));
     }
 
-    let total_size = images.iter().try_fold(0usize, |total, image| {
-        total.checked_add(image.len())
-    });
+    let total_size = images
+        .iter()
+        .try_fold(0usize, |total, image| total.checked_add(image.len()));
     let total_size = total_size
         .ok_or_else(|| "Ukuran total gambar melebihi batas numerik yang didukung".to_owned())?;
 
@@ -193,7 +193,10 @@ fn validate_jpeg_dimensions(bytes: &[u8], image_number: usize) -> Result<(), Str
 
         if is_sof_marker(marker) {
             if segment_length < 7 {
-                return Err(format!("Metadata dimensi JPEG {} tidak lengkap", image_number));
+                return Err(format!(
+                    "Metadata dimensi JPEG {} tidak lengkap",
+                    image_number
+                ));
             }
 
             let data_start = offset + 2;
@@ -246,8 +249,8 @@ mod tests {
     #[test]
     fn accepts_jpeg_with_valid_sof_dimensions() {
         let jpeg = [
-            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x07, 0xD0, 0x0F, 0xA0, 0x03, 0x00,
-            0x11, 0x00, 0x22, 0x00, 0x33,
+            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x07, 0xD0, 0x0F, 0xA0, 0x03, 0x00, 0x11,
+            0x00, 0x22, 0x00, 0x33,
         ];
 
         assert!(validate_jpeg_dimensions(&jpeg, 1).is_ok());
@@ -256,8 +259,8 @@ mod tests {
     #[test]
     fn rejects_jpeg_over_dimension_limit() {
         let jpeg = [
-            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x4E, 0x20, 0x4E, 0x21, 0x03, 0x00,
-            0x11, 0x00, 0x22, 0x00, 0x33,
+            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x4E, 0x20, 0x4E, 0x21, 0x03, 0x00, 0x11,
+            0x00, 0x22, 0x00, 0x33,
         ];
 
         let error = validate_jpeg_dimensions(&jpeg, 1).unwrap_err();
