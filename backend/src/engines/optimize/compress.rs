@@ -10,7 +10,7 @@ use std::{
 use lopdf::Document;
 use tempfile::tempdir;
 
-use super::common::validate_input;
+use super::common::{load_pdf_document, validate_input};
 
 const PYTHON_SCRIPT_RELATIVE: &str = "scripts/compress_pdf/compressor.py";
 const QPDF_CANDIDATES: [&str; 2] = ["qpdf", "/usr/bin/qpdf"];
@@ -61,7 +61,7 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
         ));
     }
 
-    let input_document = Document::load_mem(pdf_bytes)
+    let input_document = load_pdf_document(pdf_bytes)
         .map_err(|error| format!("Gagal membaca PDF sebelum kompresi: {error}"))?;
     let input_pages = input_document.get_pages().len();
 
@@ -401,7 +401,7 @@ fn is_valid_pdf(bytes: &[u8], expected_pages: usize) -> bool {
         return false;
     }
 
-    let document = match Document::load_mem(bytes) {
+    let document = match load_pdf_document(bytes) {
         Ok(document) => document,
         Err(_) => return false,
     };
