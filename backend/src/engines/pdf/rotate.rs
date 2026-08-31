@@ -1,6 +1,6 @@
 use lopdf::{Document, Object};
 
-use super::common::validate_pdf;
+use super::common::{load_pdf_document, validate_pdf};
 
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 
@@ -22,8 +22,7 @@ pub fn rotate_pdf(pdf_bytes: &[u8], extra_deg: i64) -> Result<Vec<u8>, String> {
         return Err("Sudut rotasi PDF harus merupakan kelipatan 90 derajat.".to_owned());
     }
 
-    let mut document =
-        Document::load_mem(pdf_bytes).map_err(|error| format!("Gagal membaca PDF: {error}"))?;
+    let mut document = load_pdf_document(pdf_bytes)?;
 
     let page_ids = document.get_pages().values().copied().collect::<Vec<_>>();
 
