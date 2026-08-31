@@ -1,17 +1,21 @@
+use std::path::PathBuf;
+
 use axum::{
     body::Bytes,
     extract::{Multipart, State},
     http::header,
     response::IntoResponse,
 };
-use tokio::task;
+use tempfile::NamedTempFile;
+use tokio::{io::AsyncWriteExt, task};
 use tracing::error;
 
 use crate::{
     engines::{
-        common::validate_input,
+        common::{validate_input, validate_pdf_path},
         pdf::{
-            merge::merge_pdfs as merge_pdf_engine, pages::manage_pages as manage_pages_engine,
+            merge::merge_pdfs_from_paths as merge_pdf_engine,
+            pages::manage_pages as manage_pages_engine,
             rotate::rotate_pdf as rotate_pdf_engine,
         },
     },
@@ -25,11 +29,16 @@ const MAX_MERGE_FILES: usize = 32;
 const MAX_TOTAL_MERGE_INPUT_BYTES: usize = 500 * 1024 * 1024;
 const MAX_PAGE_ORDER_LENGTH: usize = 16 * 1024;
 
+struct TempPdfUpload {
+    file: NamedTempFile,
+    size: usize,
+}
+
 pub async fn merge_pdfs(
     State(state): State<AppState>,
     multipart: Multipart,
 ) -> Result<impl IntoResponse, AppError> {
-    let files = read_multiple_files(multipart).await?;
+    let files = read_multiple_files_to_tempfiles(multipart).await?;
 
     if files.len() < 2 {
         return Err(AppError::bad_request(
@@ -40,7 +49,7 @@ pub async fn merge_pdfs(
 
     let total_input_bytes = files
         .iter()
-        .try_fold(0usize, |total, file| total.checked_add(file.len()))
+        .try_fold(0usize, |total, file| total.checked_add(file.size))
         .ok_or_else(|| {
             AppError::bad_request("merge_input_too_large", "Total ukuran PDF terlalu besar")
         })?;
@@ -53,7 +62,7 @@ pub async fn merge_pdfs(
     }
 
     for (index, file) in files.iter().enumerate() {
-        validate_input(file, "PDF").map_err(|message| {
+        validate_pdf_path(file.file.path()).map_err(|message| {
             AppError::bad_request(
                 "invalid_input",
                 format!("PDF ke-{} tidak valid: {message}", index + 1),
@@ -73,8 +82,8 @@ pub async fn merge_pdfs(
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
-        let file_refs: Vec<&[u8]> = files.iter().map(Bytes::as_ref).collect();
-        merge_pdf_engine(&file_refs)
+        let paths: Vec<_> = files.iter().map(|file| file.file.path()).collect();
+        merge_pdf_engine(&paths)
     })
     .await
     .map_err(|error| {
@@ -177,12 +186,14 @@ pub async fn rotate(
     ))
 }
 
-async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>, AppError> {
+async fn read_multiple_files_to_tempfiles(
+    mut multipart: Multipart,
+) -> Result<Vec<TempPdfUpload>, AppError> {
     let mut files = Vec::new();
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(field)) if field.name() == Some("file") => {
+            Ok(Some(mut field)) if field.name() == Some("file") => {
                 if files.len() >= MAX_MERGE_FILES {
                     return Err(AppError::bad_request(
                         "too_many_files",
@@ -190,22 +201,57 @@ async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>, App
                     ));
                 }
 
-                match field.bytes().await {
-                    Ok(bytes) if !bytes.is_empty() => files.push(bytes),
-                    Ok(_) => {
+                let temp = NamedTempFile::new().map_err(|error| {
+                    error!(%error, "Gagal membuat temporary file PDF");
+                    AppError::internal("tempfile_failed", "Gagal menyiapkan penyimpanan sementara")
+                })?;
+
+                let mut output = tokio::fs::File::from_std(temp.reopen().map_err(|error| {
+                    error!(%error, "Gagal membuka temporary file PDF");
+                    AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
+                })?);
+
+                let mut size = 0usize;
+                while let Some(chunk) = field.chunk().await.map_err(|error| {
+                    error!(%error, "Gagal membaca file PDF");
+                    AppError::bad_request(
+                        "invalid_upload",
+                        "Gagal membaca file PDF yang diunggah",
+                    )
+                })? {
+                    size = size.checked_add(chunk.len()).ok_or_else(|| {
+                        AppError::bad_request(
+                            "merge_input_too_large",
+                            "Ukuran PDF melebihi kapasitas yang didukung",
+                        )
+                    })?;
+
+                    if size > MAX_TOTAL_MERGE_INPUT_BYTES {
                         return Err(AppError::bad_request(
-                            "empty_file",
-                            "Salah satu file PDF kosong",
+                            "merge_input_too_large",
+                            "Ukuran PDF melebihi batas maksimum (500 MB)",
                         ));
                     }
-                    Err(error) => {
-                        error!(%error, "Gagal membaca file PDF");
-                        return Err(AppError::bad_request(
-                            "invalid_upload",
-                            "Gagal membaca file PDF yang diunggah",
-                        ));
-                    }
+
+                    output.write_all(&chunk).await.map_err(|error| {
+                        error!(%error, "Gagal menulis temporary PDF");
+                        AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
+                    })?;
                 }
+
+                output.flush().await.map_err(|error| {
+                    error!(%error, "Gagal flush temporary PDF");
+                    AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
+                })?;
+
+                if size == 0 {
+                    return Err(AppError::bad_request(
+                        "empty_file",
+                        "Salah satu file PDF kosong",
+                    ));
+                }
+
+                files.push(TempPdfUpload { file: temp, size });
             }
             Ok(Some(_)) => continue,
             Ok(None) => break,
