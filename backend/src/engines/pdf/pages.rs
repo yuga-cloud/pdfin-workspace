@@ -12,12 +12,7 @@ const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 pub fn manage_pages(pdf_bytes: &[u8], page_order: &[u32]) -> Result<Vec<u8>, String> {
     validate_pdf(pdf_bytes)?;
 
-    if pdf_bytes.len() > MAX_INPUT_BYTES {
-        return Err(format!(
-            "Ukuran PDF melebihi batas maksimum ({} MB)",
-            MAX_INPUT_BYTES / 1024 / 1024
-        ));
-    }
+    debug_assert!(pdf_bytes.len() <= MAX_INPUT_BYTES);
 
     if page_order.is_empty() {
         return Err("Urutan halaman tidak boleh kosong".to_owned());
