@@ -2,6 +2,8 @@ use lopdf::{Document, Object};
 
 use super::common::validate_pdf;
 
+const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
+
 /// Memutar seluruh halaman PDF.
 ///
 /// `extra_deg` harus berupa kelipatan 90 derajat.
@@ -57,6 +59,13 @@ pub fn rotate_pdf(pdf_bytes: &[u8], extra_deg: i64) -> Result<Vec<u8>, String> {
 
     if output.is_empty() {
         return Err("PDF hasil rotasi kosong.".to_owned());
+    }
+
+    if output.len() > MAX_OUTPUT_BYTES {
+        return Err(format!(
+            "PDF hasil rotasi melebihi batas maksimum ({} MB)",
+            MAX_OUTPUT_BYTES / 1024 / 1024
+        ));
     }
 
     Ok(output)
