@@ -37,7 +37,11 @@ pub async fn handler(
             .into_iter()
             .next()
             .expect("single JPG result harus tersedia");
-        return Ok(attachment_response(JPEG_CONTENT_TYPE, "page-001.jpg", image));
+        return Ok(attachment_response(
+            JPEG_CONTENT_TYPE,
+            "page-001.jpg",
+            image,
+        ));
     }
 
     let names = (1..=images.len())
