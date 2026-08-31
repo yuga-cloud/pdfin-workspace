@@ -23,7 +23,7 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
         ));
     }
 
-    let estimated_size = entries.iter().try_fold(0usize, |total, entry| {
+    let estimated_size = entries.iter().try_fold(22usize, |total, entry| {
         let name_len = entry.name.len();
         if name_len > u16::MAX as usize {
             return Err("Nama file ZIP terlalu panjang".to_owned());
@@ -36,6 +36,8 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
             .checked_add(30)
             .and_then(|value| value.checked_add(name_len))
             .and_then(|value| value.checked_add(entry.data.len()))
+            .and_then(|value| value.checked_add(46))
+            .and_then(|value| value.checked_add(name_len))
             .ok_or_else(|| "Ukuran ZIP melebihi kapasitas yang didukung".to_owned())
     })?;
 
