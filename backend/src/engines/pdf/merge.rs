@@ -1,36 +1,35 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::{
+    collections::{BTreeMap, HashMap, HashSet},
+    path::Path,
+};
 
 use lopdf::{Document, Object, ObjectId};
 
-use super::common::{load_pdf_document, validate_pdf};
+use super::common::{load_pdf_document_from_path, validate_pdf_path};
 
 const MAX_MERGE_INPUTS: usize = 32;
 const MAX_TOTAL_INPUT_BYTES: usize = 500 * 1024 * 1024;
 const MAX_MERGED_PAGES: usize = 10_000;
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 
-/// Menggabungkan beberapa PDF menjadi satu dokumen.
-///
-/// Urutan halaman dijaga berdasarkan urutan halaman asli
-/// masing-masing PDF, bukan berdasarkan ObjectId.
-///
-/// Setiap dokumen diproses satu per satu agar seluruh object graph
-/// sumber tidak hidup bersamaan di memory.
-pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
-    if pdfs.is_empty() {
-        return Err("Tidak ada file PDF yang akan digabungkan".to_owned());
-    }
+/// Menggabungkan PDF langsung dari file agar upload besar tidak perlu disalin
+/// kembali ke heap sebelum `lopdf` membangun object graph.
+pub fn merge_pdfs_from_paths(paths: &[&Path]) -> Result<Vec<u8>, String> {
+    validate_merge_limits(paths.len())?;
 
-    if pdfs.len() > MAX_MERGE_INPUTS {
-        return Err(format!(
-            "Jumlah PDF melebihi batas maksimum ({MAX_MERGE_INPUTS})"
-        ));
+    let mut total_input_bytes = 0usize;
+    for (index, path) in paths.iter().enumerate() {
+        validate_pdf_path(path)
+            .map_err(|error| format!("PDF ke-{} tidak valid: {error}", index + 1))?;
+        let size = std::fs::metadata(path)
+            .map_err(|error| format!("Gagal membaca metadata PDF ke-{}: {error}", index + 1))?
+            .len();
+        let size = usize::try_from(size)
+            .map_err(|_| "Total ukuran PDF melebihi kapasitas yang didukung".to_owned())?;
+        total_input_bytes = total_input_bytes
+            .checked_add(size)
+            .ok_or_else(|| "Total ukuran PDF melebihi batas numerik yang didukung".to_owned())?;
     }
-
-    let total_input_bytes = pdfs
-        .iter()
-        .try_fold(0usize, |total, pdf| total.checked_add(pdf.len()))
-        .ok_or_else(|| "Total ukuran PDF melebihi batas numerik yang didukung".to_owned())?;
 
     if total_input_bytes > MAX_TOTAL_INPUT_BYTES {
         return Err(format!(
@@ -39,10 +38,31 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
         ));
     }
 
-    for (index, pdf) in pdfs.iter().enumerate() {
-        validate_pdf(pdf).map_err(|error| format!("PDF ke-{} tidak valid: {error}", index + 1))?;
+    merge_documents(
+        paths.iter().enumerate().map(|(index, path)| {
+            load_pdf_document_from_path(path).map(|document| (index, document))
+        }),
+    )
+}
+
+fn validate_merge_limits(input_count: usize) -> Result<(), String> {
+    if input_count == 0 {
+        return Err("Tidak ada file PDF yang akan digabungkan".to_owned());
     }
 
+    if input_count > MAX_MERGE_INPUTS {
+        return Err(format!(
+            "Jumlah PDF melebihi batas maksimum ({MAX_MERGE_INPUTS})"
+        ));
+    }
+
+    Ok(())
+}
+
+fn merge_documents<I>(documents: I) -> Result<Vec<u8>, String>
+where
+    I: IntoIterator<Item = Result<(usize, Document), String>>,
+{
     let mut next_object_id: u32 = 1;
     let mut pages_in_order: Vec<(ObjectId, Object)> = Vec::new();
     let mut document_objects: BTreeMap<ObjectId, Object> = BTreeMap::new();
@@ -51,9 +71,9 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
     let mut catalog_object: Option<(ObjectId, Object)> = None;
     let mut pages_object: Option<(ObjectId, Object)> = None;
 
-    for (index, pdf) in pdfs.iter().enumerate() {
-        let mut document = load_pdf_document(pdf)
-            .map_err(|error| format!("Gagal membaca PDF ke-{}: {error}", index + 1))?;
+    for document_result in documents {
+        let (index, mut document) =
+            document_result.map_err(|error| format!("Gagal membaca PDF input: {error}"))?;
 
         document.renumber_objects_with(next_object_id);
         next_object_id = document.max_id.saturating_add(1);
@@ -95,9 +115,13 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
         }
 
         for object_id in page_ids {
-            let object = page_objects
-                .remove(&object_id)
-                .ok_or_else(|| format!("Object halaman {:?} tidak ditemukan.", object_id))?;
+            let object = page_objects.remove(&object_id).ok_or_else(|| {
+                format!(
+                    "Object halaman {:?} tidak ditemukan pada PDF ke-{}.",
+                    object_id,
+                    index + 1
+                )
+            })?;
             pages_in_order.push((object_id, object));
         }
     }
