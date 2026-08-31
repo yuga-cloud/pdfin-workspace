@@ -13,8 +13,7 @@ use crate::{
         common::validate_pdf_path,
         pdf::{
             merge::merge_pdfs_from_paths as merge_pdf_engine,
-            pages::manage_pages as manage_pages_engine,
-            rotate::rotate_pdf as rotate_pdf_engine,
+            pages::manage_pages as manage_pages_engine, rotate::rotate_pdf as rotate_pdf_engine,
         },
     },
     error::AppError,
@@ -212,10 +211,7 @@ async fn read_multiple_files_to_tempfiles(
                 let mut size = 0usize;
                 while let Some(chunk) = field.chunk().await.map_err(|error| {
                     error!(%error, "Gagal membaca file PDF");
-                    AppError::bad_request(
-                        "invalid_upload",
-                        "Gagal membaca file PDF yang diunggah",
-                    )
+                    AppError::bad_request("invalid_upload", "Gagal membaca file PDF yang diunggah")
                 })? {
                     size = size.checked_add(chunk.len()).ok_or_else(|| {
                         AppError::bad_request(
