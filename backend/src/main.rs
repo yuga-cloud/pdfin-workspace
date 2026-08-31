@@ -28,7 +28,7 @@ const DEFAULT_PORT: u16 = 3000;
 const DEFAULT_MAX_REQUEST_BODY_SIZE_MB: usize = 50;
 const DEFAULT_REQUEST_TIMEOUT_SECONDS: u64 = 120;
 const DEFAULT_MAX_CONCURRENCY: usize = 4;
-const DEFAULT_MAX_IN_FLIGHT_REQUESTS: usize = 16;
+const DEFAULT_MAX_IN_FLIGHT_REQUESTS_PER_PDF_WORKER: usize = 2;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -52,9 +52,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .unwrap_or(1);
     let configured_max_concurrency = parse_env("PDFIN_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY);
     let pdf_concurrency = cpu_count.min(configured_max_concurrency.max(1));
+    let default_max_in_flight_requests = pdf_concurrency
+        .saturating_mul(DEFAULT_MAX_IN_FLIGHT_REQUESTS_PER_PDF_WORKER)
+        .max(1);
     let max_in_flight_requests = parse_env(
         "PDFIN_MAX_IN_FLIGHT_REQUESTS",
-        DEFAULT_MAX_IN_FLIGHT_REQUESTS,
+        default_max_in_flight_requests,
     )
     .max(1);
 
