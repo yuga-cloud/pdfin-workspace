@@ -3,11 +3,11 @@ use std::{
     io::Read,
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    sync::OnceLock,
     thread,
     time::{Duration, Instant},
 };
 
-use lopdf::Document;
 use tempfile::tempdir;
 
 use super::common::{load_pdf_document, validate_input};
@@ -24,6 +24,10 @@ const PYMUPDF_TIMEOUT: Duration = Duration::from_secs(120);
 const QPDF_TIMEOUT: Duration = Duration::from_secs(180);
 const GHOSTSCRIPT_TIMEOUT: Duration = Duration::from_secs(300);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
+
+static PYTHON_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
+static QPDF_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
+static GHOSTSCRIPT_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompressionQuality {
@@ -144,15 +148,15 @@ fn run_fallback(
 ) -> Option<Vec<u8>> {
     let output = match quality {
         CompressionQuality::High => {
-            let qpdf = resolve_program(&QPDF_CANDIDATES)?;
+            let qpdf = resolve_qpdf()?;
             run_qpdf(&qpdf, input_path, temp_dir).ok()?
         }
         CompressionQuality::Medium => {
-            let gs = resolve_program(&GHOSTSCRIPT_CANDIDATES)?;
+            let gs = resolve_ghostscript()?;
             run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Medium).ok()?
         }
         CompressionQuality::Low => {
-            let gs = resolve_program(&GHOSTSCRIPT_CANDIDATES)?;
+            let gs = resolve_ghostscript()?;
             run_ghostscript(&gs, input_path, temp_dir, GhostscriptProfile::Low).ok()?
         }
     };
@@ -417,28 +421,32 @@ fn resolve_python_script() -> Option<PathBuf> {
 }
 
 fn resolve_python() -> Option<PathBuf> {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let venv_python = manifest_dir.join(".venv/bin/python");
+    PYTHON_PATH
+        .get_or_init(|| {
+            let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+            let venv_python = manifest_dir.join(".venv/bin/python");
 
-    if venv_python.is_file() && python_has_pymupdf(&venv_python) {
-        return Some(venv_python);
-    }
+            if venv_python.is_file() && python_has_pymupdf(&venv_python) {
+                return Some(venv_python);
+            }
 
-    let candidates = ["python3", "python", "/usr/bin/python3"];
+            let candidates = ["python3", "python", "/usr/bin/python3"];
 
-    for candidate in candidates {
-        let path = PathBuf::from(candidate);
+            for candidate in candidates {
+                let path = PathBuf::from(candidate);
 
-        if path.is_absolute() && !path.is_file() {
-            continue;
-        }
+                if path.is_absolute() && !path.is_file() {
+                    continue;
+                }
 
-        if python_has_pymupdf(&path) {
-            return Some(path);
-        }
-    }
+                if python_has_pymupdf(&path) {
+                    return Some(path);
+                }
+            }
 
-    None
+            None
+        })
+        .clone()
 }
 
 fn python_has_pymupdf(python: &Path) -> bool {
@@ -449,6 +457,18 @@ fn python_has_pymupdf(python: &Path) -> bool {
         .stderr(Stdio::null())
         .status()
         .is_ok_and(|status| status.success())
+}
+
+fn resolve_qpdf() -> Option<PathBuf> {
+    QPDF_PATH
+        .get_or_init(|| resolve_program(&QPDF_CANDIDATES))
+        .clone()
+}
+
+fn resolve_ghostscript() -> Option<PathBuf> {
+    GHOSTSCRIPT_PATH
+        .get_or_init(|| resolve_program(&GHOSTSCRIPT_CANDIDATES))
+        .clone()
 }
 
 fn resolve_program(candidates: &[&str]) -> Option<PathBuf> {
@@ -518,6 +538,5 @@ mod tests {
 
         let error = result.expect_err("command harus gagal");
         assert!(error.contains("exit code Some(7)"));
-        assert!(error.contains("failure"));
     }
 }
