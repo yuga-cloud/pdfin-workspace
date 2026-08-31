@@ -1,6 +1,6 @@
 use lopdf::{Document, Object};
 
-use super::common::validate_pdf;
+use super::common::{load_pdf_document, validate_pdf};
 
 const MAX_PAGE_ORDER_ITEMS: usize = 5_000;
 const MAX_INPUT_BYTES: usize = 500 * 1024 * 1024;
@@ -33,8 +33,7 @@ pub fn manage_pages(pdf_bytes: &[u8], page_order: &[u32]) -> Result<Vec<u8>, Str
         return Err("Nomor halaman harus dimulai dari 1".to_owned());
     }
 
-    let mut document =
-        Document::load_mem(pdf_bytes).map_err(|error| format!("Gagal membaca PDF: {error}"))?;
+    let mut document = load_pdf_document(pdf_bytes)?;
     let pages = document.get_pages();
 
     if pages.is_empty() {
