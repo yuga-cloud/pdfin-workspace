@@ -22,8 +22,8 @@ pub fn validate_pdf(pdf_bytes: &[u8]) -> Result<(), String> {
 }
 
 pub fn validate_pdf_path(path: &Path) -> Result<(), String> {
-    let metadata = std::fs::metadata(path)
-        .map_err(|error| format!("Gagal membaca metadata PDF: {error}"))?;
+    let metadata =
+        std::fs::metadata(path).map_err(|error| format!("Gagal membaca metadata PDF: {error}"))?;
     let size = usize::try_from(metadata.len())
         .map_err(|_| "Ukuran PDF melebihi kapasitas yang didukung".to_owned())?;
 
