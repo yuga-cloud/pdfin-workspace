@@ -59,9 +59,8 @@ pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
         }
 
         if page_index + 1 < pages.len() {
-            document = document.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_break(BreakType::Page)),
-            );
+            document = document
+                .add_paragraph(Paragraph::new().add_run(Run::new().add_break(BreakType::Page)));
         }
     }
 
