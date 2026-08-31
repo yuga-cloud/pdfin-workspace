@@ -1,3 +1,5 @@
+/// Re-export the centralized bounded PDF loader so optimization engines use
+/// the same decompression budget as the core PDF engines.
 pub use super::pdf::common::load_pdf_document;
 
 pub fn validate_input(bytes: &[u8], format: &str) -> Result<(), String> {
