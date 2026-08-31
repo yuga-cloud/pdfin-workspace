@@ -2,10 +2,7 @@ use std::io::Cursor;
 
 use docx_rs::{BreakType, Docx, Paragraph, Run};
 
-use crate::engines::{
-    common::validate_input,
-    office::pdf_table::extract_pdf_words,
-};
+use crate::engines::{common::validate_input, office::pdf_table::extract_pdf_words};
 
 const MAX_DOCX_OUTPUT_BYTES: usize = 128 * 1024 * 1024;
 const LINE_BREAK_TOLERANCE: f32 = 10.0;
@@ -62,9 +59,8 @@ pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
         }
 
         if page_index + 1 < pages.len() {
-            document = document.add_paragraph(
-                Paragraph::new().add_run(Run::new().add_break(BreakType::Page)),
-            );
+            document = document
+                .add_paragraph(Paragraph::new().add_run(Run::new().add_break(BreakType::Page)));
         }
     }
 
