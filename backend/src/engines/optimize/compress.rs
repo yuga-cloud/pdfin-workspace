@@ -268,9 +268,9 @@ fn run_ghostscript(
     let stderr_path = temp_dir.join(format!("{}.stderr", profile.output_name()));
     let qfactor = profile.jpeg_quality() as f32 / 100.0;
     let image_dict = format!(
-        "<< /QFactor {qfactor} \
-           /Blend 1 \
-           /HSamples [2 1 1 2] \
+        "<< /QFactor {qfactor} \\
+           /Blend 1 \\
+           /HSamples [2 1 1 2] \\
            /VSamples [2 1 1 2] >>"
     );
 
@@ -371,7 +371,7 @@ fn run_external_command(
 }
 
 fn read_limited_stderr(path: &Path) -> Result<String, String> {
-    let mut file = File::open(path).map_err(|error| error.to_string())?;
+    let file = File::open(path).map_err(|error| error.to_string())?;
     let mut bytes = Vec::with_capacity(MAX_STDERR_BYTES + 1);
     file.take((MAX_STDERR_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
