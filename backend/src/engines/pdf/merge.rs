@@ -67,9 +67,11 @@ pub fn merge_pdfs_from_paths(paths: &[&Path]) -> Result<Vec<u8>, String> {
         ));
     }
 
-    merge_documents(paths.iter().enumerate().map(|(index, path)| {
-        load_pdf_document_from_path(path).map(|document| (index, document))
-    }))
+    merge_documents(
+        paths.iter().enumerate().map(|(index, path)| {
+            load_pdf_document_from_path(path).map(|document| (index, document))
+        }),
+    )
 }
 
 fn validate_merge_limits(input_count: usize) -> Result<(), String> {
