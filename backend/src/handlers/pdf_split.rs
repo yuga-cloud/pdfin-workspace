@@ -16,7 +16,7 @@ use crate::{
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 const ZIP_CONTENT_TYPE: &str = "application/zip";
-const MAX_SPLIT_RANGES: usize = 100;
+const MAX_SPLIT_RANGES: usize = 64;
 const MAX_RANGE_INPUT_LENGTH: usize = 4 * 1024;
 
 fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
