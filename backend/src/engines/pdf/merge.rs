@@ -1,8 +1,13 @@
-use std::{collections::{BTreeMap, HashMap, HashSet}, path::Path};
+use std::{
+    collections::{BTreeMap, HashMap, HashSet},
+    path::Path,
+};
 
 use lopdf::{Document, Object, ObjectId};
 
-use super::common::{load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path};
+use super::common::{
+    load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path,
+};
 
 const MAX_MERGE_INPUTS: usize = 32;
 const MAX_TOTAL_INPUT_BYTES: usize = 500 * 1024 * 1024;
@@ -29,9 +34,11 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
         validate_pdf(pdf).map_err(|error| format!("PDF ke-{} tidak valid: {error}", index + 1))?;
     }
 
-    merge_documents(pdfs.iter().enumerate().map(|(index, pdf)| {
-        load_pdf_document(pdf).map(|document| (index, document))
-    }))
+    merge_documents(
+        pdfs.iter()
+            .enumerate()
+            .map(|(index, pdf)| load_pdf_document(pdf).map(|document| (index, document))),
+    )
 }
 
 /// Menggabungkan PDF langsung dari file agar upload besar tidak perlu disalin
@@ -41,7 +48,8 @@ pub fn merge_pdfs_from_paths(paths: &[&Path]) -> Result<Vec<u8>, String> {
 
     let mut total_input_bytes = 0usize;
     for (index, path) in paths.iter().enumerate() {
-        validate_pdf_path(path).map_err(|error| format!("PDF ke-{} tidak valid: {error}", index + 1))?;
+        validate_pdf_path(path)
+            .map_err(|error| format!("PDF ke-{} tidak valid: {error}", index + 1))?;
         let size = std::fs::metadata(path)
             .map_err(|error| format!("Gagal membaca metadata PDF ke-{}: {error}", index + 1))?
             .len();
@@ -91,8 +99,8 @@ where
     let mut pages_object: Option<(ObjectId, Object)> = None;
 
     for document_result in documents {
-        let (index, mut document) = document_result
-            .map_err(|error| format!("Gagal membaca PDF input: {error}"))?;
+        let (index, mut document) =
+            document_result.map_err(|error| format!("Gagal membaca PDF input: {error}"))?;
 
         document.renumber_objects_with(next_object_id);
         next_object_id = document.max_id.saturating_add(1);
@@ -134,9 +142,13 @@ where
         }
 
         for object_id in page_ids {
-            let object = page_objects
-                .remove(&object_id)
-                .ok_or_else(|| format!("Object halaman {:?} tidak ditemukan pada PDF ke-{}.", object_id, index + 1))?;
+            let object = page_objects.remove(&object_id).ok_or_else(|| {
+                format!(
+                    "Object halaman {:?} tidak ditemukan pada PDF ke-{}.",
+                    object_id,
+                    index + 1
+                )
+            })?;
             pages_in_order.push((object_id, object));
         }
     }
