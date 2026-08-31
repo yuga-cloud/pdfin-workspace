@@ -8,10 +8,13 @@ use tokio::task;
 use tracing::error;
 
 use crate::{
-    engines::optimize::{
-        compress::{CompressionQuality, compress_pdf as compress_pdf_engine},
-        page_numbers::add_page_numbers as add_page_numbers_engine,
-        watermark::add_watermark as add_watermark_engine,
+    engines::{
+        common::validate_input,
+        optimize::{
+            compress::{CompressionQuality, compress_pdf as compress_pdf_engine},
+            page_numbers::add_page_numbers as add_page_numbers_engine,
+            watermark::add_watermark as add_watermark_engine,
+        },
     },
     error::AppError,
     state::AppState,
@@ -19,11 +22,16 @@ use crate::{
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 
+fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
+    validate_input(bytes, "PDF").map_err(|message| AppError::bad_request("invalid_input", message))
+}
+
 pub async fn compress_pdf(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, AppError> {
     let (data, quality) = read_compress_request(&mut multipart).await?;
+    validate_pdf_input(&data)?;
 
     let permit = state
         .pdf_semaphore
@@ -77,6 +85,7 @@ pub async fn add_watermark(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, AppError> {
     let (data, text) = read_watermark_request(&mut multipart).await?;
+    validate_pdf_input(&data)?;
 
     let permit = state
         .pdf_semaphore
@@ -264,6 +273,8 @@ where
     F: FnOnce(&[u8]) -> Result<Vec<u8>, String> + Send + 'static,
 {
     let data = read_single_file(multipart).await?;
+    validate_pdf_input(&data)?;
+
     let permit = state
         .pdf_semaphore
         .clone()
