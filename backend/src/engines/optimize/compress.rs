@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{Read, Seek, SeekFrom},
+    io::Read,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
@@ -373,15 +373,13 @@ fn run_external_command(
 
 fn read_limited_stderr(path: &Path) -> Result<String, String> {
     let mut file = File::open(path).map_err(|error| error.to_string())?;
-    let mut bytes = Vec::with_capacity(MAX_STDERR_BYTES);
-    file.by_ref()
-        .take(MAX_STDERR_BYTES as u64)
+    let mut bytes = Vec::with_capacity(MAX_STDERR_BYTES + 1);
+    file.take((MAX_STDERR_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
         .map_err(|error| error.to_string())?;
 
-    let truncated = file.seek(SeekFrom::Current(0)).is_ok_and(|offset| {
-        file.seek(SeekFrom::End(0)).is_ok_and(|end| end > offset)
-    });
+    let truncated = bytes.len() > MAX_STDERR_BYTES;
+    bytes.truncate(MAX_STDERR_BYTES);
 
     let mut stderr = String::from_utf8_lossy(&bytes).trim().to_owned();
     if truncated {
@@ -479,4 +477,48 @@ fn resolve_program(candidates: &[&str]) -> Option<PathBuf> {
     }
 
     None
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn external_command_times_out() {
+        let temp_dir = tempdir().expect("tempdir harus tersedia");
+        let stderr_path = temp_dir.path().join("timeout.stderr");
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 1"]);
+
+        let result = run_external_command(
+            &mut command,
+            Duration::from_millis(100),
+            &stderr_path,
+            "test-command",
+            &[],
+        );
+
+        let error = result.expect_err("command harus timeout");
+        assert!(error.contains("melebihi batas waktu"));
+    }
+
+    #[test]
+    fn external_command_captures_stderr() {
+        let temp_dir = tempdir().expect("tempdir harus tersedia");
+        let stderr_path = temp_dir.path().join("failure.stderr");
+        let mut command = Command::new("sh");
+        command.args(["-c", "printf failure >&2; exit 7"]);
+
+        let result = run_external_command(
+            &mut command,
+            Duration::from_secs(1),
+            &stderr_path,
+            "test-command",
+            &[],
+        );
+
+        let error = result.expect_err("command harus gagal");
+        assert!(error.contains("exit code Some(7)"));
+        assert!(error.contains("failure"));
+    }
 }
