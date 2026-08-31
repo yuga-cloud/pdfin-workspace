@@ -10,7 +10,7 @@ use tracing::error;
 use crate::{
     engines::pdf::{
         merge::merge_pdfs as merge_pdf_engine, pages::manage_pages as manage_pages_engine,
-        rotate::rotate_pdf as rotate_pdf_engine, split::split_pdf as split_pdf_engine,
+        rotate::rotate_pdf as rotate_pdf_engine,
     },
     error::AppError,
     state::AppState,
@@ -19,8 +19,6 @@ use crate::{
 const DEFAULT_ROTATION_DEGREES: i64 = 90;
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 const MAX_MERGE_FILES: usize = 50;
-const MAX_SPLIT_RANGES: usize = 100;
-const MAX_RANGE_INPUT_LENGTH: usize = 4 * 1024;
 const MAX_PAGE_ORDER_LENGTH: usize = 16 * 1024;
 
 pub async fn merge_pdfs(
@@ -64,64 +62,6 @@ pub async fn merge_pdfs(
         error!(%error, "Gagal menggabungkan PDF: {error}");
         AppError::internal("merge_failed", "Gagal menggabungkan file PDF")
     })?;
-
-    Ok((
-        [(header::CONTENT_TYPE, PDF_CONTENT_TYPE)],
-        Bytes::from(pdf_bytes),
-    ))
-}
-
-pub async fn split_pdf(
-    State(state): State<AppState>,
-    multipart: Multipart,
-) -> Result<impl IntoResponse, AppError> {
-    let (data, ranges) = read_split_request(multipart).await?;
-
-    let permit = state
-        .pdf_semaphore
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|error| {
-            error!(%error, "PDF semaphore tidak tersedia");
-            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-        })?;
-
-    let result = task::spawn_blocking(move || {
-        let _permit = permit;
-        split_pdf_engine(&data, &ranges)
-    })
-    .await
-    .map_err(|error| {
-        error!(%error, "Split worker mengalami panic");
-        AppError::internal(
-            "split_worker_failed",
-            "Worker pemisahan PDF mengalami kegagalan",
-        )
-    })?;
-
-    let pdf_files = result.map_err(|error| {
-        error!(%error, "Gagal memisahkan PDF: {error}");
-        AppError::internal("split_failed", "Gagal memisahkan file PDF")
-    })?;
-
-    let pdf_bytes = if pdf_files.len() == 1 {
-        pdf_files.into_iter().next().ok_or_else(|| {
-            AppError::internal(
-                "empty_split_result",
-                "Pemisahan PDF tidak menghasilkan file",
-            )
-        })?
-    } else {
-        let file_refs: Vec<&[u8]> = pdf_files.iter().map(Vec::as_slice).collect();
-        merge_pdf_engine(&file_refs).map_err(|error| {
-            error!(%error, "Gagal menggabungkan hasil pemisahan PDF");
-            AppError::internal(
-                "split_merge_failed",
-                "Gagal menggabungkan hasil pemisahan PDF",
-            )
-        })?
-    };
 
     Ok((
         [(header::CONTENT_TYPE, PDF_CONTENT_TYPE)],
@@ -262,61 +202,6 @@ async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>, App
     Ok(files)
 }
 
-async fn read_split_request(
-    mut multipart: Multipart,
-) -> Result<(Bytes, Vec<(u32, u32)>), AppError> {
-    let mut file_bytes = None;
-    let mut ranges = None;
-
-    loop {
-        match multipart.next_field().await {
-            Ok(Some(field)) => match field.name().unwrap_or_default() {
-                "file" => match field.bytes().await {
-                    Ok(bytes) if !bytes.is_empty() => file_bytes = Some(bytes),
-                    Ok(_) => return Err(AppError::bad_request("empty_file", "File PDF kosong")),
-                    Err(error) => {
-                        error!(%error, "Gagal membaca file PDF");
-                        return Err(AppError::bad_request(
-                            "invalid_upload",
-                            "Gagal membaca file PDF yang diunggah",
-                        ));
-                    }
-                },
-                "ranges" => {
-                    let text = field.text().await.map_err(|error| {
-                        error!(%error, "Gagal membaca ranges");
-                        AppError::bad_request("invalid_ranges", "Gagal membaca rentang halaman")
-                    })?;
-
-                    if text.len() > MAX_RANGE_INPUT_LENGTH {
-                        return Err(AppError::bad_request(
-                            "ranges_too_long",
-                            "Parameter rentang halaman terlalu panjang",
-                        ));
-                    }
-
-                    ranges = Some(parse_ranges(&text)?);
-                }
-                _ => {}
-            },
-            Ok(None) => break,
-            Err(error) => {
-                error!(%error, "Gagal membaca multipart request");
-                return Err(AppError::bad_request(
-                    "invalid_multipart",
-                    "Request multipart tidak valid",
-                ));
-            }
-        }
-    }
-
-    let data = file_bytes
-        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
-    let ranges = ranges
-        .ok_or_else(|| AppError::bad_request("ranges_missing", "Field ranges tidak ditemukan"))?;
-    Ok((data, ranges))
-}
-
 async fn read_manage_pages_request(
     mut multipart: Multipart,
 ) -> Result<(Bytes, Vec<u32>), AppError> {
@@ -427,59 +312,6 @@ fn validate_rotation_degrees(degrees: i64) -> Result<(), AppError> {
     }
 
     Ok(())
-}
-
-fn parse_ranges(input: &str) -> Result<Vec<(u32, u32)>, AppError> {
-    let parts = input
-        .split(',')
-        .map(str::trim)
-        .filter(|part| !part.is_empty());
-    let mut ranges = Vec::new();
-
-    for part in parts {
-        if ranges.len() >= MAX_SPLIT_RANGES {
-            return Err(AppError::bad_request(
-                "too_many_ranges",
-                "Jumlah rentang halaman terlalu banyak",
-            ));
-        }
-
-        let mut values = part.splitn(2, '-');
-        let start = values
-            .next()
-            .ok_or_else(|| AppError::bad_request("invalid_ranges", "Rentang halaman tidak valid"))?
-            .parse::<u32>()
-            .map_err(|_| {
-                AppError::bad_request(
-                    "invalid_ranges",
-                    format!("Nomor halaman tidak valid: {part}"),
-                )
-            })?;
-        let end = values.next().unwrap_or(part).parse::<u32>().map_err(|_| {
-            AppError::bad_request(
-                "invalid_ranges",
-                format!("Nomor halaman tidak valid: {part}"),
-            )
-        })?;
-
-        if start == 0 || end == 0 || start > end {
-            return Err(AppError::bad_request(
-                "invalid_ranges",
-                format!("Rentang halaman tidak valid: {part}"),
-            ));
-        }
-
-        ranges.push((start, end));
-    }
-
-    if ranges.is_empty() {
-        return Err(AppError::bad_request(
-            "invalid_ranges",
-            "Rentang halaman tidak boleh kosong",
-        ));
-    }
-
-    Ok(ranges)
 }
 
 fn parse_page_order(input: &str) -> Result<Vec<u32>, AppError> {
