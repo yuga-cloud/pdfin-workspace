@@ -41,7 +41,9 @@ pub async fn merge_pdfs(
     let total_input_bytes = files
         .iter()
         .try_fold(0usize, |total, file| total.checked_add(file.len()))
-        .ok_or_else(|| AppError::bad_request("merge_input_too_large", "Total ukuran PDF terlalu besar"))?;
+        .ok_or_else(|| {
+            AppError::bad_request("merge_input_too_large", "Total ukuran PDF terlalu besar")
+        })?;
 
     if total_input_bytes > MAX_TOTAL_MERGE_INPUT_BYTES {
         return Err(AppError::bad_request(
