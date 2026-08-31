@@ -7,7 +7,10 @@ use tokio::{io::AsyncWriteExt, task};
 use tracing::error;
 
 use crate::{
-    engines::{common::validate_input, pdf::split::split_pdf_from_path as split_pdf_engine},
+    engines::pdf::{
+        common::validate_pdf_path,
+        split::split_pdf_from_path as split_pdf_engine,
+    },
     error::AppError,
     features::convert::response::attachment_response,
     state::AppState,
@@ -23,10 +26,6 @@ const MAX_INPUT_BYTES: usize = 500 * 1024 * 1024;
 struct TempPdfUpload {
     file: NamedTempFile,
     size: usize,
-}
-
-fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
-    validate_input(bytes, "PDF").map_err(|message| AppError::bad_request("invalid_input", message))
 }
 
 pub async fn split_pdf(
@@ -120,9 +119,8 @@ fn validate_total_input_size(size: usize) -> Result<(), AppError> {
 }
 
 fn validate_pdf_file(path: &std::path::Path) -> Result<(), AppError> {
-    crate::engines::pdf::common::validate_pdf_path(path).map_err(|message| {
-        AppError::bad_request("invalid_input", message)
-    })
+    validate_pdf_path(path)
+        .map_err(|message| AppError::bad_request("invalid_input", message))
 }
 
 async fn read_split_request(
