@@ -4,6 +4,7 @@ mod features;
 mod handlers;
 mod routes;
 mod state;
+mod zip;
 
 use std::{
     error::Error,
