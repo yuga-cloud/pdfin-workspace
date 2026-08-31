@@ -1,3 +1,5 @@
+use lopdf::Document;
+
 use super::common::{load_pdf_document, validate_pdf};
 
 const MAX_SPLIT_OUTPUTS: usize = 64;
@@ -21,7 +23,7 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
         ));
     }
 
-    let source = load_pdf_document(pdf_bytes)?;
+    let mut source = load_pdf_document(pdf_bytes)?;
 
     let page_count = source.get_pages().len() as u32;
 
@@ -51,34 +53,18 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
         }
     }
 
+    if ranges.len() == 1 {
+        let (start, end) = ranges[0];
+        let output = split_document_output(&mut source, start, end)?;
+        return Ok(vec![output]);
+    }
+
     let mut outputs = Vec::with_capacity(ranges.len());
     let mut total_output_bytes = 0usize;
 
     for &(start, end) in ranges {
         let mut document = source.clone();
-        let pages = document.get_pages();
-
-        let pages_to_delete = pages
-            .keys()
-            .copied()
-            .filter(|page| *page < start || *page > end)
-            .collect::<Vec<_>>();
-
-        if !pages_to_delete.is_empty() {
-            document.delete_pages(&pages_to_delete);
-        }
-
-        document.prune_objects();
-        document.renumber_objects();
-
-        let mut output = Vec::new();
-        document.save_to(&mut output).map_err(|error| {
-            format!("Gagal menyimpan hasil split halaman {start}-{end}: {error}")
-        })?;
-
-        if output.is_empty() {
-            return Err(format!("Hasil split halaman {start}-{end} kosong"));
-        }
+        let output = split_document_output(&mut document, start, end)?;
 
         total_output_bytes = total_output_bytes
             .checked_add(output.len())
@@ -95,6 +81,38 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
     }
 
     Ok(outputs)
+}
+
+fn split_document_output(
+    document: &mut Document,
+    start: u32,
+    end: u32,
+) -> Result<Vec<u8>, String> {
+    let pages = document.get_pages();
+
+    let pages_to_delete = pages
+        .keys()
+        .copied()
+        .filter(|page| *page < start || *page > end)
+        .collect::<Vec<_>>();
+
+    if !pages_to_delete.is_empty() {
+        document.delete_pages(&pages_to_delete);
+    }
+
+    document.prune_objects();
+    document.renumber_objects();
+
+    let mut output = Vec::new();
+    document.save_to(&mut output).map_err(|error| {
+        format!("Gagal menyimpan hasil split halaman {start}-{end}: {error}")
+    })?;
+
+    if output.is_empty() {
+        return Err(format!("Hasil split halaman {start}-{end} kosong"));
+    }
+
+    Ok(output)
 }
 
 #[cfg(test)]
