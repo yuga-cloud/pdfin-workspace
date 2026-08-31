@@ -1,5 +1,8 @@
+use lopdf::{Document, LoadOptions};
+
 const MAX_PDF_INPUT_BYTES: usize = 500 * 1024 * 1024;
 const PDF_HEADER_SCAN_BYTES: usize = 1024;
+const MAX_PDF_DECOMPRESSED_STREAM_BYTES: usize = 128 * 1024 * 1024;
 
 pub fn validate_pdf(pdf_bytes: &[u8]) -> Result<(), String> {
     if pdf_bytes.is_empty() {
@@ -14,6 +17,19 @@ pub fn validate_pdf(pdf_bytes: &[u8]) -> Result<(), String> {
     }
 
     validate_pdf_signature(pdf_bytes)
+}
+
+/// Load a validated PDF with an explicit decompressed-stream budget.
+///
+/// The input byte limit is enforced by `validate_pdf`; this additional
+/// limit prevents highly-compressed streams from expanding without bound
+/// while `lopdf` constructs its in-memory object graph.
+pub fn load_pdf_document(pdf_bytes: &[u8]) -> Result<Document, String> {
+    Document::load_mem_with_options(
+        pdf_bytes,
+        LoadOptions::with_max_decompressed_size(MAX_PDF_DECOMPRESSED_STREAM_BYTES),
+    )
+    .map_err(|error| format!("Gagal membaca PDF: {error}"))
 }
 
 fn validate_pdf_signature(bytes: &[u8]) -> Result<(), String> {
