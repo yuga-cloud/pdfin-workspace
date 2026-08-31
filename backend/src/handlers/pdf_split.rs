@@ -7,7 +7,10 @@ use tokio::task;
 use tracing::error;
 
 use crate::{
-    engines::pdf::split::split_pdf as split_pdf_engine,
+    engines::{
+        common::validate_input,
+        pdf::split::split_pdf as split_pdf_engine,
+    },
     error::AppError,
     features::convert::response::attachment_response,
     state::AppState,
@@ -19,11 +22,17 @@ const ZIP_CONTENT_TYPE: &str = "application/zip";
 const MAX_SPLIT_RANGES: usize = 100;
 const MAX_RANGE_INPUT_LENGTH: usize = 4 * 1024;
 
+fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
+    validate_input(bytes, "PDF")
+        .map_err(|message| AppError::bad_request("invalid_input", message))
+}
+
 pub async fn split_pdf(
     State(state): State<AppState>,
     multipart: Multipart,
 ) -> Result<Response, AppError> {
     let (data, ranges) = read_split_request(multipart).await?;
+    validate_pdf_input(&data)?;
 
     let permit = state
         .pdf_semaphore
