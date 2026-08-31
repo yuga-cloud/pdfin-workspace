@@ -112,6 +112,22 @@ pub async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<Bytes>,
     Ok(files)
 }
 
+pub async fn run_conversion_validated<V, F, T>(
+    state: AppState,
+    data: Bytes,
+    validate: V,
+    engine: F,
+    operation: &'static str,
+) -> Result<T, AppError>
+where
+    V: FnOnce(&[u8]) -> Result<(), AppError> + Send + 'static,
+    F: FnOnce(&[u8]) -> Result<T, String> + Send + 'static,
+    T: Send + 'static,
+{
+    validate(&data)?;
+    run_conversion(state, data, engine, operation).await
+}
+
 pub async fn run_conversion_many<F, T>(
     state: AppState,
     data: Vec<Bytes>,
