@@ -14,8 +14,82 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect system dependency changes
+    runs-on: ubuntu-latest
+    outputs:
+      system-deps: ${{ steps.filter.outputs.system-deps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          changed_files="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          if grep -Eq '^(backend/src/engines/office/|backend/src/engines/optimize/|backend/src/engines/rendering/|backend/Cargo.toml|Cargo.toml|Cargo.lock)' <<<"$changed_files"; then
+            echo "system-deps=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "system-deps=false" >> "$GITHUB_OUTPUT"
+          fi
+
   rust:
     name: Rust check, lint and test
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install lightweight build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libssl-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Cargo check
+        run: cargo check --workspace --all-targets --all-features --locked
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --all-targets --all-features --locked -- --skip tesseract_should_be_available
+
+  system-integration:
+    name: System dependency integration tests
+    needs: changes
+    if: needs.changes.outputs.system-deps == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,14 +124,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Cargo check
-        run: cargo check --workspace --all-targets --all-features --locked
-
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: System tool smoke checks
+        run: |
+          tesseract --version
+          libreoffice --version
+          pdftoppm -v
 
       - name: Tests
         run: cargo test --workspace --all-targets --all-features --locked
