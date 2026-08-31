@@ -90,7 +90,7 @@ pub fn manage_pages(pdf_bytes: &[u8], page_order: &[u32]) -> Result<Vec<u8>, Str
     next_id = next_id.saturating_add(1);
     let output_catalog_id = (next_id, 0);
 
-    output.objects = document.objects.clone();
+    output.objects = std::mem::take(&mut document.objects);
 
     let mut kids = Vec::with_capacity(selected_page_ids.len());
     for page_id in selected_page_ids {
