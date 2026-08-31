@@ -7,10 +7,7 @@ use tokio::task;
 use tracing::error;
 
 use crate::{
-    engines::{
-        common::validate_input,
-        pdf::split::split_pdf as split_pdf_engine,
-    },
+    engines::{common::validate_input, pdf::split::split_pdf as split_pdf_engine},
     error::AppError,
     features::convert::response::attachment_response,
     state::AppState,
@@ -23,8 +20,7 @@ const MAX_SPLIT_RANGES: usize = 100;
 const MAX_RANGE_INPUT_LENGTH: usize = 4 * 1024;
 
 fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
-    validate_input(bytes, "PDF")
-        .map_err(|message| AppError::bad_request("invalid_input", message))
+    validate_input(bytes, "PDF").map_err(|message| AppError::bad_request("invalid_input", message))
 }
 
 pub async fn split_pdf(
