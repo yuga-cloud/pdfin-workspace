@@ -32,7 +32,7 @@ pub fn pdf_to_word(pdf_bytes: &[u8]) -> Result<Vec<u8>, String> {
         });
 
         let mut paragraph = Paragraph::new();
-        let mut previous_top = None;
+        let mut previous_top: Option<f32> = None;
         let mut has_text = false;
 
         for word in ordered {
