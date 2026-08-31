@@ -83,11 +83,7 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
     Ok(outputs)
 }
 
-fn split_document_output(
-    document: &mut Document,
-    start: u32,
-    end: u32,
-) -> Result<Vec<u8>, String> {
+fn split_document_output(document: &mut Document, start: u32, end: u32) -> Result<Vec<u8>, String> {
     let pages = document.get_pages();
 
     let pages_to_delete = pages
@@ -104,9 +100,9 @@ fn split_document_output(
     document.renumber_objects();
 
     let mut output = Vec::new();
-    document.save_to(&mut output).map_err(|error| {
-        format!("Gagal menyimpan hasil split halaman {start}-{end}: {error}")
-    })?;
+    document
+        .save_to(&mut output)
+        .map_err(|error| format!("Gagal menyimpan hasil split halaman {start}-{end}: {error}"))?;
 
     if output.is_empty() {
         return Err(format!("Hasil split halaman {start}-{end} kosong"));
