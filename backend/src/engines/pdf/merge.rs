@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use lopdf::{Document, Object, ObjectId};
 
-use super::common::validate_pdf;
+use super::common::{load_pdf_document, validate_pdf};
 
 const MAX_MERGE_INPUTS: usize = 32;
 const MAX_TOTAL_INPUT_BYTES: usize = 500 * 1024 * 1024;
@@ -52,7 +52,7 @@ pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
     let mut pages_object: Option<(ObjectId, Object)> = None;
 
     for (index, pdf) in pdfs.iter().enumerate() {
-        let mut document = Document::load_mem(pdf)
+        let mut document = load_pdf_document(pdf)
             .map_err(|error| format!("Gagal membaca PDF ke-{}: {error}", index + 1))?;
 
         document.renumber_objects_with(next_object_id);
