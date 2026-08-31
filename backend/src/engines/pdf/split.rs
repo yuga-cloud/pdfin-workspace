@@ -1,6 +1,6 @@
 use lopdf::Document;
 
-use super::common::validate_pdf;
+use super::common::{load_pdf_document, validate_pdf};
 
 const MAX_SPLIT_OUTPUTS: usize = 64;
 const MAX_SPLIT_RANGE_PAGES: u32 = 10_000;
@@ -23,8 +23,7 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
         ));
     }
 
-    let source =
-        Document::load_mem(pdf_bytes).map_err(|error| format!("Gagal membaca PDF: {error}"))?;
+    let source = load_pdf_document(pdf_bytes)?;
 
     let page_count = source.get_pages().len() as u32;
 
