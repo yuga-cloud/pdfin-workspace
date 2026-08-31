@@ -8,10 +8,13 @@ use tokio::task;
 use tracing::error;
 
 use crate::{
-    engines::{common::validate_input, pdf::{
-        merge::merge_pdfs as merge_pdf_engine, pages::manage_pages as manage_pages_engine,
-        rotate::rotate_pdf as rotate_pdf_engine,
-    }},
+    engines::{
+        common::validate_input,
+        pdf::{
+            merge::merge_pdfs as merge_pdf_engine, pages::manage_pages as manage_pages_engine,
+            rotate::rotate_pdf as rotate_pdf_engine,
+        },
+    },
     error::AppError,
     state::AppState,
 };
@@ -38,12 +41,7 @@ pub async fn merge_pdfs(
     let total_input_bytes = files
         .iter()
         .try_fold(0usize, |total, file| total.checked_add(file.len()))
-        .ok_or_else(|| {
-            AppError::bad_request(
-                "merge_input_too_large",
-                "Total ukuran PDF terlalu besar",
-            )
-        })?;
+        .ok_or_else(|| AppError::bad_request("merge_input_too_large", "Total ukuran PDF terlalu besar"))?;
 
     if total_input_bytes > MAX_TOTAL_MERGE_INPUT_BYTES {
         return Err(AppError::bad_request(
@@ -53,8 +51,12 @@ pub async fn merge_pdfs(
     }
 
     for (index, file) in files.iter().enumerate() {
-        validate_input(file, "PDF")
-            .map_err(|message| AppError::bad_request("invalid_input", format!("PDF ke-{} tidak valid: {message}", index + 1)))?;
+        validate_input(file, "PDF").map_err(|message| {
+            AppError::bad_request(
+                "invalid_input",
+                format!("PDF ke-{} tidak valid: {message}", index + 1),
+            )
+        })?;
     }
 
     let permit = state
