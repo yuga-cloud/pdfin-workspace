@@ -1,4 +1,4 @@
-use std::{path::Path, vec::Vec};
+use std::path::Path;
 
 use lopdf::Document;
 
