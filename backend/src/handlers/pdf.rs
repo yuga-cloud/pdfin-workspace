@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use axum::{
     body::Bytes,
     extract::{Multipart, State},
@@ -12,7 +10,7 @@ use tracing::error;
 
 use crate::{
     engines::{
-        common::{validate_input, validate_pdf_path},
+        common::validate_pdf_path,
         pdf::{
             merge::merge_pdfs_from_paths as merge_pdf_engine,
             pages::manage_pages as manage_pages_engine,
