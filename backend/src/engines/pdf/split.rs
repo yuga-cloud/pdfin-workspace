@@ -1,6 +1,8 @@
+use std::{path::Path, vec::Vec};
+
 use lopdf::Document;
 
-use super::common::{load_pdf_document, validate_pdf};
+use super::common::{load_pdf_document_from_path, validate_pdf_path};
 
 const MAX_SPLIT_OUTPUTS: usize = 64;
 const MAX_SPLIT_RANGE_PAGES: u32 = 10_000;
@@ -10,8 +12,11 @@ const MAX_SPLIT_TOTAL_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 ///
 /// Validasi dilakukan sebelum operasi berat agar PDF besar tidak
 /// diproses jika request sudah tidak valid.
-pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>, String> {
-    validate_pdf(pdf_bytes)?;
+pub fn split_pdf_from_path(
+    pdf_path: &Path,
+    ranges: &[(u32, u32)],
+) -> Result<Vec<Vec<u8>>, String> {
+    validate_pdf_path(pdf_path)?;
 
     if ranges.is_empty() {
         return Err("Tidak ada rentang halaman yang dipilih".to_owned());
@@ -23,7 +28,7 @@ pub fn split_pdf(pdf_bytes: &[u8], ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>
         ));
     }
 
-    let mut source = load_pdf_document(pdf_bytes)?;
+    let mut source = load_pdf_document_from_path(pdf_path)?;
 
     let page_count = source.get_pages().len() as u32;
 
@@ -117,14 +122,14 @@ mod tests {
 
     #[test]
     fn rejects_empty_ranges() {
-        let result = split_pdf(b"%PDF-1.7\n...", &[]);
+        let result = split_pdf_from_path(Path::new("missing.pdf"), &[]);
         assert!(result.is_err());
     }
 
     #[test]
     fn rejects_more_than_max_outputs() {
         let ranges = vec![(1_u32, 1_u32); MAX_SPLIT_OUTPUTS + 1];
-        let result = split_pdf(b"%PDF-1.7\n...", &ranges);
+        let result = split_pdf_from_path(Path::new("missing.pdf"), &ranges);
         assert!(result.is_err());
     }
 }
