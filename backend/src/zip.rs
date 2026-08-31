@@ -66,9 +66,7 @@ pub fn create_stored_zip(entries: &[ZipEntry<'_>]) -> Result<Vec<u8>, String> {
         write_u32(&mut output, size);
         write_u16(&mut output, name_len);
         write_u16(&mut output, 0);
-        output
-            .write_all(name)
-            .map_err(|error| error.to_string())?;
+        output.write_all(name).map_err(|error| error.to_string())?;
         output
             .write_all(entry.data)
             .map_err(|error| error.to_string())?;
@@ -169,12 +167,16 @@ mod tests {
 
         let archive = create_stored_zip(&entries).expect("ZIP harus terbentuk");
         assert_eq!(&archive[0..4], &ZIP_LOCAL_FILE_HEADER.to_le_bytes());
-        assert!(archive
-            .windows(4)
-            .any(|window| window == ZIP_CENTRAL_DIRECTORY_HEADER.to_le_bytes()));
-        assert!(archive
-            .windows(4)
-            .any(|window| window == ZIP_END_OF_CENTRAL_DIRECTORY.to_le_bytes()));
+        assert!(
+            archive
+                .windows(4)
+                .any(|window| window == ZIP_CENTRAL_DIRECTORY_HEADER.to_le_bytes())
+        );
+        assert!(
+            archive
+                .windows(4)
+                .any(|window| window == ZIP_END_OF_CENTRAL_DIRECTORY.to_le_bytes())
+        );
     }
 
     #[test]
