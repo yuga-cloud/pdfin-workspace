@@ -219,7 +219,7 @@ fn run_pymupdf(
     stderr_path: &Path,
 ) -> Result<Vec<u8>, String> {
     run_external_command(
-        Command::new(python),
+        &mut Command::new(python),
         PYMUPDF_TIMEOUT,
         stderr_path,
         "PyMuPDF",
@@ -239,7 +239,7 @@ fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, 
     let stderr_path = temp_dir.join("qpdf.stderr");
 
     run_external_command(
-        Command::new(qpdf),
+        &mut Command::new(qpdf),
         QPDF_TIMEOUT,
         &stderr_path,
         "qpdf",
@@ -275,7 +275,7 @@ fn run_ghostscript(
     );
 
     run_external_command(
-        Command::new(gs),
+        &mut Command::new(gs),
         GHOSTSCRIPT_TIMEOUT,
         &stderr_path,
         "Ghostscript",
@@ -337,7 +337,6 @@ fn run_external_command(
     let mut child = command
         .spawn()
         .map_err(|error| format!("Gagal menjalankan {tool_name}: {error}"))?;
-
     let deadline = Instant::now() + timeout;
 
     loop {
