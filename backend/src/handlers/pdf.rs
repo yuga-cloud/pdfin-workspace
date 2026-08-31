@@ -8,17 +8,18 @@ use tokio::task;
 use tracing::error;
 
 use crate::{
-    engines::pdf::{
+    engines::{common::validate_input, pdf::{
         merge::merge_pdfs as merge_pdf_engine, pages::manage_pages as manage_pages_engine,
         rotate::rotate_pdf as rotate_pdf_engine,
-    },
+    }},
     error::AppError,
     state::AppState,
 };
 
 const DEFAULT_ROTATION_DEGREES: i64 = 90;
 const PDF_CONTENT_TYPE: &str = "application/pdf";
-const MAX_MERGE_FILES: usize = 50;
+const MAX_MERGE_FILES: usize = 32;
+const MAX_TOTAL_MERGE_INPUT_BYTES: usize = 500 * 1024 * 1024;
 const MAX_PAGE_ORDER_LENGTH: usize = 16 * 1024;
 
 pub async fn merge_pdfs(
@@ -32,6 +33,28 @@ pub async fn merge_pdfs(
             "insufficient_files",
             "Minimal dua file PDF diperlukan untuk digabungkan",
         ));
+    }
+
+    let total_input_bytes = files
+        .iter()
+        .try_fold(0usize, |total, file| total.checked_add(file.len()))
+        .ok_or_else(|| {
+            AppError::bad_request(
+                "merge_input_too_large",
+                "Total ukuran PDF terlalu besar",
+            )
+        })?;
+
+    if total_input_bytes > MAX_TOTAL_MERGE_INPUT_BYTES {
+        return Err(AppError::bad_request(
+            "merge_input_too_large",
+            "Total ukuran PDF melebihi batas maksimum (500 MB)",
+        ));
+    }
+
+    for (index, file) in files.iter().enumerate() {
+        validate_input(file, "PDF")
+            .map_err(|message| AppError::bad_request("invalid_input", format!("PDF ke-{} tidak valid: {message}", index + 1)))?;
     }
 
     let permit = state
