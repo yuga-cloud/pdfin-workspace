@@ -10,8 +10,7 @@ use tracing::error;
 
 use crate::{
     engines::pdf::{
-        common::validate_pdf_path,
-        merge::merge_pdfs_from_paths as merge_pdf_engine,
+        common::validate_pdf_path, merge::merge_pdfs_from_paths as merge_pdf_engine,
         pages::manage_pages as manage_pages_engine, rotate::rotate_pdf as rotate_pdf_engine,
     },
     error::AppError,
