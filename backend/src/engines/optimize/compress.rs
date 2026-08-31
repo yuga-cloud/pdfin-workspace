@@ -1,7 +1,10 @@
 use std::{
-    fs,
+    fs::{self, File},
+    io::Read,
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    thread,
+    time::{Duration, Instant},
 };
 
 use lopdf::Document;
@@ -16,6 +19,11 @@ const MIN_PRIMARY_REDUCTION_PERCENT: usize = 5;
 const MAX_INPUT_BYTES: usize = 500 * 1024 * 1024;
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 const MAX_INPUT_PAGES: usize = 10_000;
+const MAX_STDERR_BYTES: usize = 16 * 1024;
+const PYMUPDF_TIMEOUT: Duration = Duration::from_secs(120);
+const QPDF_TIMEOUT: Duration = Duration::from_secs(180);
+const GHOSTSCRIPT_TIMEOUT: Duration = Duration::from_secs(300);
+const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompressionQuality {
@@ -80,8 +88,18 @@ pub fn compress_pdf(pdf_bytes: &[u8], quality: CompressionQuality) -> Result<Vec
         let output_path = temp_dir
             .path()
             .join(format!("pymupdf-{}.pdf", quality.as_str()));
+        let stderr_path = temp_dir
+            .path()
+            .join(format!("pymupdf-{}.stderr", quality.as_str()));
 
-        match run_pymupdf(&python, &script, quality, &input_path, &output_path) {
+        match run_pymupdf(
+            &python,
+            &script,
+            quality,
+            &input_path,
+            &output_path,
+            &stderr_path,
+        ) {
             Ok(output) if is_valid_pdf(&output, input_pages) => {
                 if has_meaningful_reduction(output.len(), pdf_bytes.len()) {
                     return Ok(output);
@@ -198,49 +216,44 @@ fn run_pymupdf(
     quality: CompressionQuality,
     input_path: &Path,
     output_path: &Path,
+    stderr_path: &Path,
 ) -> Result<Vec<u8>, String> {
-    let result = Command::new(python)
-        .arg(script)
-        .arg(quality.as_str())
-        .arg(input_path)
-        .arg(output_path)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("Gagal menjalankan PyMuPDF: {error}"))?;
-
-    if !result.status.success() {
-        let stderr = String::from_utf8_lossy(&result.stderr);
-        return Err(format!(
-            "PyMuPDF gagal pada mode `{}`:\n{}",
-            quality.as_str(),
-            stderr
-        ));
-    }
+    run_external_command(
+        &mut Command::new(python),
+        PYMUPDF_TIMEOUT,
+        stderr_path,
+        "PyMuPDF",
+        &[
+            script.as_os_str(),
+            quality.as_str().as_ref(),
+            input_path.as_os_str(),
+            output_path.as_os_str(),
+        ],
+    )?;
 
     fs::read(output_path).map_err(|error| format!("Gagal membaca output PyMuPDF: {error}"))
 }
 
 fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, String> {
     let output_path = temp_dir.join("qpdf-output.pdf");
-    let result = Command::new(qpdf)
-        .arg("--object-streams=generate")
-        .arg("--compress-streams=y")
-        .arg("--recompress-flate")
-        .arg("--compression-level=9")
-        .arg("--optimize-images")
-        .arg("--jpeg-quality=75")
-        .arg(input_path)
-        .arg(&output_path)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("Gagal menjalankan qpdf: {error}"))?;
+    let stderr_path = temp_dir.join("qpdf.stderr");
 
-    if !result.status.success() {
-        let stderr = String::from_utf8_lossy(&result.stderr);
-        return Err(format!("qpdf gagal:\n{stderr}"));
-    }
+    run_external_command(
+        &mut Command::new(qpdf),
+        QPDF_TIMEOUT,
+        &stderr_path,
+        "qpdf",
+        &[
+            "--object-streams=generate".as_ref(),
+            "--compress-streams=y".as_ref(),
+            "--recompress-flate".as_ref(),
+            "--compression-level=9".as_ref(),
+            "--optimize-images".as_ref(),
+            "--jpeg-quality=75".as_ref(),
+            input_path.as_os_str(),
+            output_path.as_os_str(),
+        ],
+    )?;
 
     fs::read(&output_path).map_err(|error| format!("Gagal membaca hasil qpdf: {error}"))
 }
@@ -252,58 +265,126 @@ fn run_ghostscript(
     profile: GhostscriptProfile,
 ) -> Result<Vec<u8>, String> {
     let output_path = temp_dir.join(profile.output_name());
+    let stderr_path = temp_dir.join(format!("{}.stderr", profile.output_name()));
     let qfactor = profile.jpeg_quality() as f32 / 100.0;
     let image_dict = format!(
-        "<< /QFactor {qfactor} \
-           /Blend 1 \
-           /HSamples [2 1 1 2] \
+        "<< /QFactor {qfactor} \\
+           /Blend 1 \\
+           /HSamples [2 1 1 2] \\
            /VSamples [2 1 1 2] >>"
     );
 
-    let result = Command::new(gs)
-        .arg("-dSAFER")
-        .arg("-dBATCH")
-        .arg("-dNOPAUSE")
-        .arg("-sDEVICE=pdfwrite")
-        .arg("-dCompatibilityLevel=1.7")
-        .arg("-dDetectDuplicateImages=true")
-        .arg("-dCompressPages=true")
-        .arg("-dWriteXRefStm=true")
-        .arg("-dWriteObjStms=true")
-        .arg("-dDownsampleColorImages=true")
-        .arg("-dDownsampleGrayImages=true")
-        .arg("-dDownsampleMonoImages=true")
-        .arg("-dColorImageDownsampleType=/Bicubic")
-        .arg("-dGrayImageDownsampleType=/Bicubic")
-        .arg("-dMonoImageDownsampleType=/Subsample")
-        .arg(format!("-dColorImageResolution={}", profile.color_dpi()))
-        .arg(format!("-dGrayImageResolution={}", profile.gray_dpi()))
-        .arg(format!("-dMonoImageResolution={}", profile.mono_dpi()))
-        .arg(format!("-dColorImageDict={image_dict}"))
-        .arg(format!("-dGrayImageDict={image_dict}"))
-        .arg(format!("-dMonoImageDict={image_dict}"))
-        .arg("-dAutoFilterColorImages=true")
-        .arg("-dAutoFilterGrayImages=true")
-        .arg("-dEncodeColorImages=true")
-        .arg("-dEncodeGrayImages=true")
-        .arg("-dEncodeMonoImages=true")
-        .arg("-dPreserveAnnots=true")
-        .arg("-dPreserveOverprintSettings=true")
-        .arg("-dPreserveEPSInfo=true")
-        .arg("-dMaxInlineImageSize=0")
-        .arg(format!("-sOutputFile={}", output_path.display()))
-        .arg(input_path)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("Gagal menjalankan Ghostscript: {error}"))?;
-
-    if !result.status.success() {
-        let stderr = String::from_utf8_lossy(&result.stderr);
-        return Err(format!("Ghostscript gagal:\n{stderr}"));
-    }
+    run_external_command(
+        &mut Command::new(gs),
+        GHOSTSCRIPT_TIMEOUT,
+        &stderr_path,
+        "Ghostscript",
+        &[
+            "-dSAFER".as_ref(),
+            "-dBATCH".as_ref(),
+            "-dNOPAUSE".as_ref(),
+            "-sDEVICE=pdfwrite".as_ref(),
+            "-dCompatibilityLevel=1.7".as_ref(),
+            "-dDetectDuplicateImages=true".as_ref(),
+            "-dCompressPages=true".as_ref(),
+            "-dWriteXRefStm=true".as_ref(),
+            "-dWriteObjStms=true".as_ref(),
+            "-dDownsampleColorImages=true".as_ref(),
+            "-dDownsampleGrayImages=true".as_ref(),
+            "-dDownsampleMonoImages=true".as_ref(),
+            "-dColorImageDownsampleType=/Bicubic".as_ref(),
+            "-dGrayImageDownsampleType=/Bicubic".as_ref(),
+            "-dMonoImageDownsampleType=/Subsample".as_ref(),
+            format!("-dColorImageResolution={}", profile.color_dpi()).as_ref(),
+            format!("-dGrayImageResolution={}", profile.gray_dpi()).as_ref(),
+            format!("-dMonoImageResolution={}", profile.mono_dpi()).as_ref(),
+            format!("-dColorImageDict={image_dict}").as_ref(),
+            format!("-dGrayImageDict={image_dict}").as_ref(),
+            format!("-dMonoImageDict={image_dict}").as_ref(),
+            "-dAutoFilterColorImages=true".as_ref(),
+            "-dAutoFilterGrayImages=true".as_ref(),
+            "-dEncodeColorImages=true".as_ref(),
+            "-dEncodeGrayImages=true".as_ref(),
+            "-dEncodeMonoImages=true".as_ref(),
+            "-dPreserveAnnots=true".as_ref(),
+            "-dPreserveOverprintSettings=true".as_ref(),
+            "-dPreserveEPSInfo=true".as_ref(),
+            "-dMaxInlineImageSize=0".as_ref(),
+            format!("-sOutputFile={}", output_path.display()).as_ref(),
+            input_path.as_os_str(),
+        ],
+    )?;
 
     fs::read(&output_path).map_err(|error| format!("Gagal membaca hasil Ghostscript: {error}"))
+}
+
+fn run_external_command(
+    command: &mut Command,
+    timeout: Duration,
+    stderr_path: &Path,
+    tool_name: &str,
+    args: &[&std::ffi::OsStr],
+) -> Result<(), String> {
+    for arg in args {
+        command.arg(arg);
+    }
+
+    command.stdout(Stdio::null());
+    let stderr_file = File::create(stderr_path)
+        .map_err(|error| format!("Gagal membuat log {tool_name}: {error}"))?;
+    command.stderr(Stdio::from(stderr_file));
+
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("Gagal menjalankan {tool_name}: {error}"))?;
+    let deadline = Instant::now() + timeout;
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if status.success() {
+                    return Ok(());
+                }
+
+                let stderr = read_limited_stderr(stderr_path).unwrap_or_default();
+                return Err(format!(
+                    "{tool_name} gagal (exit code {:?}): {stderr}",
+                    status.code()
+                ));
+            }
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "{tool_name} melebihi batas waktu {} detik",
+                    timeout.as_secs()
+                ));
+            }
+            Ok(None) => thread::sleep(PROCESS_POLL_INTERVAL),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("Gagal memantau {tool_name}: {error}"));
+            }
+        }
+    }
+}
+
+fn read_limited_stderr(path: &Path) -> Result<String, String> {
+    let file = File::open(path).map_err(|error| error.to_string())?;
+    let mut bytes = Vec::with_capacity(MAX_STDERR_BYTES + 1);
+    file.take((MAX_STDERR_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| error.to_string())?;
+
+    let truncated = bytes.len() > MAX_STDERR_BYTES;
+    bytes.truncate(MAX_STDERR_BYTES);
+
+    let mut stderr = String::from_utf8_lossy(&bytes).trim().to_owned();
+    if truncated {
+        stderr.push_str(" [stderr truncated]");
+    }
+    Ok(stderr)
 }
 
 fn has_meaningful_reduction(output_size: usize, input_size: usize) -> bool {
@@ -395,4 +476,48 @@ fn resolve_program(candidates: &[&str]) -> Option<PathBuf> {
     }
 
     None
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn external_command_times_out() {
+        let temp_dir = tempdir().expect("tempdir harus tersedia");
+        let stderr_path = temp_dir.path().join("timeout.stderr");
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 1"]);
+
+        let result = run_external_command(
+            &mut command,
+            Duration::from_millis(100),
+            &stderr_path,
+            "test-command",
+            &[],
+        );
+
+        let error = result.expect_err("command harus timeout");
+        assert!(error.contains("melebihi batas waktu"));
+    }
+
+    #[test]
+    fn external_command_captures_stderr() {
+        let temp_dir = tempdir().expect("tempdir harus tersedia");
+        let stderr_path = temp_dir.path().join("failure.stderr");
+        let mut command = Command::new("sh");
+        command.args(["-c", "printf failure >&2; exit 7"]);
+
+        let result = run_external_command(
+            &mut command,
+            Duration::from_secs(1),
+            &stderr_path,
+            "test-command",
+            &[],
+        );
+
+        let error = result.expect_err("command harus gagal");
+        assert!(error.contains("exit code Some(7)"));
+        assert!(error.contains("failure"));
+    }
 }
