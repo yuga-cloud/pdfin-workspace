@@ -4,7 +4,7 @@ use std::{
     process::Command,
 };
 
-use crate::engines::common::validate_input;
+use crate::engines::{common::validate_input, pdf::common::load_pdf_document};
 
 const MAX_RENDER_PAGES: usize = 100;
 const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
@@ -15,6 +15,21 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
 
     if pdf_bytes.len() > MAX_INPUT_SIZE_BYTES {
         return Err("Ukuran PDF melebihi batas render JPG".to_owned());
+    }
+
+    let document = load_pdf_document(pdf_bytes)
+        .map_err(|error| format!("Gagal membaca PDF sebelum render JPG: {error}"))?;
+    let page_count = document.get_pages().len();
+
+    if page_count == 0 {
+        return Err("PDF tidak memiliki halaman".to_owned());
+    }
+
+    if page_count > MAX_RENDER_PAGES {
+        return Err(format!(
+            "PDF melebihi batas render {} halaman",
+            MAX_RENDER_PAGES
+        ));
     }
 
     let temp_dir = tempfile::tempdir()
@@ -43,14 +58,6 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     }
 
     let mut page_files = collect_page_files(temp_dir.path())?;
-
-    if page_files.len() > MAX_RENDER_PAGES {
-        return Err(format!(
-            "PDF melebihi batas render {} halaman",
-            MAX_RENDER_PAGES
-        ));
-    }
-
     page_files.sort_by_key(|path| page_number(path));
 
     let mut pages = Vec::with_capacity(page_files.len());
@@ -67,8 +74,11 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
         }
     }
 
-    if pages.is_empty() {
-        return Err("Konversi PDF ke JPG tidak menghasilkan gambar".to_owned());
+    if pages.len() != page_count {
+        return Err(format!(
+            "Jumlah gambar hasil render tidak sesuai: diharapkan {page_count}, didapat {}",
+            pages.len()
+        ));
     }
 
     Ok(pages)
