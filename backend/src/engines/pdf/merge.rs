@@ -5,41 +5,12 @@ use std::{
 
 use lopdf::{Document, Object, ObjectId};
 
-use super::common::{
-    load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path,
-};
+use super::common::{load_pdf_document_from_path, validate_pdf_path};
 
 const MAX_MERGE_INPUTS: usize = 32;
 const MAX_TOTAL_INPUT_BYTES: usize = 500 * 1024 * 1024;
 const MAX_MERGED_PAGES: usize = 10_000;
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
-
-/// Menggabungkan beberapa PDF menjadi satu dokumen dari memory buffer.
-pub fn merge_pdfs(pdfs: &[&[u8]]) -> Result<Vec<u8>, String> {
-    validate_merge_limits(pdfs.len())?;
-
-    let total_input_bytes = pdfs
-        .iter()
-        .try_fold(0usize, |total, pdf| total.checked_add(pdf.len()))
-        .ok_or_else(|| "Total ukuran PDF melebihi batas numerik yang didukung".to_owned())?;
-
-    if total_input_bytes > MAX_TOTAL_INPUT_BYTES {
-        return Err(format!(
-            "Total ukuran PDF melebihi batas maksimum ({} MB)",
-            MAX_TOTAL_INPUT_BYTES / 1024 / 1024
-        ));
-    }
-
-    for (index, pdf) in pdfs.iter().enumerate() {
-        validate_pdf(pdf).map_err(|error| format!("PDF ke-{} tidak valid: {error}", index + 1))?;
-    }
-
-    merge_documents(
-        pdfs.iter()
-            .enumerate()
-            .map(|(index, pdf)| load_pdf_document(pdf).map(|document| (index, document))),
-    )
-}
 
 /// Menggabungkan PDF langsung dari file agar upload besar tidak perlu disalin
 /// kembali ke heap sebelum `lopdf` membangun object graph.
