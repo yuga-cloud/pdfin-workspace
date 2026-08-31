@@ -1,4 +1,4 @@
-use lopdf::{Document, Object};
+use lopdf::Object;
 
 use super::common::{load_pdf_document, validate_pdf};
 
