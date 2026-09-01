@@ -139,16 +139,16 @@ where
     T: Send + 'static,
 {
     let permit = state
-        .pdf_semaphore
+        .conversion_semaphore
         .clone()
         .acquire_owned()
         .await
         .map_err(|error| {
-            error!(%error, operation, "PDF semaphore tidak tersedia");
+            error!(%error, operation, "Conversion semaphore tidak tersedia");
 
             AppError::service_unavailable(
                 error_code::PDF_BUSY,
-                "Server sedang terlalu sibuk memproses PDF",
+                "Server sedang terlalu sibuk memproses konversi",
             )
         })?;
 
@@ -188,16 +188,16 @@ where
     T: Send + 'static,
 {
     let permit = state
-        .pdf_semaphore
+        .conversion_semaphore
         .clone()
         .acquire_owned()
         .await
         .map_err(|error| {
-            error!(%error, operation, "PDF semaphore tidak tersedia");
+            error!(%error, operation, "Conversion semaphore tidak tersedia");
 
             AppError::service_unavailable(
                 error_code::PDF_BUSY,
-                "Server sedang terlalu sibuk memproses PDF",
+                "Server sedang terlalu sibuk memproses konversi",
             )
         })?;
 
