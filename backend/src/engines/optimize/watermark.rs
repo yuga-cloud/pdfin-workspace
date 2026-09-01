@@ -7,12 +7,7 @@ pub fn add_watermark(pdf_bytes: &[u8], text: &str) -> Result<Vec<u8>, String> {
     validate_watermark_text(text)?;
 
     let watermark = text.trim().to_owned();
-    add_text_to_pages(
-        pdf_bytes,
-        |_| watermark.clone(),
-        WATERMARK_FONT_SIZE,
-        true,
-    )
+    add_text_to_pages(pdf_bytes, |_| watermark.clone(), WATERMARK_FONT_SIZE, true)
 }
 
 #[cfg(test)]
