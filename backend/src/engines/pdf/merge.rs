@@ -227,10 +227,9 @@ fn inherited_page_attributes(
 ) -> Result<Vec<(Vec<u8>, Object)>, String> {
     let mut attributes = Vec::new();
     let mut visited = HashSet::new();
-    let mut current = page_id;
 
     for key in INHERITED_PAGE_KEYS {
-        current = page_id;
+        let mut current = page_id;
         visited.clear();
 
         loop {
