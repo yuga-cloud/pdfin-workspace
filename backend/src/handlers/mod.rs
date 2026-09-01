@@ -1,3 +1,4 @@
+pub mod compress;
 pub mod optimize;
 pub mod pages;
 pub mod pdf;
