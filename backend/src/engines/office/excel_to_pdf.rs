@@ -1,5 +1,6 @@
 use std::{
-    fs,
+    fs::{self, File},
+    io::Read,
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{
@@ -19,6 +20,7 @@ const PYTHON_SCRIPT: &str = include_str!("../../../scripts/excel_to_pdf.py");
 const OUTPUT_FILE_NAME: &str = "output.pdf";
 const PYTHON_TIMEOUT: Duration = Duration::from_secs(120);
 const TIMEOUT_POLL_INTERVAL: Duration = Duration::from_millis(50);
+const MAX_STDERR_BYTES: usize = 16 * 1024;
 
 const SYSTEM_PYTHON_CANDIDATES: [&str; 4] = [
     "/usr/bin/python3",
@@ -65,6 +67,7 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
     let pipe_name = unique_pipe_name();
     let profile_uri = format!("file://{}", profile_dir.display());
     let accept_argument = format!("--accept=pipe,name={pipe_name};urp;StarOffice.ComponentContext");
+    let stderr_path = temp_path.join("uno.stderr");
     let mut last_error: Option<String> = None;
 
     for program in ["libreoffice", "soffice"] {
@@ -94,7 +97,7 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
             .arg(&output_path)
             .arg(&pipe_name);
 
-        let python_output = match run_with_timeout(python_command, PYTHON_TIMEOUT) {
+        let python_output = match run_with_timeout(python_command, PYTHON_TIMEOUT, &stderr_path) {
             Ok(output) => output,
             Err(error) => {
                 stop_office(&mut office);
@@ -106,14 +109,13 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
         stop_office(&mut office);
 
         if !python_output.status.success() {
-            let stderr = String::from_utf8_lossy(&python_output.stderr);
             last_error = Some(format!(
                 "Konversi Excel → PDF via LibreOffice UNO gagal (status {}): {}",
                 python_output
                     .status
                     .code()
                     .map_or_else(|| "unknown".to_owned(), |code| code.to_string()),
-                stderr.trim()
+                python_output.stderr.trim()
             ));
             continue;
         }
@@ -133,15 +135,26 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
     }))
 }
 
+struct CommandOutput {
+    status: std::process::ExitStatus,
+    stderr: String,
+}
+
 fn run_with_timeout(
     mut command: Command,
     timeout: Duration,
-) -> Result<std::process::Output, String> {
+    stderr_path: &Path,
+) -> Result<CommandOutput, String> {
     if timeout.is_zero() {
         return Err("Timeout helper UNO harus lebih besar dari 0.".to_owned());
     }
 
-    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let stderr_file = File::create(stderr_path)
+        .map_err(|error| format!("Gagal membuat log helper UNO: {error}"))?;
+
+    command
+        .stdout(Stdio::null())
+        .stderr(Stdio::from(stderr_file));
 
     let mut child = command
         .spawn()
@@ -151,8 +164,9 @@ fn run_with_timeout(
 
     loop {
         match child.try_wait() {
-            Ok(Some(_status)) => {
-                break;
+            Ok(Some(status)) => {
+                let stderr = read_limited_stderr(stderr_path)?;
+                return Ok(CommandOutput { status, stderr });
             }
             Ok(None) => {
                 if start.elapsed() >= timeout {
@@ -174,10 +188,25 @@ fn run_with_timeout(
             }
         }
     }
+}
 
-    child
-        .wait_with_output()
-        .map_err(|error| format!("Gagal menyelesaikan proses helper UNO: {error}"))
+fn read_limited_stderr(path: &Path) -> Result<String, String> {
+    let file = File::open(path).map_err(|error| format!("Gagal membaca log helper UNO: {error}"))?;
+    let mut bytes = Vec::with_capacity(MAX_STDERR_BYTES + 1);
+
+    file.take((MAX_STDERR_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("Gagal membaca log helper UNO: {error}"))?;
+
+    let truncated = bytes.len() > MAX_STDERR_BYTES;
+    bytes.truncate(MAX_STDERR_BYTES);
+
+    let mut stderr = String::from_utf8_lossy(&bytes).trim().to_owned();
+    if truncated {
+        stderr.push_str(" [stderr truncated]");
+    }
+
+    Ok(stderr)
 }
 
 fn stop_office(office: &mut std::process::Child) {
