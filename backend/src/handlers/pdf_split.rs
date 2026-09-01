@@ -7,14 +7,11 @@ use tokio::{io::AsyncWriteExt, task};
 use tracing::error;
 
 use crate::{
-    engines::pdf::{
-        common::validate_pdf_path,
-        split::split_pdf_from_path as split_pdf_engine,
-    },
+    engines::pdf::{common::validate_pdf_path, split::split_pdf_from_path as split_pdf_engine},
     error::AppError,
     features::convert::response::attachment_response,
     state::AppState,
-    zip::{create_stored_zip, ZipEntry},
+    zip::{ZipEntry, create_stored_zip},
 };
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
@@ -119,8 +116,7 @@ fn validate_total_input_size(size: usize) -> Result<(), AppError> {
 }
 
 fn validate_pdf_file(path: &std::path::Path) -> Result<(), AppError> {
-    validate_pdf_path(path)
-        .map_err(|message| AppError::bad_request("invalid_input", message))
+    validate_pdf_path(path).map_err(|message| AppError::bad_request("invalid_input", message))
 }
 
 async fn read_split_request(
@@ -149,10 +145,7 @@ async fn read_split_request(
                     })?;
                     let mut output = tokio::fs::File::from_std(temp.reopen().map_err(|error| {
                         error!(%error, "Gagal membuka temporary file PDF");
-                        AppError::internal(
-                            "tempfile_failed",
-                            "Gagal membuka penyimpanan sementara",
-                        )
+                        AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
                     })?);
 
                     let mut size = 0usize;
@@ -195,10 +188,7 @@ async fn read_split_request(
                     })?;
 
                     if size == 0 {
-                        return Err(AppError::bad_request(
-                            "empty_file",
-                            "File PDF kosong",
-                        ));
+                        return Err(AppError::bad_request("empty_file", "File PDF kosong"));
                     }
 
                     file = Some(TempPdfUpload { file: temp, size });
@@ -231,8 +221,7 @@ async fn read_split_request(
         }
     }
 
-    let file = file
-        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    let file = file.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
     let ranges = ranges
         .ok_or_else(|| AppError::bad_request("ranges_missing", "Field ranges tidak ditemukan"))?;
     Ok((file, ranges))
