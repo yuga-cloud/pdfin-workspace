@@ -65,7 +65,10 @@ pub async fn compress_pdf(
                 let mut total_written = 0usize;
                 while let Some(chunk) = field.chunk().await.map_err(|error| {
                     error!(%error, "Gagal membaca chunk PDF");
-                    AppError::bad_request("invalid_upload", "Gagal membaca file PDF yang diunggah")
+                    AppError::bad_request(
+                        "invalid_upload",
+                        "Gagal membaca file PDF yang diunggah",
+                    )
                 })? {
                     total_written = total_written.checked_add(chunk.len()).ok_or_else(|| {
                         AppError::bad_request(
@@ -157,7 +160,10 @@ pub async fn compress_pdf(
         .await
         .map_err(|error| {
             error!(%error, "PDF semaphore tidak tersedia");
-            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
+            AppError::service_unavailable(
+                "pdf_busy",
+                "Server sedang terlalu sibuk memproses PDF",
+            )
         })?;
 
     let result = task::spawn_blocking(move || {
