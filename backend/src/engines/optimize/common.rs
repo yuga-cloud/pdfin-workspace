@@ -121,18 +121,18 @@ fn install_font(
     let mut resources = inherited_resources(doc, page_id)?.unwrap_or_default();
 
     let mut fonts = match resources.get(b"Font") {
-        Some(Object::Reference(fonts_id)) => doc
+        Ok(Object::Reference(fonts_id)) => doc
             .get_dictionary(*fonts_id)
             .map_err(|error| format!("Gagal membuka dictionary font: {error}"))?
             .clone(),
-        Some(Object::Dictionary(fonts)) => fonts.clone(),
-        Some(other) => {
+        Ok(Object::Dictionary(fonts)) => fonts.clone(),
+        Ok(other) => {
             return Err(format!(
                 "Dictionary Font halaman tidak valid: {}",
                 other.enum_variant()
             ));
         }
-        None => Dictionary::new(),
+        Err(_) => Dictionary::new(),
     };
 
     let name = unique_font_name(&fonts);
