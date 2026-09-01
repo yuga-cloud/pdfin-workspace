@@ -1,7 +1,10 @@
 use std::{
-    fs,
+    fs::{self, File},
+    io::{Read, Seek, SeekFrom},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
+    thread,
+    time::{Duration, Instant},
 };
 
 use crate::engines::{common::validate_input, pdf::common::load_pdf_document};
@@ -9,6 +12,10 @@ use crate::engines::{common::validate_input, pdf::common::load_pdf_document};
 const MAX_RENDER_PAGES: usize = 100;
 const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
 const MAX_OUTPUT_FILE_SIZE_BYTES: usize = 25 * 1024 * 1024;
+const MAX_TOTAL_OUTPUT_BYTES: usize = 512 * 1024 * 1024;
+const MAX_STDERR_BYTES: usize = 16 * 1024;
+const RENDER_TIMEOUT: Duration = Duration::from_secs(120);
+const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     validate_input(pdf_bytes, "PDF")?;
@@ -37,36 +44,32 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
 
     let input_path = temp_dir.path().join("input.pdf");
     let output_prefix = temp_dir.path().join("page");
+    let stderr_path = temp_dir.path().join("pdftocairo.stderr");
 
     fs::write(&input_path, pdf_bytes)
         .map_err(|error| format!("Gagal menulis temporary PDF: {error}"))?;
 
-    let output = Command::new("pdftocairo")
-        .arg("-jpeg")
-        .arg("-r")
-        .arg("150")
-        .arg(&input_path)
-        .arg(&output_prefix)
-        .output()
-        .map_err(|error| format!("Gagal menjalankan pdftocairo: {error}"))?;
-
-    if !output.status.success() {
-        return Err(format!(
-            "pdftocairo gagal: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ));
-    }
+    run_pdftocairo(&input_path, &output_prefix, &stderr_path)?;
 
     let mut page_files = collect_page_files(temp_dir.path())?;
     page_files.sort_by_key(|path| page_number(path));
 
     let mut pages = Vec::with_capacity(page_files.len());
+    let mut total_output_bytes = 0usize;
 
     for path in page_files {
         let bytes = fs::read(&path).map_err(|error| format!("Gagal membaca hasil JPG: {error}"))?;
 
         if bytes.len() > MAX_OUTPUT_FILE_SIZE_BYTES {
             return Err("Ukuran hasil JPG melebihi batas maksimum".to_owned());
+        }
+
+        total_output_bytes = total_output_bytes
+            .checked_add(bytes.len())
+            .ok_or_else(|| "Ukuran total hasil JPG terlalu besar".to_owned())?;
+
+        if total_output_bytes > MAX_TOTAL_OUTPUT_BYTES {
+            return Err("Ukuran total hasil JPG melebihi batas maksimum".to_owned());
         }
 
         if !bytes.is_empty() {
@@ -82,6 +85,78 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     }
 
     Ok(pages)
+}
+
+fn run_pdftocairo(
+    input_path: &Path,
+    output_prefix: &Path,
+    stderr_path: &Path,
+) -> Result<(), String> {
+    let stderr_file = File::create(stderr_path)
+        .map_err(|error| format!("Gagal membuat log pdftocairo: {error}"))?;
+
+    let mut child = Command::new("pdftocairo")
+        .arg("-jpeg")
+        .arg("-r")
+        .arg("150")
+        .arg(input_path)
+        .arg(output_prefix)
+        .stdout(Stdio::null())
+        .stderr(Stdio::from(stderr_file))
+        .spawn()
+        .map_err(|error| format!("Gagal menjalankan pdftocairo: {error}"))?;
+
+    let deadline = Instant::now() + RENDER_TIMEOUT;
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if status.success() {
+                    return Ok(());
+                }
+
+                let stderr = read_limited_stderr(stderr_path).unwrap_or_default();
+                return Err(format!(
+                    "pdftocairo gagal (exit code {:?}): {stderr}",
+                    status.code()
+                ));
+            }
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "pdftocairo melebihi batas waktu {} detik",
+                    RENDER_TIMEOUT.as_secs()
+                ));
+            }
+            Ok(None) => thread::sleep(PROCESS_POLL_INTERVAL),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("Gagal memantau pdftocairo: {error}"));
+            }
+        }
+    }
+}
+
+fn read_limited_stderr(path: &Path) -> Result<String, String> {
+    let mut file = File::open(path).map_err(|error| error.to_string())?;
+    let mut bytes = Vec::with_capacity(MAX_STDERR_BYTES + 1);
+    file.seek(SeekFrom::Start(0))
+        .map_err(|error| error.to_string())?;
+    file.take((MAX_STDERR_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| error.to_string())?;
+
+    let truncated = bytes.len() > MAX_STDERR_BYTES;
+    bytes.truncate(MAX_STDERR_BYTES);
+
+    let mut stderr = String::from_utf8_lossy(&bytes).trim().to_owned();
+    if truncated {
+        stderr.push_str(" [stderr truncated]");
+    }
+
+    Ok(stderr)
 }
 
 fn collect_page_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
