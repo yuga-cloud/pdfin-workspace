@@ -92,7 +92,8 @@ where
         let inherited_attributes = page_ids
             .iter()
             .map(|page_id| {
-                inherited_page_attributes(&document, *page_id).map(|attributes| (*page_id, attributes))
+                inherited_page_attributes(&document, *page_id)
+                    .map(|attributes| (*page_id, attributes))
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
         let mut page_objects = HashMap::with_capacity(page_ids.len());
@@ -133,7 +134,9 @@ where
                 object_id,
                 materialize_inherited_page_attributes(
                     object,
-                    inherited_attributes.get(&object_id).expect("page attributes precomputed"),
+                    inherited_attributes
+                        .get(&object_id)
+                        .expect("page attributes precomputed"),
                 )?,
             ));
         }
@@ -279,9 +282,10 @@ mod tests {
     fn document_with_inherited_media_box(width: i64, height: i64) -> Document {
         let mut document = Document::with_version("1.5");
 
-        let page_id = document.add_object(Dictionary::from_iter([
-            (b"Type".to_vec(), Object::Name(b"Page".to_vec())),
-        ]));
+        let page_id = document.add_object(Dictionary::from_iter([(
+            b"Type".to_vec(),
+            Object::Name(b"Page".to_vec()),
+        )]));
         let pages_id = document.add_object(Dictionary::from_iter([
             (b"Type".to_vec(), Object::Name(b"Pages".to_vec())),
             (
@@ -325,8 +329,8 @@ mod tests {
         let first = document_with_inherited_media_box(600, 800);
         let second = document_with_inherited_media_box(400, 500);
 
-        let output = merge_documents(vec![Ok((0, first)), Ok((1, second))])
-            .expect("merge should succeed");
+        let output =
+            merge_documents(vec![Ok((0, first)), Ok((1, second))]).expect("merge should succeed");
         let merged = Document::load_mem(&output).expect("merged PDF should load");
         let pages = merged.get_pages();
 
