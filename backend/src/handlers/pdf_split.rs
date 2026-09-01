@@ -7,10 +7,7 @@ use tokio::{io::AsyncWriteExt, task};
 use tracing::error;
 
 use crate::{
-    engines::pdf::{
-        common::validate_pdf_path,
-        split::split_pdf_from_path as split_pdf_engine,
-    },
+    engines::pdf::{common::validate_pdf_path, split::split_pdf_from_path as split_pdf_engine},
     error::AppError,
     features::convert::response::attachment_response,
     state::AppState,
@@ -224,8 +221,7 @@ async fn read_split_request(
         }
     }
 
-    let file = file
-        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    let file = file.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
     let ranges = ranges
         .ok_or_else(|| AppError::bad_request("ranges_missing", "Field ranges tidak ditemukan"))?;
     Ok((file, ranges))

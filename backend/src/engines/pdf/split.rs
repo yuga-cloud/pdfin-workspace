@@ -85,11 +85,7 @@ pub fn split_pdf_from_path(pdf_path: &Path, ranges: &[(u32, u32)]) -> Result<Vec
     Ok(outputs)
 }
 
-fn split_document_output(
-    document: &mut Document,
-    start: u32,
-    end: u32,
-) -> Result<Vec<u8>, String> {
+fn split_document_output(document: &mut Document, start: u32, end: u32) -> Result<Vec<u8>, String> {
     let pages = document.get_pages();
 
     let pages_to_delete = pages
