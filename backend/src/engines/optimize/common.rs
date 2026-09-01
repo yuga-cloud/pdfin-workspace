@@ -122,7 +122,7 @@ fn install_font(
 
     let mut fonts = match resources.get(b"Font") {
         Ok(Object::Reference(fonts_id)) => doc
-            .get_dictionary(fonts_id)
+            .get_dictionary(*fonts_id)
             .map_err(|error| format!("Gagal membuka dictionary font: {error}"))?
             .clone(),
         Ok(Object::Dictionary(fonts)) => fonts.clone(),
