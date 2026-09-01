@@ -53,12 +53,14 @@ pub fn add_text_to_pages(
         return Err("PDF tidak memiliki halaman".to_owned());
     }
 
-    let font_id = document.add_object(lopdf::dictionary! {
-        "Type" => "Font",
-        "Subtype" => "Type1",
-        "BaseFont" => "Helvetica",
-        "Encoding" => "WinAnsiEncoding",
-    });
+    let font_id = {
+        let mut font = Dictionary::new();
+        font.set("Type", "Font");
+        font.set("Subtype", "Type1");
+        font.set("BaseFont", "Helvetica");
+        font.set("Encoding", "WinAnsiEncoding");
+        document.add_object(font)
+    };
 
     let page_count = pages.len();
     for (page_number, page_id) in pages {
@@ -109,7 +111,11 @@ pub fn add_text_to_pages(
     Ok(output)
 }
 
-fn install_font(doc: &mut Document, page_id: ObjectId, font_id: ObjectId) -> Result<Vec<u8>, String> {
+fn install_font(
+    doc: &mut Document,
+    page_id: ObjectId,
+    font_id: ObjectId,
+) -> Result<Vec<u8>, String> {
     let font_ref = {
         let resources = doc
             .get_or_create_resources(page_id)
@@ -188,18 +194,26 @@ fn page_bounds(doc: &Document, page_id: ObjectId) -> Result<(f64, f64, f64, f64)
                 return Err("MediaBox PDF harus memiliki 4 nilai".to_owned());
             }
 
-            let x0 = values[0]
-                .as_float()
-                .map_err(|error| format!("MediaBox X0 tidak valid: {error}"))?;
-            let y0 = values[1]
-                .as_float()
-                .map_err(|error| format!("MediaBox Y0 tidak valid: {error}"))?;
-            let x1 = values[2]
-                .as_float()
-                .map_err(|error| format!("MediaBox X1 tidak valid: {error}"))?;
-            let y1 = values[3]
-                .as_float()
-                .map_err(|error| format!("MediaBox Y1 tidak valid: {error}"))?;
+            let x0 = f64::from(
+                values[0]
+                    .as_float()
+                    .map_err(|error| format!("MediaBox X0 tidak valid: {error}"))?,
+            );
+            let y0 = f64::from(
+                values[1]
+                    .as_float()
+                    .map_err(|error| format!("MediaBox Y0 tidak valid: {error}"))?,
+            );
+            let x1 = f64::from(
+                values[2]
+                    .as_float()
+                    .map_err(|error| format!("MediaBox X1 tidak valid: {error}"))?,
+            );
+            let y1 = f64::from(
+                values[3]
+                    .as_float()
+                    .map_err(|error| format!("MediaBox Y1 tidak valid: {error}"))?,
+            );
 
             let min_x = x0.min(x1);
             let min_y = y0.min(y1);
