@@ -1,13 +1,13 @@
 use axum::{
-    body::Bytes,
     extract::{Multipart, State},
     response::Response,
 };
-use tokio::task;
+use tempfile::NamedTempFile;
+use tokio::{io::AsyncWriteExt, task};
 use tracing::error;
 
 use crate::{
-    engines::{common::validate_input, pdf::split::split_pdf as split_pdf_engine},
+    engines::pdf::{common::validate_pdf_path, split::split_pdf_from_path as split_pdf_engine},
     error::AppError,
     features::convert::response::attachment_response,
     state::AppState,
@@ -18,17 +18,21 @@ const PDF_CONTENT_TYPE: &str = "application/pdf";
 const ZIP_CONTENT_TYPE: &str = "application/zip";
 const MAX_SPLIT_RANGES: usize = 64;
 const MAX_RANGE_INPUT_LENGTH: usize = 4 * 1024;
+const MAX_INPUT_BYTES: usize = 500 * 1024 * 1024;
 
-fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
-    validate_input(bytes, "PDF").map_err(|message| AppError::bad_request("invalid_input", message))
+struct TempPdfUpload {
+    file: NamedTempFile,
+    size: usize,
 }
 
 pub async fn split_pdf(
     State(state): State<AppState>,
     multipart: Multipart,
 ) -> Result<Response, AppError> {
-    let (data, ranges) = read_split_request(multipart).await?;
-    validate_pdf_input(&data)?;
+    let (file, ranges) = read_split_request(multipart).await?;
+
+    validate_total_input_size(file.size)?;
+    validate_pdf_file(file.file.path())?;
 
     let permit = state
         .pdf_semaphore
@@ -42,7 +46,7 @@ pub async fn split_pdf(
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
-        split_pdf_engine(&data, &ranges)
+        split_pdf_engine(file.file.path(), &ranges)
     })
     .await
     .map_err(|error| {
@@ -100,26 +104,92 @@ pub async fn split_pdf(
     ))
 }
 
+fn validate_total_input_size(size: usize) -> Result<(), AppError> {
+    if size > MAX_INPUT_BYTES {
+        return Err(AppError::bad_request(
+            "split_input_too_large",
+            "Ukuran PDF melebihi batas maksimum (500 MB)",
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_pdf_file(path: &std::path::Path) -> Result<(), AppError> {
+    validate_pdf_path(path).map_err(|message| AppError::bad_request("invalid_input", message))
+}
+
 async fn read_split_request(
     mut multipart: Multipart,
-) -> Result<(Bytes, Vec<(u32, u32)>), AppError> {
-    let mut file_bytes = None;
+) -> Result<(TempPdfUpload, Vec<(u32, u32)>), AppError> {
+    let mut file = None;
     let mut ranges = None;
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(field)) => match field.name().unwrap_or_default() {
-                "file" => match field.bytes().await {
-                    Ok(bytes) if !bytes.is_empty() => file_bytes = Some(bytes),
-                    Ok(_) => return Err(AppError::bad_request("empty_file", "File PDF kosong")),
-                    Err(error) => {
-                        error!(%error, "Gagal membaca file PDF");
+            Ok(Some(mut field)) => match field.name().unwrap_or_default() {
+                "file" => {
+                    if file.is_some() {
                         return Err(AppError::bad_request(
-                            "invalid_upload",
-                            "Gagal membaca file PDF yang diunggah",
+                            "duplicate_file",
+                            "Field file hanya boleh dikirim sekali",
                         ));
                     }
-                },
+
+                    let temp = NamedTempFile::new().map_err(|error| {
+                        error!(%error, "Gagal membuat temporary file PDF");
+                        AppError::internal(
+                            "tempfile_failed",
+                            "Gagal menyiapkan penyimpanan sementara",
+                        )
+                    })?;
+                    let mut output = tokio::fs::File::from_std(temp.reopen().map_err(|error| {
+                        error!(%error, "Gagal membuka temporary file PDF");
+                        AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
+                    })?);
+
+                    let mut size = 0usize;
+                    while let Some(chunk) = field.chunk().await.map_err(|error| {
+                        error!(%error, "Gagal membaca file PDF");
+                        AppError::bad_request(
+                            "invalid_upload",
+                            "Gagal membaca file PDF yang diunggah",
+                        )
+                    })? {
+                        size = size.checked_add(chunk.len()).ok_or_else(|| {
+                            AppError::bad_request(
+                                "split_input_too_large",
+                                "Ukuran PDF melebihi kapasitas yang didukung",
+                            )
+                        })?;
+
+                        if size > MAX_INPUT_BYTES {
+                            return Err(AppError::bad_request(
+                                "split_input_too_large",
+                                "Ukuran PDF melebihi batas maksimum (500 MB)",
+                            ));
+                        }
+
+                        output.write_all(&chunk).await.map_err(|error| {
+                            error!(%error, "Gagal menulis temporary PDF");
+                            AppError::internal(
+                                "tempfile_write_failed",
+                                "Gagal menyimpan PDF sementara",
+                            )
+                        })?;
+                    }
+
+                    output.flush().await.map_err(|error| {
+                        error!(%error, "Gagal flush temporary PDF");
+                        AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
+                    })?;
+
+                    if size == 0 {
+                        return Err(AppError::bad_request("empty_file", "File PDF kosong"));
+                    }
+
+                    file = Some(TempPdfUpload { file: temp, size });
+                }
                 "ranges" => {
                     let text = field.text().await.map_err(|error| {
                         error!(%error, "Gagal membaca ranges");
@@ -148,11 +218,11 @@ async fn read_split_request(
         }
     }
 
-    let data = file_bytes
-        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    let file =
+        file.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
     let ranges = ranges
         .ok_or_else(|| AppError::bad_request("ranges_missing", "Field ranges tidak ditemukan"))?;
-    Ok((data, ranges))
+    Ok((file, ranges))
 }
 
 fn parse_ranges(input: &str) -> Result<Vec<(u32, u32)>, AppError> {
