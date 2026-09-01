@@ -53,8 +53,10 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .unwrap_or(1);
     let configured_max_concurrency = parse_env("PDFIN_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY);
     let pdf_concurrency = cpu_count.min(configured_max_concurrency.max(1));
-    let configured_conversion_concurrency =
-        parse_env("PDFIN_MAX_CONVERSION_CONCURRENCY", DEFAULT_MAX_CONVERSION_CONCURRENCY);
+    let configured_conversion_concurrency = parse_env(
+        "PDFIN_MAX_CONVERSION_CONCURRENCY",
+        DEFAULT_MAX_CONVERSION_CONCURRENCY,
+    );
     let conversion_concurrency = cpu_count.min(configured_conversion_concurrency.max(1));
     let default_max_in_flight_requests = pdf_concurrency
         .saturating_mul(DEFAULT_MAX_IN_FLIGHT_REQUESTS_PER_PDF_WORKER)
