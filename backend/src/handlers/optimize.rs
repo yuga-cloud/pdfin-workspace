@@ -11,7 +11,6 @@ use crate::{
     engines::{
         common::validate_input,
         optimize::{
-            compress::{CompressionQuality, compress_pdf as compress_pdf_engine},
             page_numbers::add_page_numbers as add_page_numbers_engine,
             watermark::add_watermark as add_watermark_engine,
         },
@@ -24,47 +23,6 @@ const PDF_CONTENT_TYPE: &str = "application/pdf";
 
 fn validate_pdf_input(bytes: &[u8]) -> Result<(), AppError> {
     validate_input(bytes, "PDF").map_err(|message| AppError::bad_request("invalid_input", message))
-}
-
-pub async fn compress_pdf(
-    State(state): State<AppState>,
-    mut multipart: Multipart,
-) -> Result<impl IntoResponse, AppError> {
-    let (data, quality) = read_compress_request(&mut multipart).await?;
-    validate_pdf_input(&data)?;
-
-    let permit = state
-        .pdf_semaphore
-        .clone()
-        .acquire_owned()
-        .await
-        .map_err(|error| {
-            error!(%error, "PDF semaphore tidak tersedia");
-            AppError::service_unavailable("pdf_busy", "Server sedang terlalu sibuk memproses PDF")
-        })?;
-
-    let result = task::spawn_blocking(move || {
-        let _permit = permit;
-        compress_pdf_engine(&data, quality)
-    })
-    .await
-    .map_err(|error| {
-        error!(%error, "Compression worker mengalami panic");
-        AppError::internal(
-            "compress_worker_failed",
-            "Worker kompresi PDF mengalami kegagalan",
-        )
-    })?;
-
-    let bytes = result.map_err(|error| {
-        error!(%error, ?quality, "Kompresi PDF gagal");
-        AppError::internal("compress_failed", "Gagal melakukan kompresi PDF")
-    })?;
-
-    Ok((
-        [(header::CONTENT_TYPE, PDF_CONTENT_TYPE)],
-        Bytes::from(bytes),
-    ))
 }
 
 pub async fn add_page_numbers(
@@ -119,60 +77,6 @@ pub async fn add_watermark(
         [(header::CONTENT_TYPE, PDF_CONTENT_TYPE)],
         Bytes::from(bytes),
     ))
-}
-
-async fn read_compress_request(
-    multipart: &mut Multipart,
-) -> Result<(Bytes, CompressionQuality), AppError> {
-    let mut file_bytes = None;
-    let mut quality = None;
-
-    loop {
-        match multipart.next_field().await {
-            Ok(Some(field)) => match field.name().unwrap_or_default() {
-                "file" => match field.bytes().await {
-                    Ok(bytes) if !bytes.is_empty() => file_bytes = Some(bytes),
-                    Ok(_) => return Err(AppError::bad_request("empty_file", "File PDF kosong")),
-                    Err(error) => {
-                        error!(%error, "Gagal membaca file PDF");
-                        return Err(AppError::bad_request(
-                            "invalid_upload",
-                            "Gagal membaca file PDF yang diunggah",
-                        ));
-                    }
-                },
-                "quality" => {
-                    let value = field.text().await.map_err(|error| {
-                        error!(%error, "Gagal membaca parameter quality");
-                        AppError::bad_request(
-                            "invalid_quality",
-                            "Parameter kualitas kompresi tidak valid",
-                        )
-                    })?;
-                    quality =
-                        Some(CompressionQuality::from_str(value.trim()).ok_or_else(|| {
-                            AppError::bad_request(
-                                "invalid_quality",
-                                "Kualitas kompresi harus high, medium, atau low",
-                            )
-                        })?);
-                }
-                _ => {}
-            },
-            Ok(None) => break,
-            Err(error) => {
-                error!(%error, "Gagal membaca multipart request");
-                return Err(AppError::bad_request(
-                    "invalid_multipart",
-                    "Request multipart tidak valid",
-                ));
-            }
-        }
-    }
-
-    let data = file_bytes
-        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
-    Ok((data, quality.unwrap_or(CompressionQuality::Medium)))
 }
 
 async fn read_single_file(mut multipart: Multipart) -> Result<Bytes, AppError> {

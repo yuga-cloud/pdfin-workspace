@@ -1,7 +1,10 @@
 use axum::{Router, routing::post};
 
 use crate::{
-    handlers::optimize::{add_page_numbers, add_watermark, compress_pdf},
+    handlers::{
+        compress::compress_pdf,
+        optimize::{add_page_numbers, add_watermark},
+    },
     state::AppState,
 };
 
