@@ -28,6 +28,7 @@ const DEFAULT_PORT: u16 = 3000;
 const DEFAULT_MAX_REQUEST_BODY_SIZE_MB: usize = 50;
 const DEFAULT_REQUEST_TIMEOUT_SECONDS: u64 = 120;
 const DEFAULT_MAX_CONCURRENCY: usize = 4;
+const DEFAULT_MAX_CONVERSION_CONCURRENCY: usize = 2;
 const DEFAULT_MAX_IN_FLIGHT_REQUESTS_PER_PDF_WORKER: usize = 2;
 
 #[tokio::main]
@@ -52,6 +53,9 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .unwrap_or(1);
     let configured_max_concurrency = parse_env("PDFIN_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY);
     let pdf_concurrency = cpu_count.min(configured_max_concurrency.max(1));
+    let configured_conversion_concurrency =
+        parse_env("PDFIN_MAX_CONVERSION_CONCURRENCY", DEFAULT_MAX_CONVERSION_CONCURRENCY);
+    let conversion_concurrency = cpu_count.min(configured_conversion_concurrency.max(1));
     let default_max_in_flight_requests = pdf_concurrency
         .saturating_mul(DEFAULT_MAX_IN_FLIGHT_REQUESTS_PER_PDF_WORKER)
         .max(1);
@@ -65,12 +69,14 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let state = AppState {
         pdf_semaphore: Arc::new(Semaphore::new(pdf_concurrency)),
+        conversion_semaphore: Arc::new(Semaphore::new(conversion_concurrency)),
     };
 
     info!(
         address = %server_addr,
         cpu_count,
         pdf_concurrency,
+        conversion_concurrency,
         max_in_flight_requests,
         max_request_mb = max_request_body_size_mb,
         request_timeout_seconds = request_timeout.as_secs(),
