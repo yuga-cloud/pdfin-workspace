@@ -5,7 +5,11 @@ use axum::{
     response::IntoResponse,
 };
 use tempfile::tempdir;
-use tokio::{fs::File, io::AsyncWriteExt, task};
+use tokio::{
+    fs::File,
+    io::{AsyncReadExt, AsyncWriteExt},
+    task,
+};
 use tracing::error;
 
 use crate::{
@@ -19,6 +23,7 @@ use crate::{
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 const MAX_QUALITY_FIELD_BYTES: usize = 32;
+const PDF_HEADER_SCAN_BYTES: usize = 1024;
 
 pub async fn compress_pdf(
     State(state): State<AppState>,
@@ -33,19 +38,16 @@ pub async fn compress_pdf(
     })?;
 
     let input_path = temp_dir.path().join("input.pdf");
-    let mut file = None;
+    let mut file = false;
     let mut quality = CompressionQuality::Medium;
 
     while let Some(mut field) = multipart.next_field().await.map_err(|error| {
         error!(%error, "Gagal membaca multipart request untuk kompresi");
-        AppError::bad_request(
-            "invalid_multipart",
-            "Request multipart tidak valid",
-        )
+        AppError::bad_request("invalid_multipart", "Request multipart tidak valid")
     })? {
         match field.name().unwrap_or_default() {
             "file" => {
-                if file.is_some() {
+                if file {
                     return Err(AppError::bad_request(
                         "duplicate_file",
                         "Hanya satu file PDF yang boleh dikirim",
@@ -76,6 +78,7 @@ pub async fn compress_pdf(
                                 "Ukuran file PDF melebihi batas yang didukung",
                             )
                         })?;
+
                     output.write_all(&chunk).await.map_err(|error| {
                         error!(%error, "Gagal menulis chunk PDF sementara");
                         AppError::internal(
@@ -94,13 +97,10 @@ pub async fn compress_pdf(
                 })?;
 
                 if total_written == 0 {
-                    return Err(AppError::bad_request(
-                        "empty_file",
-                        "File PDF kosong",
-                    ));
+                    return Err(AppError::bad_request("empty_file", "File PDF kosong"));
                 }
 
-                file = Some(());
+                file = true;
             }
             "quality" => {
                 let value = field.text().await.map_err(|error| {
@@ -129,24 +129,30 @@ pub async fn compress_pdf(
         }
     }
 
-    if file.is_none() {
+    if !file {
         return Err(AppError::bad_request(
             "file_missing",
             "Field file tidak ditemukan",
         ));
     }
 
-    let header = tokio::fs::read(&input_path)
-        .await
-        .map_err(|error| {
-            error!(%error, "Gagal membaca header PDF sementara");
-            AppError::internal(
-                "compress_input_read_failed",
-                "Gagal membaca file PDF sementara",
-            )
-        })?;
+    let mut header = [0_u8; PDF_HEADER_SCAN_BYTES];
+    let mut input = File::open(&input_path).await.map_err(|error| {
+        error!(%error, "Gagal membuka PDF sementara untuk validasi");
+        AppError::internal(
+            "compress_input_read_failed",
+            "Gagal membaca file PDF sementara",
+        )
+    })?;
+    let header_len = input.read(&mut header).await.map_err(|error| {
+        error!(%error, "Gagal membaca header PDF sementara");
+        AppError::internal(
+            "compress_input_read_failed",
+            "Gagal membaca file PDF sementara",
+        )
+    })?;
 
-    validate_input(&header, "PDF")
+    validate_input(&header[..header_len], "PDF")
         .map_err(|message| AppError::bad_request("invalid_input", message))?;
 
     let permit = state
@@ -177,10 +183,7 @@ pub async fn compress_pdf(
 
     let bytes = result.map_err(|error| {
         error!(%error, ?quality, "Kompresi PDF gagal");
-        AppError::internal(
-            "compress_failed",
-            "Gagal melakukan kompresi PDF",
-        )
+        AppError::internal("compress_failed", "Gagal melakukan kompresi PDF")
     })?;
 
     Ok((
