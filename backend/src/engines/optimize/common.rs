@@ -94,9 +94,11 @@ pub fn add_text_to_pages(
             ],
         };
 
-        document.add_to_page_content(page_id, content).map_err(|error| {
-            format!("Gagal menambahkan overlay ke halaman {page_number}: {error}")
-        })?;
+        document
+            .add_to_page_content(page_id, content)
+            .map_err(|error| {
+                format!("Gagal menambahkan overlay ke halaman {page_number}: {error}")
+            })?;
     }
 
     let mut output = Vec::with_capacity(
