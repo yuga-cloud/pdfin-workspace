@@ -168,8 +168,8 @@ fn rendered_output_usage(dir: &Path) -> Result<(usize, u64), String> {
     let mut page_count = 0usize;
     let mut total_bytes = 0u64;
 
-    for entry in
-        fs::read_dir(dir).map_err(|error| format!("Gagal membaca direktori OCR sementara: {error}"))?
+    for entry in fs::read_dir(dir)
+        .map_err(|error| format!("Gagal membaca direktori OCR sementara: {error}"))?
     {
         let path = entry
             .map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?
@@ -204,8 +204,8 @@ fn rendered_output_usage(dir: &Path) -> Result<(usize, u64), String> {
 fn collect_rendered_pages(dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut pages = Vec::new();
 
-    for entry in
-        fs::read_dir(dir).map_err(|error| format!("Gagal membaca direktori OCR sementara: {error}"))?
+    for entry in fs::read_dir(dir)
+        .map_err(|error| format!("Gagal membaca direktori OCR sementara: {error}"))?
     {
         let path = entry
             .map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?
