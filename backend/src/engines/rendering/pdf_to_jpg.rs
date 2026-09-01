@@ -49,7 +49,7 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     fs::write(&input_path, pdf_bytes)
         .map_err(|error| format!("Gagal menulis temporary PDF: {error}"))?;
 
-    run_pdftocairo(&input_path, &output_prefix, &stderr_path)?;
+    run_pdftocairo(&input_path, &output_prefix, &stderr_path, temp_dir.path())?;
 
     let mut page_files = collect_page_files(temp_dir.path())?;
     page_files.sort_by_key(|path| page_number(path));
@@ -91,6 +91,7 @@ fn run_pdftocairo(
     input_path: &Path,
     output_prefix: &Path,
     stderr_path: &Path,
+    output_dir: &Path,
 ) -> Result<(), String> {
     let stderr_file = File::create(stderr_path)
         .map_err(|error| format!("Gagal membuat log pdftocairo: {error}"))?;
@@ -109,6 +110,32 @@ fn run_pdftocairo(
     let deadline = Instant::now() + RENDER_TIMEOUT;
 
     loop {
+        match rendered_output_usage(output_dir) {
+            Ok((page_count, total_bytes)) => {
+                if page_count > MAX_RENDER_PAGES {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "Jumlah halaman hasil render melebihi batas maksimum ({MAX_RENDER_PAGES})"
+                    ));
+                }
+
+                if total_bytes > MAX_TOTAL_OUTPUT_BYTES as u64 {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "Ukuran total hasil render melebihi batas maksimum ({} MiB)",
+                        MAX_TOTAL_OUTPUT_BYTES / 1024 / 1024
+                    ));
+                }
+            }
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(error);
+            }
+        }
+
         match child.try_wait() {
             Ok(Some(status)) => {
                 if status.success() {
@@ -137,6 +164,43 @@ fn run_pdftocairo(
             }
         }
     }
+}
+
+fn rendered_output_usage(dir: &Path) -> Result<(usize, u64), String> {
+    let mut page_count = 0usize;
+    let mut total_bytes = 0u64;
+
+    for entry in
+        fs::read_dir(dir).map_err(|error| format!("Gagal membaca temporary directory: {error}"))?
+    {
+        let path = entry
+            .map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?
+            .path();
+
+        if path.extension().and_then(|ext| ext.to_str()) != Some("jpg") {
+            continue;
+        }
+
+        page_count = page_count
+            .checked_add(1)
+            .ok_or_else(|| "Jumlah hasil render melebihi kapasitas numerik".to_owned())?;
+        let size = fs::metadata(&path)
+            .map_err(|error| format!("Gagal membaca ukuran hasil render JPG: {error}"))?
+            .len();
+
+        if size > MAX_OUTPUT_FILE_SIZE_BYTES as u64 {
+            return Err(format!(
+                "Ukuran satu hasil JPG melebihi batas maksimum ({} MiB)",
+                MAX_OUTPUT_FILE_SIZE_BYTES / 1024 / 1024
+            ));
+        }
+
+        total_bytes = total_bytes
+            .checked_add(size)
+            .ok_or_else(|| "Ukuran total hasil render melebihi kapasitas numerik".to_owned())?;
+    }
+
+    Ok((page_count, total_bytes))
 }
 
 fn read_limited_stderr(path: &Path) -> Result<String, String> {
