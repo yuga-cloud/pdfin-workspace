@@ -12,10 +12,7 @@ const MAX_SPLIT_TOTAL_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 ///
 /// Validasi dilakukan sebelum operasi berat agar PDF besar tidak
 /// diproses jika request sudah tidak valid.
-pub fn split_pdf_from_path(
-    pdf_path: &Path,
-    ranges: &[(u32, u32)],
-) -> Result<Vec<Vec<u8>>, String> {
+pub fn split_pdf_from_path(pdf_path: &Path, ranges: &[(u32, u32)]) -> Result<Vec<Vec<u8>>, String> {
     validate_pdf_path(pdf_path)?;
 
     if ranges.is_empty() {
