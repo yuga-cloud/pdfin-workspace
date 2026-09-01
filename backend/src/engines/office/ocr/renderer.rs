@@ -129,9 +129,8 @@ pub fn render_pdf_pages(pdf_bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
         return Err("PDF renderer tidak menghasilkan halaman gambar.".to_owned());
     }
 
-    let (_, total_bytes) = rendered_output_usage(&temp_dir).map_err(|error| {
+    let (_, total_bytes) = rendered_output_usage(&temp_dir).inspect_err(|_| {
         cleanup_temp_dir(&temp_dir);
-        error
     })?;
 
     if total_bytes > MAX_TOTAL_RENDERED_BYTES {
@@ -205,7 +204,7 @@ fn collect_rendered_pages(dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut pages = Vec::new();
 
     for entry in fs::read_dir(dir)
-        .map_err(|error| format!("Gagal membaca direktori OCR sementara: {error}"))?
+        .map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?
     {
         let path = entry
             .map_err(|error| format!("Gagal membaca entry temporary directory: {error}"))?
