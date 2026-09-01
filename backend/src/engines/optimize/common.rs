@@ -116,46 +116,59 @@ fn install_font(
     page_id: ObjectId,
     font_id: ObjectId,
 ) -> Result<Vec<u8>, String> {
-    let font_ref = {
-        let resources = doc
-            .get_or_create_resources(page_id)
-            .map_err(|error| format!("Gagal mendapatkan resources halaman: {error}"))?
-            .as_dict()
-            .map_err(|error| format!("Resources halaman bukan dictionary: {error}"))?;
+    let mut resources = inherited_resources(doc, page_id)?.unwrap_or_default();
 
-        resources
-            .get(b"Font")
-            .and_then(Object::as_reference)
-            .ok()
+    let mut fonts = match resources.get(b"Font") {
+        Some(Object::Reference(fonts_id)) => doc
+            .get_dictionary(*fonts_id)
+            .map_err(|error| format!("Gagal membuka dictionary font: {error}"))?
+            .clone(),
+        Some(Object::Dictionary(fonts)) => fonts.clone(),
+        Some(other) => {
+            return Err(format!(
+                "Dictionary Font halaman tidak valid: {}",
+                other.enum_variant()
+            ));
+        }
+        None => Dictionary::new(),
     };
 
-    if let Some(font_ref) = font_ref {
-        let fonts = doc
-            .get_dictionary_mut(font_ref)
-            .map_err(|error| format!("Gagal membuka dictionary font: {error}"))?;
-        let name = unique_font_name(fonts);
-        fonts.set(name.clone(), font_id);
-        return Ok(name);
-    }
-
-    let resources = doc
-        .get_or_create_resources(page_id)
-        .map_err(|error| format!("Gagal mendapatkan resources halaman: {error}"))?
-        .as_dict_mut()
-        .map_err(|error| format!("Resources halaman bukan dictionary: {error}"))?;
-
-    if !resources.has(b"Font") {
-        resources.set("Font", Dictionary::new());
-    }
-
-    let fonts = resources
-        .get_mut(b"Font")
-        .and_then(Object::as_dict_mut)
-        .map_err(|error| format!("Dictionary font halaman tidak valid: {error}"))?;
-    let name = unique_font_name(fonts);
+    let name = unique_font_name(&fonts);
     fonts.set(name.clone(), font_id);
+    resources.set("Font", fonts);
+
+    doc.get_dictionary_mut(page_id)
+        .map_err(|error| format!("Gagal membuka dictionary halaman: {error}"))?
+        .set("Resources", resources);
 
     Ok(name)
+}
+
+fn inherited_resources(doc: &Document, page_id: ObjectId) -> Result<Option<Dictionary>, String> {
+    let mut current = page_id;
+    let mut visited = HashSet::new();
+
+    loop {
+        if !visited.insert(current) {
+            return Err("Page tree mengandung reference cycle".to_owned());
+        }
+
+        let page = doc
+            .get_dictionary(current)
+            .map_err(|error| format!("Gagal membaca dictionary halaman: {error}"))?;
+
+        if let Ok(resources) = page.get_deref(b"Resources", doc) {
+            return resources
+                .as_dict()
+                .map(|resources| Some(resources.clone()))
+                .map_err(|error| format!("Resources halaman bukan dictionary: {error}"));
+        }
+
+        current = match page.get(b"Parent").and_then(Object::as_reference) {
+            Ok(parent) => parent,
+            Err(_) => return Ok(None),
+        };
+    }
 }
 
 fn unique_font_name(fonts: &Dictionary) -> Vec<u8> {
