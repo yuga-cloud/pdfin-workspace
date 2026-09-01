@@ -87,7 +87,11 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     Ok(pages)
 }
 
-fn run_pdftocairo(input_path: &Path, output_prefix: &Path, stderr_path: &Path) -> Result<(), String> {
+fn run_pdftocairo(
+    input_path: &Path,
+    output_prefix: &Path,
+    stderr_path: &Path,
+) -> Result<(), String> {
     let stderr_file = File::create(stderr_path)
         .map_err(|error| format!("Gagal membuat log pdftocairo: {error}"))?;
 
