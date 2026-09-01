@@ -10,8 +10,7 @@ use tracing::error;
 
 use crate::{
     engines::pdf::{
-        common::validate_pdf_path,
-        pages_disk::manage_pages_from_path as manage_pages_engine,
+        common::validate_pdf_path, pages_disk::manage_pages_from_path as manage_pages_engine,
     },
     error::AppError,
     state::AppState,
