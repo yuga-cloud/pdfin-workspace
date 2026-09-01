@@ -1,5 +1,6 @@
 use std::{
     fs::{self, File},
+    io::{Read, Seek, SeekFrom},
     path::Path,
     process::{Command, Stdio},
     thread,
@@ -119,10 +120,19 @@ fn file_size_exceeds(path: &Path, limit: usize) -> bool {
 }
 
 fn read_limited_file(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
-    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    let mut file = File::open(path).map_err(|error| error.to_string())?;
+    file.seek(SeekFrom::Start(0))
+        .map_err(|error| error.to_string())?;
+
+    let mut bytes = Vec::with_capacity(limit.saturating_add(1));
+    file.take(limit.saturating_add(1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| error.to_string())?;
+
     if bytes.len() > limit {
         return Err(format!("File melebihi batas maksimum {limit} byte"));
     }
+
     Ok(bytes)
 }
 
