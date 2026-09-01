@@ -191,7 +191,8 @@ fn run_with_timeout(
 }
 
 fn read_limited_stderr(path: &Path) -> Result<String, String> {
-    let file = File::open(path).map_err(|error| format!("Gagal membaca log helper UNO: {error}"))?;
+    let file =
+        File::open(path).map_err(|error| format!("Gagal membaca log helper UNO: {error}"))?;
     let mut bytes = Vec::with_capacity(MAX_STDERR_BYTES + 1);
 
     file.take((MAX_STDERR_BYTES + 1) as u64)
