@@ -221,7 +221,8 @@ async fn read_split_request(
         }
     }
 
-    let file = file.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    let file =
+        file.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
     let ranges = ranges
         .ok_or_else(|| AppError::bad_request("ranges_missing", "Field ranges tidak ditemukan"))?;
     Ok((file, ranges))
