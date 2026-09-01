@@ -1,10 +1,7 @@
 use axum::{Router, routing::post};
 
 use crate::{
-    handlers::{
-        pdf::{manage_pages, merge_pdfs, rotate},
-        pdf_split::split_pdf,
-    },
+    handlers::{pages::manage_pages, pdf::{merge_pdfs, rotate}, pdf_split::split_pdf},
     state::AppState,
 };
 
