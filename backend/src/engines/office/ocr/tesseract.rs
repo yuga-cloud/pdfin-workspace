@@ -36,9 +36,8 @@ pub struct OcrTextItem {
 /// membangun kembali baris dan kolom Excel.
 pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
     let executable = tesseract_executable();
-    let temp_dir = tempdir().map_err(|error| {
-        format!("Gagal membuat temporary directory untuk Tesseract: {error}")
-    })?;
+    let temp_dir = tempdir()
+        .map_err(|error| format!("Gagal membuat temporary directory untuk Tesseract: {error}"))?;
     let stdout_path = temp_dir.path().join("output.tsv");
     let stderr_path = temp_dir.path().join("stderr.log");
 
@@ -81,8 +80,8 @@ pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
         match child.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
-                    let stderr = read_limited_file(&stderr_path, MAX_STDERR_BYTES)
-                        .unwrap_or_default();
+                    let stderr =
+                        read_limited_file(&stderr_path, MAX_STDERR_BYTES).unwrap_or_default();
                     return Err(format!(
                         "Tesseract gagal dengan status {status}: {}",
                         String::from_utf8_lossy(&stderr).trim()
