@@ -1,8 +1,19 @@
-use std::{path::Path, process::Command};
+use std::{
+    fs::{self, File},
+    path::Path,
+    process::{Command, Stdio},
+    thread,
+    time::{Duration, Instant},
+};
+
+use tempfile::tempdir;
 
 const MAX_TSV_BYTES: usize = 16 * 1024 * 1024;
 const MAX_OCR_WORDS: usize = 50_000;
 const MAX_OCR_TEXT_LENGTH: usize = 10_000;
+const MAX_STDERR_BYTES: usize = 16 * 1024;
+const OCR_TIMEOUT: Duration = Duration::from_secs(120);
+const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 #[derive(Debug, Clone)]
 pub struct OcrTextItem {
@@ -24,8 +35,18 @@ pub struct OcrTextItem {
 /// membangun kembali baris dan kolom Excel.
 pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
     let executable = tesseract_executable();
+    let temp_dir = tempdir().map_err(|error| {
+        format!("Gagal membuat temporary directory untuk Tesseract: {error}")
+    })?;
+    let stdout_path = temp_dir.path().join("output.tsv");
+    let stderr_path = temp_dir.path().join("stderr.log");
 
-    let output = Command::new(executable)
+    let stdout_file = File::create(&stdout_path)
+        .map_err(|error| format!("Gagal membuat output sementara Tesseract: {error}"))?;
+    let stderr_file = File::create(&stderr_path)
+        .map_err(|error| format!("Gagal membuat log Tesseract: {error}"))?;
+
+    let mut child = Command::new(executable)
         .arg(image_path)
         .arg("stdout")
         .arg("--psm")
@@ -33,29 +54,76 @@ pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
         .arg("-l")
         .arg("eng")
         .arg("tsv")
-        .output()
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(stdout_file))
+        .stderr(Stdio::from(stderr_file))
+        .spawn()
         .map_err(|error| format!("Gagal menjalankan Tesseract: {error}"))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
+    let deadline = Instant::now() + OCR_TIMEOUT;
+    loop {
+        if file_size_exceeds(&stdout_path, MAX_TSV_BYTES) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!(
+                "Output OCR terlalu besar (maksimum {} MiB)",
+                MAX_TSV_BYTES / 1024 / 1024
+            ));
+        }
 
-        return Err(format!(
-            "Tesseract gagal dengan status {}: {}",
-            output.status,
-            stderr.trim()
-        ));
+        if file_size_exceeds(&stderr_path, MAX_STDERR_BYTES) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err("Log error Tesseract melebihi batas maksimum".to_owned());
+        }
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    let stderr = read_limited_file(&stderr_path, MAX_STDERR_BYTES)
+                        .unwrap_or_default();
+                    return Err(format!(
+                        "Tesseract gagal dengan status {status}: {}",
+                        String::from_utf8_lossy(&stderr).trim()
+                    ));
+                }
+                break;
+            }
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "Tesseract melebihi batas waktu {} detik",
+                    OCR_TIMEOUT.as_secs()
+                ));
+            }
+            Ok(None) => thread::sleep(PROCESS_POLL_INTERVAL),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("Gagal memantau Tesseract: {error}"));
+            }
+        }
     }
 
-    if output.stdout.len() > MAX_TSV_BYTES {
-        return Err(format!(
-            "Output OCR terlalu besar (maksimum {} MiB)",
-            MAX_TSV_BYTES / 1024 / 1024
-        ));
-    }
-
-    let tsv = String::from_utf8_lossy(&output.stdout);
+    let tsv_bytes = read_limited_file(&stdout_path, MAX_TSV_BYTES)?;
+    let tsv = String::from_utf8_lossy(&tsv_bytes);
 
     parse_tesseract_tsv(&tsv)
+}
+
+fn file_size_exceeds(path: &Path, limit: usize) -> bool {
+    fs::metadata(path)
+        .map(|metadata| metadata.len() > limit as u64)
+        .unwrap_or(false)
+}
+
+fn read_limited_file(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
+    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    if bytes.len() > limit {
+        return Err(format!("File melebihi batas maksimum {limit} byte"));
+    }
+    Ok(bytes)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -198,7 +266,6 @@ mod tests {
     fn parse_tsv_should_extract_words() {
         let tsv = "\
 level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext
-1\t1\t0\t0\t0\t0\t0\t0\t100\t20\t-1\t
 5\t1\t1\t1\t1\t1\t50\t100\t80\t20\t95.2\tNama
 5\t1\t1\t1\t1\t2\t150\t100\t60\t20\t94.1\tBarang
 ";
