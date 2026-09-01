@@ -125,6 +125,109 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
     });
 
-    axum::serve(listener, app).await?;
+    info!(address = %server_addr, "Backend Axum berjalan");
+
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
+
+    info!("Backend Axum berhenti");
+
     Ok(())
+}
+
+async fn health() -> &'static str {
+    "ok"
+}
+
+fn parse_env<T>(name: &str, default: T) -> T
+where
+    T: std::str::FromStr + Copy,
+{
+    match std::env::var(name) {
+        Ok(value) => value.parse::<T>().unwrap_or_else(|_| {
+            tracing::warn!(
+                variable = name,
+                "Nilai environment tidak valid; memakai default"
+            );
+            default
+        }),
+        Err(_) => default,
+    }
+}
+
+fn parse_ipv4_env(name: &str, default: Ipv4Addr) -> Ipv4Addr {
+    match std::env::var(name) {
+        Ok(value) => value.parse::<Ipv4Addr>().unwrap_or_else(|_| {
+            tracing::warn!(variable = name, "Alamat IPv4 tidak valid; memakai default");
+            default
+        }),
+        Err(_) => default,
+    }
+}
+
+fn build_cors_layer() -> Result<CorsLayer, Box<dyn Error + Send + Sync>> {
+    let Some(origin) = std::env::var("PDFIN_CORS_ORIGIN")
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+    else {
+        return Ok(CorsLayer::new()
+            .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
+            .allow_headers([axum::http::header::CONTENT_TYPE]));
+    };
+
+    let origin = origin.parse::<axum::http::HeaderValue>()?;
+
+    Ok(CorsLayer::new()
+        .allow_origin(origin)
+        .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
+        .allow_headers([axum::http::header::CONTENT_TYPE]))
+}
+
+fn init_tracing() {
+    let env_filter = std::env::var("RUST_LOG")
+        .ok()
+        .and_then(|value| value.parse::<tracing::Level>().ok());
+
+    let builder = tracing_subscriber::fmt()
+        .with_target(false)
+        .with_thread_ids(true)
+        .with_thread_names(true)
+        .compact();
+
+    if let Some(level) = env_filter {
+        builder.with_max_level(level).init();
+    } else {
+        builder.with_max_level(tracing::Level::INFO).init();
+    }
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("gagal memasang Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        let mut signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("gagal memasang SIGTERM handler");
+
+        signal.recv().await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Menerima SIGINT/Ctrl+C");
+        }
+
+        _ = terminate => {
+            info!("Menerima SIGTERM");
+        }
+    }
 }
