@@ -17,33 +17,7 @@
   transition: stroke-width 180ms ease, transform 180ms cubic-bezier(.23,1,.32,1);
 }
 
-.app-primary-nav .app-nav-link {
-  position: relative;
-  border-radius: 0;
-}
-
-.app-primary-nav .app-nav-link::after {
-  position: absolute;
-  right: .8rem;
-  bottom: -.5px;
-  left: .8rem;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--color-primary);
-  content: "";
-  opacity: 0;
-  transform: scaleX(.45);
-  transition: opacity 180ms ease, transform 180ms cubic-bezier(.23,1,.32,1);
-}
-
-.app-primary-nav .app-nav-link:hover::after,
-.app-primary-nav .app-nav-link:focus-visible::after,
-.app-primary-nav .app-nav-link-active::after {
-  opacity: 1;
-  transform: scaleX(1);
-}
-
-.app-nav-link-active .app-nav-icon { color: currentColor; }
+.app-primary-nav .app-nav-link-active .app-nav-icon { color: currentColor; }
 
 .app-primary-nav .app-nav-link:hover .app-nav-icon,
 .app-primary-nav .app-nav-link:focus-visible .app-nav-icon {
