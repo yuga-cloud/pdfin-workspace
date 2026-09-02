@@ -36,21 +36,38 @@ export function AppShell({ children }: AppShellProps) {
           <Logo />
 
           <nav className="hidden items-center gap-1 rounded-2xl bg-bg/70 p-1 md:flex" aria-label="Navigasi utama">
-            <Link to="/" className={`${navLinkClass} font-semibold`} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
+            <Link
+              to="/"
+              className={`${navLinkClass} font-semibold`}
+              activeProps={{ className: navLinkActiveClass }}
+              activeOptions={{ exact: true }}
+            >
               Semua alat
             </Link>
-            <Link to="/alat/$slug" params={{ slug: "gabung" }} className={navLinkClass} activeProps={{ className: navLinkActiveClass }}>
+            <Link
+              to="/alat/$slug"
+              params={{ slug: "gabung" }}
+              className={navLinkClass}
+              activeProps={{ className: navLinkActiveClass }}
+              activeOptions={{ exact: true }}
+            >
               Atur PDF
             </Link>
-            <Link to="/alat/$slug" params={{ slug: "pdf-ke-word" }} className={navLinkClass} activeProps={{ className: navLinkActiveClass }}>
+            <Link
+              to="/alat/$slug"
+              params={{ slug: "pdf-ke-word" }}
+              className={navLinkClass}
+              activeProps={{ className: navLinkActiveClass }}
+              activeOptions={{ exact: true }}
+            >
               Konversi
             </Link>
-            <Link to="/panduan" className={navLinkClass} activeProps={{ className: navLinkActiveClass }}>
+            <Link to="/panduan" className={navLinkClass} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
               Panduan
             </Link>
           </nav>
 
-          <Link to="/panduan" className={`${navLinkClass} md:hidden`} activeProps={{ className: navLinkActiveClass }}>
+          <Link to="/panduan" className={`${navLinkClass} md:hidden`} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
             Panduan
           </Link>
         </div>
@@ -58,7 +75,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="border-t border-border/60 md:hidden">
           <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 scrollbar-none" aria-label="Alat">
             {TOOLS.map((tool) => (
-              <Link key={tool.slug} to="/alat/$slug" params={{ slug: tool.slug }} className={toolLinkClass} activeProps={{ className: toolLinkActiveClass }}>
+              <Link key={tool.slug} to="/alat/$slug" params={{ slug: tool.slug }} className={toolLinkClass} activeProps={{ className: toolLinkActiveClass }} activeOptions={{ exact: true }}>
                 {tool.short}
               </Link>
             ))}
