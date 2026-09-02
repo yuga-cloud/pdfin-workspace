@@ -1,0 +1,52 @@
+/* Navigation icon language: compact, aligned, and intentionally quiet. */
+.app-nav-icon {
+  display: inline-grid;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  color: currentColor;
+}
+
+.app-nav-icon .lucide {
+  width: .95rem;
+  height: .95rem;
+  stroke-width: 1.8;
+}
+
+.app-nav-link-active .app-nav-icon {
+  color: currentColor;
+}
+
+.app-tool-rail {
+  scrollbar-width: none;
+}
+
+.app-tool-link {
+  min-height: 2.5rem;
+}
+
+.app-tool-link-icon {
+  width: .82rem;
+  height: .82rem;
+  flex: 0 0 auto;
+  stroke-width: 1.8;
+}
+
+.app-tool-link-active .app-tool-link-icon {
+  stroke-width: 1.95;
+}
+
+.app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon {
+  color: color-mix(in oklch, currentColor 82%, transparent);
+}
+
+.app-primary-nav .app-nav-link:hover .app-nav-icon {
+  color: currentColor;
+}
+
+@media (max-width: 767px) {
+  .app-tool-link {
+    padding-inline: .7rem;
+  }
+}
