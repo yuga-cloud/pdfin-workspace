@@ -12,10 +12,10 @@ export function Logo({ className, to = "/" }: { className?: string; to?: string 
       aria-label="pdfin beranda"
     >
       <span
-        className="grid size-9 place-items-center rounded-xl bg-fg shadow-sm transition-transform duration-200 ease-out group-hover:-rotate-2 group-hover:scale-[1.03]"
+        className="brand-mark grid size-9 place-items-center rounded-xl bg-fg shadow-sm"
         aria-hidden
       >
-        <svg viewBox="0 0 32 32" className="size-5" fill="none">
+        <svg viewBox="0 0 32 32" className="brand-mark-icon size-5" fill="none">
           <path fill="#FFFFFF" d="M8 6h8v8h8v12H8z" />
           <path fill="#DF5148" d="M16 6l8 8h-8z" />
         </svg>
