@@ -1,0 +1,236 @@
+/* Final frontend polish layer. Visual only; no application behavior. */
+.app-shell { min-height: 100dvh; }
+
+.app-shell main {
+  min-height: calc(100dvh - 9rem);
+}
+
+.app-header {
+  box-shadow: 0 1px 0 rgba(32,33,36,.035), 0 12px 34px -30px rgba(32,33,36,.26);
+}
+
+.processing-banner {
+  box-shadow: inset 0 -1px 0 rgba(32,33,36,.02);
+}
+
+.processing-banner svg { flex: 0 0 auto; }
+
+.app-footer {
+  margin-top: auto;
+}
+
+.workspace-tool-heading {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.workspace-tool-heading-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.workspace-processing-pill {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: .4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: .38rem .62rem;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: .68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.tool-processing-device .workspace-processing-pill {
+  border-color: color-mix(in srgb, var(--color-ok) 22%, var(--color-border));
+  background: color-mix(in srgb, var(--color-ok) 7%, var(--color-surface));
+  color: var(--color-ok);
+}
+
+.tool-processing-server .workspace-processing-pill {
+  background: color-mix(in srgb, var(--color-surface-2) 75%, var(--color-surface));
+}
+
+.workspace-dropzone-shell {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.workspace-dropzone-shell.is-dragover {
+  border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent), var(--shadow-card-hover);
+}
+
+.workspace-dropzone {
+  min-height: 15rem;
+  border-color: color-mix(in srgb, var(--color-border) 92%, var(--color-fg));
+  background: linear-gradient(180deg, var(--color-surface), color-mix(in srgb, var(--color-bg) 45%, var(--color-surface)));
+}
+
+.workspace-dropzone:hover,
+.workspace-dropzone:focus-visible,
+.workspace-dropzone.is-dragover {
+  border-color: color-mix(in srgb, var(--color-primary) 44%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 2.5%, var(--color-surface));
+}
+
+.workspace-upload-icon {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 10%, var(--color-border)), 0 8px 20px -14px rgba(223,81,72,.48);
+}
+
+.workspace-drop-meta { max-width: 36rem; }
+
+.workspace-file-list { border-top: 1px solid var(--color-border); padding-top: .75rem; }
+
+.workspace-file-row {
+  min-height: 4.15rem;
+  border: 1px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(32,33,36,.018);
+  transition: transform var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out);
+}
+
+.workspace-file-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.workspace-file-icon { box-shadow: 0 5px 15px -12px rgba(32,33,36,.3); }
+.workspace-remove-button:hover { color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface-2)); }
+
+.workspace-pages,
+.workspace-options {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.workspace-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.workspace-panel-count {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: .34rem .55rem;
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  font-size: .64rem;
+  font-weight: 800;
+}
+
+.workspace-page-card {
+  border: 1px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(32,33,36,.02);
+  transition: transform var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out);
+}
+
+.workspace-page-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.workspace-options { scroll-margin-top: 6rem; }
+
+.workspace-field {
+  transition: border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out);
+}
+
+.workspace-field:hover { border-color: color-mix(in srgb, var(--color-fg) 16%, var(--color-border)); }
+.workspace-field:focus { border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent); }
+
+.workspace-choice {
+  min-height: 5.5rem;
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  transition: transform var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out);
+}
+.workspace-choice:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border)); }
+.workspace-choice.is-selected { border-color: color-mix(in srgb, var(--color-primary) 58%, var(--color-border)); background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 8%, transparent); }
+
+.workspace-segmented button,
+.workspace-chip {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  transition: background-color var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out), transform var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out);
+}
+
+.workspace-segmented button:hover,
+.workspace-chip:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--color-fg) 16%, var(--color-border)); background: var(--color-surface); }
+
+.workspace-segmented button.is-selected { border-color: var(--color-fg); background: var(--color-fg); color: var(--color-bg); box-shadow: 0 7px 18px -13px rgba(32,33,36,.55); }
+
+.workspace-chip:active { transform: scale(.985); }
+
+.workspace-check-row {
+  min-height: 3rem;
+  padding: .65rem .75rem;
+  border: 1px solid var(--color-border);
+  border-radius: .85rem;
+  background: var(--color-bg);
+}
+
+.workspace-info-note {
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 82%, var(--color-surface));
+}
+
+.workspace-error {
+  border: 1px solid color-mix(in srgb, var(--color-danger) 20%, var(--color-border));
+  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface));
+}
+
+.workspace-progress {
+  padding: .85rem 1rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px -22px rgba(32,33,36,.38);
+}
+
+.workspace-process-row {
+  padding-top: .2rem;
+}
+
+.workspace-process-button:not(:disabled) {
+  min-width: 13rem;
+}
+
+.workspace-result {
+  background: linear-gradient(135deg, var(--color-fg), color-mix(in srgb, var(--color-fg) 90%, var(--color-primary)));
+  box-shadow: var(--shadow-floating);
+}
+
+.workspace-result-heading { align-items: center; }
+.workspace-result-check { display: grid; width: 2rem; height: 2rem; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255,255,255,.14); border-radius: .7rem; background: rgba(255,255,255,.08); color: white; font-weight: 800; }
+.workspace-download-button { box-shadow: 0 10px 26px -18px rgba(223,81,72,.9); }
+.workspace-back-link { width: fit-content; }
+
+@media (max-width: 639px) {
+  .workspace-tool-heading-top { align-items: flex-start; flex-direction: column; }
+  .workspace-processing-pill { width: fit-content; }
+  .workspace-dropzone { min-height: 13rem; padding-block: 2.5rem; }
+  .workspace-file-row { align-items: flex-start; padding-block: .7rem; }
+  .workspace-inline-actions { margin-left: auto; }
+  .workspace-result-heading { align-items: flex-start; }
+  .workspace-process-button:not(:disabled) { width: 100%; min-width: 0; }
+  .workspace-panel-heading { align-items: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-file-row:hover,
+  .workspace-page-card:hover,
+  .workspace-choice:hover,
+  .workspace-segmented button:hover,
+  .workspace-chip:hover { transform: none; }
+}
