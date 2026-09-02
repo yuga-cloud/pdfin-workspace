@@ -106,7 +106,7 @@ export function AppShell({ children }: AppShellProps) {
           <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10">
             <ShieldCheck className="size-3.5 text-primary" aria-hidden="true" />
           </span>
-          File tidak pernah diunggah. Semua diproses di HP atau laptop kamu.
+          Pemrosesan berbeda menurut alat. Beberapa file diproses di perangkat, lainnya dikirim ke server.
         </p>
       </div>
 
@@ -120,11 +120,11 @@ export function AppShell({ children }: AppShellProps) {
             <span className="font-semibold text-fg">
               pdf<span className="text-primary">in</span>
             </span>{" "}
-            &ndash; alat PDF Indonesia, tanpa server menyimpan file.
+            &ndash; alat PDF Indonesia, dengan pemrosesan di perangkat atau server sesuai alat.
           </p>
 
           <p className="rounded-full bg-bg px-3 py-1.5 text-xs font-medium">
-            Gelombang 1 &middot; proses di perangkat
+            Lokasi pemrosesan ditampilkan di setiap alat
           </p>
         </div>
       </footer>
