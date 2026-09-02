@@ -5,22 +5,12 @@ use lopdf::{
     content::{Content, Operation},
 };
 
-use crate::engines::pdf::common::{
-    load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path,
-};
+use crate::engines::pdf::common::{load_pdf_document_from_path, validate_pdf_path};
 
 const OVERLAY_FONT_NAME: &[u8] = b"PDFinOverlayFont";
 const PAGE_MARGIN: f64 = 24.0;
 const MAX_WATERMARK_TEXT_BYTES: usize = 1024;
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
-
-pub fn validate_input(bytes: &[u8], format: &str) -> Result<(), String> {
-    if bytes.is_empty() {
-        return Err(format!("File {format} kosong"));
-    }
-
-    Ok(())
-}
 
 pub fn validate_watermark_text(text: &str) -> Result<(), String> {
     if text.trim().is_empty() {
@@ -39,17 +29,6 @@ pub fn validate_watermark_text(text: &str) -> Result<(), String> {
     }
 
     Ok(())
-}
-
-pub fn add_text_to_pages(
-    pdf_bytes: &[u8],
-    text_for_page: impl Fn(u32) -> String,
-    font_size: f64,
-    center: bool,
-) -> Result<Vec<u8>, String> {
-    validate_pdf(pdf_bytes)?;
-    let document = load_pdf_document(pdf_bytes)?;
-    add_text_to_document(document, pdf_bytes.len(), text_for_page, font_size, center)
 }
 
 pub fn add_text_to_pages_from_path(
