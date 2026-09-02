@@ -30,9 +30,7 @@
 }
 
 .group:hover .brand-mark::after,
-.group:focus-visible .brand-mark::after {
-  transform: translateX(55%) rotate(8deg);
-}
+.group:focus-visible .brand-mark::after { transform: translateX(55%) rotate(8deg); }
 
 .brand-mark-icon {
   position: relative;
@@ -41,9 +39,7 @@
 }
 
 .group:hover .brand-mark-icon,
-.group:focus-visible .brand-mark-icon {
-  transform: scale(1.06);
-}
+.group:focus-visible .brand-mark-icon { transform: scale(1.06); }
 
 .tool-card:hover .tool-processing-badge .lucide,
 .workspace-inline-actions button:not(:disabled):hover .lucide,
