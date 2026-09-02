@@ -2,7 +2,7 @@ use std::path::Path;
 
 use axum::{
     body::Bytes,
-    extract::{multipart::Field, Multipart, State},
+    extract::{Multipart, State, multipart::Field},
     http::header,
     response::IntoResponse,
 };
@@ -77,29 +77,24 @@ pub async fn add_watermark(
 async fn stream_pdf_field(mut field: Field<'_>) -> Result<TempPdfUpload, AppError> {
     let temp = NamedTempFile::new().map_err(|error| {
         error!(%error, "Gagal membuat temporary file PDF");
-        AppError::internal(
-            "tempfile_failed",
-            "Gagal menyiapkan penyimpanan sementara",
-        )
+        AppError::internal("tempfile_failed", "Gagal menyiapkan penyimpanan sementara")
     })?;
 
     let std_file = temp.reopen().map_err(|error| {
         error!(%error, "Gagal membuka temporary file PDF");
-        AppError::internal(
-            "tempfile_failed",
-            "Gagal membuka penyimpanan sementara",
-        )
+        AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
     })?;
     let mut output = tokio::fs::File::from_std(std_file);
     let mut size = 0usize;
 
-    while let Some(chunk) = field.chunk().await.map_err(|error| {
-        error!(%error, "Gagal membaca file PDF");
-        AppError::bad_request(
-            "invalid_upload",
-            "Gagal membaca file PDF yang diunggah",
-        )
-    })? {
+    while let Some(chunk) = field
+        .chunk()
+        .await
+        .map_err(|error| {
+            error!(%error, "Gagal membaca file PDF");
+            AppError::bad_request("invalid_upload", "Gagal membaca file PDF yang diunggah")
+        })?
+    {
         size = size.checked_add(chunk.len()).ok_or_else(|| {
             AppError::bad_request(
                 "pdf_upload_too_large",
@@ -116,10 +111,7 @@ async fn stream_pdf_field(mut field: Field<'_>) -> Result<TempPdfUpload, AppErro
 
         output.write_all(&chunk).await.map_err(|error| {
             error!(%error, "Gagal menulis temporary PDF");
-            AppError::internal(
-                "tempfile_write_failed",
-                "Gagal menyimpan PDF sementara",
-            )
+            AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
         })?;
     }
 
@@ -187,10 +179,7 @@ async fn read_watermark_request(
 
                     let value = field.text().await.map_err(|error| {
                         error!(%error, "Gagal membaca teks watermark");
-                        AppError::bad_request(
-                            "invalid_watermark",
-                            "Gagal membaca teks watermark",
-                        )
+                        AppError::bad_request("invalid_watermark", "Gagal membaca teks watermark")
                     })?;
 
                     if value.trim().is_empty() {
