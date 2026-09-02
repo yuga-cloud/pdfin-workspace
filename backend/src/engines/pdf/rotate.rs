@@ -99,7 +99,10 @@ mod tests {
 
     use super::*;
 
-    fn page_tree_with_rotation(page_rotation: Option<i64>, parent_rotation: Option<i64>) -> Document {
+    fn page_tree_with_rotation(
+        page_rotation: Option<i64>,
+        parent_rotation: Option<i64>,
+    ) -> Document {
         let mut document = Document::with_version("1.7");
         let pages_id = document.new_object_id();
         let page_id = document.new_object_id();
