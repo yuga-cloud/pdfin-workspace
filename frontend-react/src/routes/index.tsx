@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   CloudCog,
@@ -213,7 +213,7 @@ function ToolCard({ tool }: { tool: ToolDef }) {
   );
 }
 
-function TrustItem({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+function TrustItem({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
   return (
     <div className="trust-item">
       <span className="trust-item-icon">{icon}</span>
