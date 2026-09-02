@@ -32,11 +32,16 @@ pub fn validate_pdf_path(path: &Path) -> Result<(), String> {
     validate_pdf_signature(&header[..bytes_read])
 }
 
-/// Load a validated PDF with an explicit decompressed-stream budget.
-///
-/// The input byte limit is enforced by `validate_pdf_path`; this additional
-/// limit prevents highly-compressed streams from expanding without bound
-/// while `lopdf` constructs its in-memory object graph.
+/// Load a PDF with the explicit decompressed-stream budget used by the backend.
+pub fn load_pdf_document(pdf_bytes: &[u8]) -> Result<Document, String> {
+    Document::load_mem_with_options(
+        pdf_bytes,
+        LoadOptions::with_max_decompressed_size(MAX_PDF_DECOMPRESSED_STREAM_BYTES),
+    )
+    .map_err(|error| format!("Gagal membaca PDF: {error}"))
+}
+
+/// Load a PDF directly from disk while retaining the decompressed-stream budget.
 pub fn load_pdf_document_from_path(path: &Path) -> Result<Document, String> {
     Document::load_with_options(
         path,
