@@ -1,25 +1,67 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CloudCog, MonitorCheck } from "lucide-react";
+import {
+  ArrowLeftRight,
+  BookOpen,
+  CloudCog,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileType,
+  Files,
+  ImagePlus,
+  Layers2,
+  Minimize2,
+  MonitorCheck,
+  Presentation,
+  RotateCw,
+  Scissors,
+  Stamp,
+} from "lucide-react";
 
 import { Logo } from "@/components/logo";
-import { TOOLS } from "@/lib/tools-catalog";
+import { TOOLS, type ToolDef } from "@/lib/tools-catalog";
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 const navLinkClass =
-  "app-nav-link rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform,box-shadow] duration-200 hover:-translate-y-px hover:bg-surface-2 hover:text-fg";
+  "app-nav-link inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform,box-shadow] duration-200 hover:-translate-y-px hover:bg-surface-2 hover:text-fg";
 
 const navLinkActiveClass =
-  "app-nav-link app-nav-link-active rounded-xl bg-fg px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm";
+  "app-nav-link app-nav-link-active inline-flex items-center gap-2 rounded-xl bg-fg px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm";
 
 const toolLinkClass =
-  "app-tool-link shrink-0 rounded-full border border-transparent px-3 py-2 text-xs font-medium text-muted transition-[background-color,border-color,color,transform] duration-200 hover:-translate-y-px hover:border-border hover:bg-surface hover:text-fg";
+  "app-tool-link inline-flex shrink-0 items-center gap-1.5 rounded-full border border-transparent px-3 py-2 text-xs font-medium text-muted transition-[background-color,border-color,color,transform] duration-200 hover:-translate-y-px hover:border-border hover:bg-surface hover:text-fg";
 
 const toolLinkActiveClass =
-  "app-tool-link app-tool-link-active shrink-0 rounded-full border border-fg bg-fg px-3 py-2 text-xs font-semibold text-white shadow-sm";
+  "app-tool-link app-tool-link-active inline-flex shrink-0 items-center gap-1.5 rounded-full border border-fg bg-fg px-3 py-2 text-xs font-semibold text-white shadow-sm";
+
+const TOOL_ICONS: Record<ToolDef["slug"], typeof Files> = {
+  gabung: Files,
+  pisah: Scissors,
+  halaman: Layers2,
+  kompres: Minimize2,
+  "jpg-ke-pdf": ImagePlus,
+  "pdf-ke-jpg": FileImage,
+  putar: RotateCw,
+  watermark: Stamp,
+  "word-ke-pdf": FileType,
+  "excel-ke-pdf": FileSpreadsheet,
+  "powerpoint-ke-pdf": Presentation,
+  "pdf-ke-word": FileText,
+  "pdf-ke-excel": FileSpreadsheet,
+  "pdf-ke-powerpoint": Presentation,
+};
+
+function NavIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="app-nav-icon" aria-hidden="true">
+      {children}
+    </span>
+  );
+}
 
 export function AppShell({ children }: AppShellProps) {
   return (
@@ -42,6 +84,7 @@ export function AppShell({ children }: AppShellProps) {
               activeProps={{ className: navLinkActiveClass }}
               activeOptions={{ exact: true }}
             >
+              <NavIcon><Files /></NavIcon>
               Semua alat
             </Link>
             <Link
@@ -51,6 +94,7 @@ export function AppShell({ children }: AppShellProps) {
               activeProps={{ className: navLinkActiveClass }}
               activeOptions={{ exact: true }}
             >
+              <NavIcon><Layers2 /></NavIcon>
               Atur PDF
             </Link>
             <Link
@@ -60,6 +104,7 @@ export function AppShell({ children }: AppShellProps) {
               activeProps={{ className: navLinkActiveClass }}
               activeOptions={{ exact: true }}
             >
+              <NavIcon><ArrowLeftRight /></NavIcon>
               Konversi
             </Link>
             <Link
@@ -68,6 +113,7 @@ export function AppShell({ children }: AppShellProps) {
               activeProps={{ className: navLinkActiveClass }}
               activeOptions={{ exact: true }}
             >
+              <NavIcon><BookOpen /></NavIcon>
               Panduan
             </Link>
           </nav>
@@ -78,24 +124,29 @@ export function AppShell({ children }: AppShellProps) {
             activeProps={{ className: navLinkActiveClass }}
             activeOptions={{ exact: true }}
           >
+            <NavIcon><BookOpen /></NavIcon>
             Panduan
           </Link>
         </div>
 
         <div className="border-t border-border/60 md:hidden">
-          <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 scrollbar-none" aria-label="Alat">
-            {TOOLS.map((tool) => (
-              <Link
-                key={tool.slug}
-                to="/alat/$slug"
-                params={{ slug: tool.slug }}
-                className={toolLinkClass}
-                activeProps={{ className: toolLinkActiveClass }}
-                activeOptions={{ exact: true }}
-              >
-                {tool.short}
-              </Link>
-            ))}
+          <nav className="app-tool-rail mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 scrollbar-none" aria-label="Alat">
+            {TOOLS.map((tool) => {
+              const Icon = TOOL_ICONS[tool.slug];
+              return (
+                <Link
+                  key={tool.slug}
+                  to="/alat/$slug"
+                  params={{ slug: tool.slug }}
+                  className={toolLinkClass}
+                  activeProps={{ className: toolLinkActiveClass }}
+                  activeOptions={{ exact: true }}
+                >
+                  <Icon className="app-tool-link-icon" aria-hidden="true" />
+                  {tool.short}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </header>
