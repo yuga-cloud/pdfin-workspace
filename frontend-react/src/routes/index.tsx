@@ -51,15 +51,14 @@ function Home() {
       <section className="home-hero relative mx-auto max-w-4xl pt-8 text-center sm:pt-14">
         <span className="home-eyebrow inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
           <ShieldCheck className="size-3.5" aria-hidden />
-          Pemrosesan lokal, tanpa unggah
+          Pemrosesan transparan per alat
         </span>
         <h1 className="home-title mt-6 text-4xl font-semibold tracking-tight text-fg sm:text-6xl">
           Semua alat PDF,
           <span className="block text-primary">di satu tempat.</span>
         </h1>
         <p className="home-description mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-          Gabung, pisah, kompres, dan ubah dokumen PDF dengan cepat. Pilih alatnya, masukkan file,
-          lalu unduh hasilnya.
+          Gabung, pisah, kompres, dan ubah dokumen PDF dengan cepat. Setiap alat menjelaskan apakah file diproses di perangkat atau dikirim ke server.
         </p>
       </section>
 
@@ -95,9 +94,9 @@ function Home() {
       </section>
 
       <section className="trust-strip mx-auto mt-16 grid max-w-6xl gap-4 border-t border-border pt-8 sm:grid-cols-3">
-        <TrustItem title="Privat secara default" body="File diproses di browser dan tidak disimpan di server." />
+        <TrustItem title="Lokasi pemrosesan jelas" body="Setiap alat menjelaskan apakah file diproses di perangkat atau dikirim ke server." />
         <TrustItem title="Bekerja di HP" body="Tampilan dan tombol dibuat untuk layar kecil maupun laptop." />
-        <TrustItem title="Hasil langsung diunduh" body="Tidak perlu akun. Pilih alat, proses, lalu ambil hasilnya." />
+        <TrustItem title="Tanpa akun" body="Pilih alat, ikuti petunjuk pemrosesan, lalu ambil hasilnya." />
       </section>
     </div>
   );
