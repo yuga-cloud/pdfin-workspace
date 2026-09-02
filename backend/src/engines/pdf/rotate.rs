@@ -2,7 +2,9 @@ use std::{collections::HashSet, fs, path::Path};
 
 use lopdf::{Document, Object, ObjectId};
 
-use super::common::{load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path};
+use super::common::{
+    load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path,
+};
 
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 
