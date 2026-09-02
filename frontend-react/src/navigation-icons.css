@@ -1,4 +1,4 @@
-/* Navigation icon language: compact, aligned, and intentionally alive on interaction. */
+/* Navigation and interaction icon language: compact, aligned, and intentionally alive. */
 .app-nav-icon {
   display: inline-grid;
   width: 1.15rem;
@@ -34,7 +34,6 @@
 .app-primary-nav .app-nav-link:active .app-nav-icon { transform: translateY(0) scale(.96); }
 
 .app-tool-rail { scrollbar-width: none; }
-
 .app-tool-link { min-height: 2.5rem; }
 
 .app-tool-link-icon {
@@ -54,12 +53,8 @@
 }
 
 .app-tool-link:active .app-tool-link-icon { transform: scale(.95); }
-
 .app-tool-link-active .app-tool-link-icon,
-.app-tool-link-active:hover .app-tool-link-icon {
-  color: currentColor;
-  stroke-width: 1.98;
-}
+.app-tool-link-active:hover .app-tool-link-icon { color: currentColor; stroke-width: 1.98; }
 
 /* Tool cards use the same motion language as navigation. */
 .tool-card .tool-icon {
@@ -101,9 +96,7 @@
   transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, border-color 180ms ease;
 }
 
-.workspace-dropzone-shell:hover {
-  transform: translateY(-1px);
-}
+.workspace-dropzone-shell:hover { transform: translateY(-1px); }
 
 .workspace-dropzone:hover .workspace-upload-icon,
 .workspace-dropzone:focus-visible .workspace-upload-icon,
@@ -114,7 +107,46 @@
 
 .workspace-upload-icon { transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease; }
 
-.app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon { color: color-mix(in oklch, currentColor 82%, transparent); }
+/* File and page action icons follow the same interaction curve. */
+.workspace-file-row .lucide,
+.workspace-page-card button .lucide,
+.workspace-process-button .lucide,
+.workspace-result button .lucide {
+  transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease, stroke-width 180ms ease;
+}
+
+.workspace-file-row button:hover .lucide,
+.workspace-page-card button:hover .lucide {
+  transform: translateY(-1px) scale(1.08);
+  stroke-width: 1.95;
+}
+
+.workspace-file-row .workspace-remove-button:hover .lucide {
+  color: var(--color-danger);
+  transform: rotate(5deg) scale(1.06);
+}
+
+.workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle) {
+  transform: translateX(2px) scale(1.04);
+}
+
+.workspace-result button:hover .lucide {
+  transform: translateY(-1px) scale(1.06);
+}
+
+.home-hero-action svg {
+  transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease;
+}
+
+.home-hero-action:hover svg {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.home-hero-action-secondary:hover svg { transform: translateX(3px); }
+
+.app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon {
+  color: color-mix(in oklch, currentColor 82%, transparent);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .app-nav-icon,
@@ -125,6 +157,11 @@
   .trust-item-icon,
   .workspace-dropzone-shell,
   .workspace-upload-icon,
+  .workspace-file-row .lucide,
+  .workspace-page-card button .lucide,
+  .workspace-process-button .lucide,
+  .workspace-result button .lucide,
+  .home-hero-action svg,
   .app-primary-nav .app-nav-link:hover .app-nav-icon,
   .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
   .app-primary-nav .app-nav-link:active .app-nav-icon,
@@ -137,7 +174,13 @@
   .workspace-dropzone:hover .workspace-upload-icon,
   .workspace-dropzone:focus-visible .workspace-upload-icon,
   .workspace-dropzone.is-dragover .workspace-upload-icon,
-  .workspace-dropzone-shell:hover {
+  .workspace-dropzone-shell:hover,
+  .workspace-file-row button:hover .lucide,
+  .workspace-page-card button:hover .lucide,
+  .workspace-file-row .workspace-remove-button:hover .lucide,
+  .workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle),
+  .workspace-result button:hover .lucide,
+  .home-hero-action:hover svg {
     transform: none;
     filter: none;
   }
