@@ -10,8 +10,7 @@ use tracing::error;
 
 use crate::{
     engines::pdf::{
-        common::validate_pdf_path,
-        merge::merge_pdfs_from_paths as merge_pdf_engine,
+        common::validate_pdf_path, merge::merge_pdfs_from_paths as merge_pdf_engine,
         rotate::rotate_pdf_from_path as rotate_pdf_engine,
     },
     error::AppError,
@@ -105,9 +104,8 @@ pub async fn rotate(
 ) -> Result<impl IntoResponse, AppError> {
     let (file, degrees) = read_rotate_request(multipart).await?;
     validate_rotation_degrees(degrees)?;
-    validate_pdf_path(file.file.path()).map_err(|message| {
-        AppError::bad_request("invalid_input", message)
-    })?;
+    validate_pdf_path(file.file.path())
+        .map_err(|message| AppError::bad_request("invalid_input", message))?;
 
     let permit = state
         .pdf_semaphore
@@ -189,7 +187,10 @@ async fn read_multiple_files_to_tempfiles(
 
                     output.write_all(&chunk).await.map_err(|error| {
                         error!(%error, "Gagal menulis temporary PDF");
-                        AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
+                        AppError::internal(
+                            "tempfile_write_failed",
+                            "Gagal menyimpan PDF sementara",
+                        )
                     })?;
                 }
 
@@ -282,7 +283,10 @@ async fn read_rotate_request(
 
                         output.write_all(&chunk).await.map_err(|error| {
                             error!(%error, "Gagal menulis temporary PDF");
-                            AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
+                            AppError::internal(
+                                "tempfile_write_failed",
+                                "Gagal menyimpan PDF sementara",
+                            )
                         })?;
                     }
 
