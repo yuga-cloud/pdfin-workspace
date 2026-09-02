@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
+  CloudCog,
   FileImage,
   FileSpreadsheet,
   FileText,
@@ -9,16 +10,21 @@ import {
   FileType,
   ImagePlus,
   Layers2,
+  LockKeyhole,
   Minimize2,
+  MonitorCheck,
   Presentation,
   RotateCw,
   Scissors,
   ShieldCheck,
   Stamp,
+  Upload,
 } from "lucide-react";
 import { GROUPS, TOOLS, type ToolDef } from "@/lib/tools-catalog";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  component: Home,
+});
 
 const ICONS: Record<ToolDef["slug"], typeof Files> = {
   gabung: Files,
@@ -47,57 +53,123 @@ function Home() {
   );
 
   return (
-    <div className="home-page pb-8">
-      <section className="home-hero relative mx-auto max-w-4xl pt-8 text-center sm:pt-14">
-        <span className="home-eyebrow inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
-          <ShieldCheck className="size-3.5" aria-hidden />
-          Pemrosesan transparan per alat
-        </span>
-        <h1 className="home-title mt-6 text-4xl font-semibold tracking-tight text-fg sm:text-6xl">
-          Semua alat PDF,
-          <span className="block text-primary">di satu tempat.</span>
-        </h1>
-        <p className="home-description mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-          Gabung, pisah, kompres, dan ubah dokumen PDF dengan cepat. Setiap alat menjelaskan apakah file diproses di perangkat atau dikirim ke server.
-        </p>
+    <div className="home-page">
+      <section className="home-hero home-hero-wrap" aria-labelledby="home-title">
+        <div className="home-hero-copy">
+          <div className="home-hero-badges">
+            <span className="home-eyebrow">
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              PDF tools yang transparan
+            </span>
+            <span className="home-hero-mini-badge">Tanpa akun</span>
+          </div>
+          <h1 id="home-title" className="home-title">
+            Kerja dengan PDF,
+            <span> tanpa ribet.</span>
+          </h1>
+          <p className="home-description">
+            Gabung, pisah, kompres, dan ubah dokumen dengan alur yang sederhana. Setiap alat
+            menjelaskan apakah file diproses di perangkat atau dikirim ke server.
+          </p>
+          <div className="home-hero-actions">
+            <a className="home-hero-action home-hero-action-primary" href="#tools-heading">
+              <Upload className="size-4" aria-hidden="true" />
+              Mulai dengan alat
+            </a>
+            <Link className="home-hero-action home-hero-action-secondary" to="/panduan">
+              Lihat panduan
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="home-hero-trust">
+            <span><LockKeyhole className="size-3.5" aria-hidden="true" /> Tidak ada akun wajib</span>
+            <span><MonitorCheck className="size-3.5" aria-hidden="true" /> Mode pemrosesan selalu ditampilkan</span>
+          </div>
+        </div>
+
+        <ProductPreview />
       </section>
 
-      <section className="home-tools mx-auto mt-14 max-w-6xl" aria-labelledby="tools-heading">
-        <div className="tools-heading flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+      <section className="home-tools" aria-labelledby="tools-heading">
+        <div className="tools-heading">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Katalog alat</p>
-            <h2 id="tools-heading" className="mt-1 text-2xl font-semibold tracking-tight text-fg">
-              Pilih yang kamu butuhkan
-            </h2>
+            <p className="section-kicker">Katalog alat</p>
+            <h2 id="tools-heading">Pilih yang kamu butuhkan</h2>
+            <p className="section-lede">Satu tempat untuk pekerjaan PDF harian, dengan lokasi pemrosesan yang jelas.</p>
           </div>
-          <div className="tool-filter flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Kategori alat">
+          <div className="tool-filter" role="tablist" aria-label="Kategori alat">
             <FilterTab active={filter === "semua"} onClick={() => setFilter("semua")}>
               Semua
             </FilterTab>
             {GROUPS.map((group) => (
-              <FilterTab
-                key={group.id}
-                active={filter === group.id}
-                onClick={() => setFilter(group.id)}
-              >
+              <FilterTab key={group.id} active={filter === group.id} onClick={() => setFilter(group.id)}>
                 {group.label}
               </FilterTab>
             ))}
           </div>
         </div>
 
-        <div className="tool-grid mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="tool-grid">
           {visibleTools.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />
           ))}
         </div>
       </section>
 
-      <section className="trust-strip mx-auto mt-16 grid max-w-6xl gap-4 border-t border-border pt-8 sm:grid-cols-3">
-        <TrustItem title="Lokasi pemrosesan jelas" body="Setiap alat menjelaskan apakah file diproses di perangkat atau dikirim ke server." />
-        <TrustItem title="Bekerja di HP" body="Tampilan dan tombol dibuat untuk layar kecil maupun laptop." />
-        <TrustItem title="Tanpa akun" body="Pilih alat, ikuti petunjuk pemrosesan, lalu ambil hasilnya." />
+      <section className="home-trust" aria-label="Informasi privasi dan penggunaan">
+        <TrustItem icon={<MonitorCheck aria-hidden="true" />} title="Jelas soal pemrosesan" body="Setiap alat menyebutkan lokasi pemrosesannya sebelum kamu memilih file." />
+        <TrustItem icon={<ShieldCheck aria-hidden="true" />} title="Privasi dijelaskan apa adanya" body="Jangan menebak-nebak: baca mode pemrosesan yang tampil di alat yang kamu pilih." />
+        <TrustItem icon={<Upload aria-hidden="true" />} title="Mulai tanpa akun" body="Pilih alat, masukkan file, proses, lalu ambil hasilnya." />
       </section>
+    </div>
+  );
+}
+
+function ProductPreview() {
+  return (
+    <div className="product-preview" aria-hidden="true">
+      <div className="product-window">
+        <div className="product-window-bar">
+          <div className="product-window-dots"><span /><span /><span /></div>
+          <span className="product-window-label">pdfin · workspace</span>
+          <span className="product-window-bar-status"><MonitorCheck className="size-3" /> Ready</span>
+        </div>
+        <div className="product-window-body">
+          <aside className="product-window-sidebar">
+            <span className="product-window-side-caption">TOOLS</span>
+            <div className="product-window-side-item product-window-side-item-active"><Files /> Gabung</div>
+            <div className="product-window-side-item"><Scissors /> Pisah</div>
+            <div className="product-window-side-item"><Minimize2 /> Kompres</div>
+            <div className="product-window-side-item"><FileType /> Konversi</div>
+          </aside>
+          <div className="product-window-main">
+            <div className="product-window-title-row">
+              <div>
+                <span className="product-window-kicker">Atur PDF</span>
+                <div className="product-window-title">Gabung PDF</div>
+              </div>
+              <span className="product-window-status"><CloudCog /> Server</span>
+            </div>
+            <div className="product-window-drop">
+              <span className="product-window-drop-icon"><Upload className="size-5" /></span>
+              <div className="product-window-drop-copy">
+                <strong>Letakkan file di sini</strong>
+                <span>atau pilih dari perangkat</span>
+              </div>
+            </div>
+            <div className="product-window-mini-row">
+              <div className="product-window-mini-card">
+                <span className="product-window-mini-label">FILES</span>
+                <strong className="product-window-mini-value">2 dokumen</strong>
+              </div>
+              <div className="product-window-mini-card">
+                <span className="product-window-mini-label">PROCESSING</span>
+                <strong className="product-window-mini-value">Di server</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -112,15 +184,7 @@ function FilterTab({
   children: string;
 }) {
   return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        active ? "bg-fg text-bg shadow-sm" : "text-muted hover:bg-surface-2 hover:text-fg"
-      }`}
-    >
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={active ? "is-active" : ""}>
       {children}
     </button>
   );
@@ -128,29 +192,35 @@ function FilterTab({
 
 function ToolCard({ tool }: { tool: ToolDef }) {
   const Icon = ICONS[tool.slug];
+  const isServer = tool.processing === "server";
+
   return (
-    <Link
-      to="/alat/$slug"
-      params={{ slug: tool.slug }}
-      className="tool-card group flex min-h-40 flex-col rounded-2xl border border-border bg-surface p-5 transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-card-hover)]"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <span className="tool-icon grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="size-5" aria-hidden />
-        </span>
-        <ArrowRight className="mt-1 size-4 text-muted transition-transform duration-150 group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
+    <Link to="/alat/$slug" params={{ slug: tool.slug }} className="tool-card group">
+      <div className="tool-card-top">
+        <span className="tool-icon"><Icon className="size-5" aria-hidden="true" /></span>
+        <span className="tool-card-arrow"><ArrowRight className="size-4" aria-hidden="true" /></span>
       </div>
-      <span className="mt-5 block font-semibold text-fg">{tool.title}</span>
-      <span className="mt-1 block text-sm leading-relaxed text-muted">{tool.description}</span>
+      <div className="tool-card-title-row">
+        <span className="tool-card-title">{tool.title}</span>
+        <span className={`tool-processing-badge ${isServer ? "is-server" : "is-device"}`}>
+          {isServer ? <CloudCog className="size-3" aria-hidden="true" /> : <MonitorCheck className="size-3" aria-hidden="true" />}
+          {isServer ? "Server" : "Perangkat"}
+        </span>
+      </div>
+      <span className="tool-card-description">{tool.description}</span>
+      <span className="tool-card-hint">{tool.hint}</span>
     </Link>
   );
 }
 
-function TrustItem({ title, body }: { title: string; body: string }) {
+function TrustItem({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="trust-item border-l-2 border-primary/30 pl-4">
-      <p className="font-semibold text-fg">{title}</p>
-      <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+    <div className="trust-item">
+      <span className="trust-item-icon">{icon}</span>
+      <div>
+        <p>{title}</p>
+        <span>{body}</span>
+      </div>
     </div>
   );
 }
