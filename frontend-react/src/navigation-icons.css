@@ -1,21 +1,40 @@
-/* Navigation icon language: compact, aligned, and intentionally quiet. */
+/* Navigation icon language: compact, aligned, and intentionally alive on interaction. */
 .app-nav-icon {
   display: inline-grid;
-  width: 1rem;
-  height: 1rem;
+  width: 1.15rem;
+  height: 1.15rem;
   flex: 0 0 auto;
   place-items: center;
   color: currentColor;
+  transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease, filter 180ms ease;
+  transform-origin: 50% 50%;
 }
 
 .app-nav-icon .lucide {
-  width: .95rem;
-  height: .95rem;
-  stroke-width: 1.8;
+  width: .98rem;
+  height: .98rem;
+  stroke-width: 1.85;
+  transition: stroke-width 180ms ease, transform 180ms cubic-bezier(.23,1,.32,1);
 }
 
 .app-nav-link-active .app-nav-icon {
   color: currentColor;
+}
+
+.app-primary-nav .app-nav-link:hover .app-nav-icon {
+  color: var(--color-primary);
+  transform: translateY(-1px) scale(1.08) rotate(-2deg);
+  filter: drop-shadow(0 3px 6px color-mix(in oklch, var(--color-primary) 20%, transparent));
+}
+
+.app-primary-nav .app-nav-link-active:hover .app-nav-icon {
+  color: var(--color-primary-fg);
+  transform: translateY(-1px) scale(1.08) rotate(2deg);
+  filter: drop-shadow(0 3px 6px rgba(255,255,255,.12));
+}
+
+.app-primary-nav .app-nav-link:active .app-nav-icon {
+  transform: translateY(0) scale(.96);
 }
 
 .app-tool-rail {
@@ -27,22 +46,46 @@
 }
 
 .app-tool-link-icon {
-  width: .82rem;
-  height: .82rem;
+  width: .9rem;
+  height: .9rem;
   flex: 0 0 auto;
   stroke-width: 1.8;
+  transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease, stroke-width 180ms ease;
+  transform-origin: 50% 50%;
 }
 
-.app-tool-link-active .app-tool-link-icon {
+.app-tool-link:hover .app-tool-link-icon {
+  color: var(--color-primary);
   stroke-width: 1.95;
+  transform: translateY(-1px) scale(1.1);
+}
+
+.app-tool-link:active .app-tool-link-icon {
+  transform: scale(.95);
+}
+
+.app-tool-link-active .app-tool-link-icon,
+.app-tool-link-active:hover .app-tool-link-icon {
+  color: currentColor;
+  stroke-width: 1.98;
 }
 
 .app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon {
   color: color-mix(in oklch, currentColor 82%, transparent);
 }
 
-.app-primary-nav .app-nav-link:hover .app-nav-icon {
-  color: currentColor;
+@media (prefers-reduced-motion: reduce) {
+  .app-nav-icon,
+  .app-nav-icon .lucide,
+  .app-tool-link-icon,
+  .app-primary-nav .app-nav-link:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link:active .app-nav-icon,
+  .app-tool-link:hover .app-tool-link-icon,
+  .app-tool-link:active .app-tool-link-icon {
+    transform: none;
+    filter: none;
+  }
 }
 
 @media (max-width: 767px) {
