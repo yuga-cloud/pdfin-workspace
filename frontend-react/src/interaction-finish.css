@@ -58,7 +58,6 @@
 }
 
 .tool-card:hover .tool-processing-badge { border-color: color-mix(in oklch, currentColor 22%, var(--color-border)); }
-
 .home-hero-action-primary:hover .lucide { transform: translateX(2px) rotate(-2deg); }
 .home-hero-action-secondary:hover .lucide { transform: translateX(3px); }
 .workspace-back-link:hover .lucide { transform: translateX(-2px); }
@@ -68,21 +67,18 @@
 .processing-mode-card {
   transition: transform 180ms var(--ease-out), border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
-
 .processing-mode-card:hover {
   transform: translateY(-1px);
   border-color: color-mix(in oklch, var(--color-fg) 13%, var(--color-border));
   box-shadow: var(--shadow-card);
   background: var(--color-surface);
 }
-
 .processing-mode-card.device:hover { border-color: color-mix(in oklch, var(--color-ok) 22%, var(--color-border)); }
 .processing-mode-card.server:hover { border-color: color-mix(in oklch, var(--color-fg) 16%, var(--color-border)); }
 
 .guide-step {
   transition: transform 180ms var(--ease-out), border-color 180ms ease, background-color 180ms ease;
 }
-
 .guide-section:hover .guide-step {
   transform: translateY(-1px);
   border-color: color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
@@ -94,14 +90,10 @@
   border-color: color-mix(in oklch, var(--color-ring) 42%, var(--color-border));
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 9%, transparent);
 }
-
 .workspace-choice.is-selected {
   box-shadow: 0 0 0 1px color-mix(in oklch, var(--color-primary) 10%, transparent), 0 8px 22px -18px color-mix(in oklch, var(--color-primary) 35%, transparent);
 }
-
-.workspace-segmented button.is-selected {
-  box-shadow: 0 5px 14px -10px color-mix(in oklch, var(--color-fg) 55%, transparent);
-}
+.workspace-segmented button.is-selected { box-shadow: 0 5px 14px -10px color-mix(in oklch, var(--color-fg) 55%, transparent); }
 
 .workspace-chip {
   border: 1px solid transparent;
@@ -109,35 +101,25 @@
   color: var(--color-muted);
   transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
-
 .workspace-chip:hover {
   transform: translateY(-1px);
   border-color: color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
   background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface));
   color: var(--color-fg);
 }
-
 .workspace-chip:active { transform: scale(.97); }
 
-.workspace-file-row {
-  transition: transform 160ms var(--ease-out), border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
-}
-
+.workspace-file-row { transition: transform 160ms var(--ease-out), border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
 .workspace-file-row:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px -18px color-mix(in oklch, var(--color-fg) 35%, transparent);
 }
-
 .workspace-file-row .workspace-remove-button:hover {
   color: var(--color-danger);
   background: color-mix(in oklch, var(--color-danger) 6%, var(--color-surface));
 }
 
-.workspace-process-button:not(:disabled) {
-  position: relative;
-  overflow: hidden;
-}
-
+.workspace-process-button:not(:disabled) { position: relative; overflow: hidden; }
 .workspace-process-button:not(:disabled)::after {
   position: absolute;
   inset: 0;
@@ -147,21 +129,15 @@
   transition: transform 600ms var(--ease-out);
   content: "";
 }
-
 .workspace-process-button:not(:disabled):hover::after { transform: translateX(120%); }
 
-.pdfin-progress {
-  position: relative;
-  isolation: isolate;
-}
-
+.pdfin-progress { position: relative; isolation: isolate; }
 .pdfin-progress-bar {
   position: relative;
   overflow: hidden;
   background-image: linear-gradient(90deg, var(--color-primary), color-mix(in oklch, var(--color-primary) 84%, #fff));
   box-shadow: 0 0 16px -5px color-mix(in oklch, var(--color-primary) 55%, transparent);
 }
-
 .pdfin-progress-bar::after {
   position: absolute;
   inset: 0;
@@ -170,7 +146,6 @@
   transform: translateX(-110%);
   animation: progress-sheen 1.8s linear infinite;
 }
-
 @keyframes progress-sheen { to { transform: translateX(110%); } }
 
 .product-window-side-item:hover svg { transform: translateX(1px) scale(1.05); }
@@ -178,9 +153,36 @@
 .processing-banner span:hover > svg,
 .processing-banner span:hover .lucide { transform: scale(1.05); }
 
+/* Mobile touch polish: controls stay easy to tap and respect device safe areas. */
 @media (max-width: 760px) {
-  .tool-filter button { min-height: 2.75rem; padding-inline: .85rem; }
-  .workspace-chip { min-height: 2.5rem; }
+  .tool-filter button,
+  .workspace-chip { min-height: 2.75rem; touch-action: manipulation; }
+
+  .workspace-inline-actions button,
+  .workspace-remove-button,
+  .workspace-page-card button,
+  .app-nav-link,
+  .app-tool-link {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    touch-action: manipulation;
+  }
+
+  .workspace-page-card button { width: 2.75rem; }
+  .tool-card,
+  .home-hero-action,
+  .workspace-back-link { touch-action: manipulation; }
+  .workspace-file-row { gap: .7rem; }
+  .workspace-process-row { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@media (max-width: 639px) {
+  .app-header,
+  .app-mobile-header,
+  .app-nav {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
