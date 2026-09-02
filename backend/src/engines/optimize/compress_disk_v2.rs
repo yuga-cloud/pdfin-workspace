@@ -333,11 +333,15 @@ fn run_external_command(
     loop {
         match child.try_wait() {
             Ok(Some(status)) => {
-                if output_size_exceeds(output_path)? {
-                    return Err(format!(
-                        "Hasil {tool_name} melebihi batas ukuran {} MiB",
-                        MAX_OUTPUT_BYTES / 1024 / 1024
-                    ));
+                match output_size_exceeds(output_path) {
+                    Ok(true) => {
+                        return Err(format!(
+                            "Hasil {tool_name} melebihi batas ukuran {} MiB",
+                            MAX_OUTPUT_BYTES / 1024 / 1024
+                        ));
+                    }
+                    Ok(false) => {}
+                    Err(error) => return Err(error),
                 }
 
                 if status.success() {
@@ -351,13 +355,21 @@ fn run_external_command(
                 ));
             }
             Ok(None) => {
-                if output_size_exceeds(output_path)? {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(format!(
-                        "Hasil {tool_name} melebihi batas ukuran {} MiB dan proses dihentikan.",
-                        MAX_OUTPUT_BYTES / 1024 / 1024
-                    ));
+                match output_size_exceeds(output_path) {
+                    Ok(true) => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return Err(format!(
+                            "Hasil {tool_name} melebihi batas ukuran {} MiB dan proses dihentikan.",
+                            MAX_OUTPUT_BYTES / 1024 / 1024
+                        ));
+                    }
+                    Ok(false) => {}
+                    Err(error) => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return Err(error);
+                    }
                 }
 
                 if Instant::now() >= deadline {
