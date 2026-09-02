@@ -206,11 +206,25 @@ where
 {
     let permit = acquire_conversion_permit(&state, operation).await?;
 
-    let result = task::spawn_blocking(move || {
+    task::spawn_blocking(move || {
         let _permit = permit;
-        let data = read_temp_file(data)?;
-        validate(&data).map_err(|error| format!("VALIDATION_ERROR:{error}"))?;
-        engine(&data)
+        let data = read_temp_file(data).map_err(|error| {
+            error!(%error, operation, "Gagal membaca file sementara");
+            AppError::internal(
+                error_code::INVALID_UPLOAD,
+                "Gagal membaca file sementara",
+            )
+        })?;
+
+        validate(&data)?;
+
+        engine(&data).map_err(|error| {
+            error!(%error, operation, "Konversi gagal");
+            AppError::internal(
+                error_code::CONVERSION_FAILED,
+                "Gagal memproses file. Silakan coba lagi.",
+            )
+        })
     })
     .await
     .map_err(|error| {
@@ -220,20 +234,7 @@ where
             error_code::CONVERSION_WORKER_FAILED,
             "Worker konversi mengalami kegagalan",
         )
-    })?;
-
-    result.map_err(|error| {
-        if let Some(message) = error.strip_prefix("VALIDATION_ERROR:") {
-            return AppError::bad_request(error_code::INVALID_INPUT, message);
-        }
-
-        error!(%error, operation, "Konversi gagal");
-
-        AppError::internal(
-            error_code::CONVERSION_FAILED,
-            "Gagal memproses file. Silakan coba lagi.",
-        )
-    })
+    })?
 }
 
 pub async fn run_conversion_many<F, T>(
