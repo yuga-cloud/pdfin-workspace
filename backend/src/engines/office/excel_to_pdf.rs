@@ -21,6 +21,7 @@ const OUTPUT_FILE_NAME: &str = "output.pdf";
 const PYTHON_TIMEOUT: Duration = Duration::from_secs(120);
 const TIMEOUT_POLL_INTERVAL: Duration = Duration::from_millis(50);
 const MAX_STDERR_BYTES: usize = 16 * 1024;
+const MAX_OUTPUT_SIZE_BYTES: u64 = 200 * 1024 * 1024;
 
 const SYSTEM_PYTHON_CANDIDATES: [&str; 4] = [
     "/usr/bin/python3",
@@ -97,7 +98,12 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
             .arg(&output_path)
             .arg(&pipe_name);
 
-        let python_output = match run_with_timeout(python_command, PYTHON_TIMEOUT, &stderr_path) {
+        let python_output = match run_with_timeout(
+            python_command,
+            PYTHON_TIMEOUT,
+            &stderr_path,
+            &output_path,
+        ) {
             Ok(output) => output,
             Err(error) => {
                 stop_office(&mut office);
@@ -144,6 +150,7 @@ fn run_with_timeout(
     mut command: Command,
     timeout: Duration,
     stderr_path: &Path,
+    output_path: &Path,
 ) -> Result<CommandOutput, String> {
     if timeout.is_zero() {
         return Err("Timeout helper UNO harus lebih besar dari 0.".to_owned());
@@ -165,10 +172,27 @@ fn run_with_timeout(
     loop {
         match child.try_wait() {
             Ok(Some(status)) => {
+                if output_size_exceeds(output_path)? {
+                    return Err(format!(
+                        "Hasil PDF melebihi batas ukuran {} MB",
+                        MAX_OUTPUT_SIZE_BYTES / 1024 / 1024
+                    ));
+                }
+
                 let stderr = read_limited_stderr(stderr_path)?;
                 return Ok(CommandOutput { status, stderr });
             }
             Ok(None) => {
+                if output_size_exceeds(output_path)? {
+                    let _ = child.kill();
+                    let _ = child.wait();
+
+                    return Err(format!(
+                        "Hasil PDF melebihi batas ukuran {} MB dan proses dihentikan.",
+                        MAX_OUTPUT_SIZE_BYTES / 1024 / 1024
+                    ));
+                }
+
                 if start.elapsed() >= timeout {
                     let _ = child.kill();
                     let _ = child.wait();
@@ -187,6 +211,14 @@ fn run_with_timeout(
                 return Err(format!("Gagal menunggu helper UNO: {error}"));
             }
         }
+    }
+}
+
+fn output_size_exceeds(path: &Path) -> Result<bool, String> {
+    match fs::metadata(path) {
+        Ok(metadata) => Ok(metadata.len() > MAX_OUTPUT_SIZE_BYTES),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(format!("Gagal memeriksa ukuran hasil PDF: {error}")),
     }
 }
 
