@@ -2,18 +2,9 @@ use std::{collections::HashSet, fs, path::Path};
 
 use lopdf::{Document, Object, ObjectId};
 
-use super::common::{
-    load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path,
-};
+use super::common::{load_pdf_document_from_path, validate_pdf_path};
 
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
-
-/// Memutar seluruh halaman PDF dari byte buffer.
-pub fn rotate_pdf(pdf_bytes: &[u8], extra_deg: i64) -> Result<Vec<u8>, String> {
-    validate_pdf(pdf_bytes)?;
-    let document = load_pdf_document(pdf_bytes)?;
-    rotate_document(document, extra_deg, pdf_bytes.len())
-}
 
 /// Memutar seluruh halaman PDF langsung dari file sementara.
 ///
@@ -152,7 +143,8 @@ mod tests {
 
     #[test]
     fn rejects_invalid_rotation() {
-        let error = rotate_pdf(b"%PDF-1.7", 45).unwrap_err();
+        let document = Document::with_version("1.7");
+        let error = rotate_document(document, 45, 0).unwrap_err();
         assert!(error.contains("kelipatan 90"));
     }
 
