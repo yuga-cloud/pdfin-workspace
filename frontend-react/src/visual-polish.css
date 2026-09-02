@@ -1,0 +1,23 @@
+/* Small visual refinements shared by the existing Tailwind components. */
+
+:root {
+  --focus-ring: 0 0 0 4px rgba(223, 81, 72, 0.09);
+}
+
+@layer components {
+  .rounded-md,
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl {
+    transition-timing-function: var(--ease-out);
+  }
+
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-primary);
+  }
+}
