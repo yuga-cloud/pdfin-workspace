@@ -105,4 +105,5 @@
   .workspace-choice:has(input:focus-visible), .workspace-segmented button:focus-visible, .workspace-chip:focus-visible, .workspace-check-row:has(input:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; box-shadow: none; }
   .workspace-segmented button.is-selected { background: Highlight; color: HighlightText; border-color: Highlight; }
   .workspace-error::before { background: Highlight; box-shadow: 0 0 0 2px Canvas; }
+  .app-footer p:last-child { border-color: CanvasText; }
 }
