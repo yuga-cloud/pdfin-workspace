@@ -61,7 +61,10 @@ function Home() {
               <ShieldCheck className="size-3.5" aria-hidden="true" />
               PDF tools yang transparan
             </span>
-            <span className="home-hero-mini-badge">Tanpa akun</span>
+            <span className="home-hero-plain-meta">
+              <LockKeyhole className="size-3.5" aria-hidden="true" />
+              Tanpa akun
+            </span>
           </div>
           <h1 id="home-title" className="home-title">
             Kerja dengan PDF,
