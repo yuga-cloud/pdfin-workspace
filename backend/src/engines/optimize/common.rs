@@ -1,8 +1,8 @@
 use std::{collections::HashSet, path::Path};
 
 use lopdf::{
-    content::{Content, Operation},
     Dictionary, Document, Object, ObjectId,
+    content::{Content, Operation},
 };
 
 use crate::engines::pdf::common::{
@@ -49,13 +49,7 @@ pub fn add_text_to_pages(
 ) -> Result<Vec<u8>, String> {
     validate_pdf(pdf_bytes)?;
     let document = load_pdf_document(pdf_bytes)?;
-    add_text_to_document(
-        document,
-        pdf_bytes.len(),
-        text_for_page,
-        font_size,
-        center,
-    )
+    add_text_to_document(document, pdf_bytes.len(), text_for_page, font_size, center)
 }
 
 pub fn add_text_to_pages_from_path(
@@ -74,13 +68,7 @@ pub fn add_text_to_pages_from_path(
     .map_err(|_| "Ukuran PDF melebihi kapasitas yang didukung".to_owned())?;
 
     let document = load_pdf_document_from_path(pdf_path)?;
-    add_text_to_document(
-        document,
-        input_size,
-        text_for_page,
-        font_size,
-        center,
-    )
+    add_text_to_document(document, input_size, text_for_page, font_size, center)
 }
 
 fn add_text_to_document(
