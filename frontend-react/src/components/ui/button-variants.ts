@@ -6,15 +6,15 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-fg shadow-[0_8px_20px_-10px_rgba(223,81,72,0.7)] hover:bg-primary/92 hover:shadow-[0_12px_24px_-12px_rgba(223,81,72,0.75)]",
+          "bg-primary text-primary-fg shadow-[0_8px_20px_-10px_color-mix(in_oklch,var(--color-primary)_70%,transparent)] hover:bg-primary/92 hover:shadow-[0_12px_26px_-12px_color-mix(in_oklch,var(--color-primary)_76%,transparent)]",
         secondary:
-          "bg-surface-2 text-fg shadow-sm ring-1 ring-inset ring-black/[0.035] hover:bg-border/70 hover:shadow-md",
+          "bg-surface-2 text-fg shadow-sm ring-1 ring-inset ring-fg/[0.035] hover:bg-border/70 hover:shadow-md",
         outline:
           "border border-border bg-surface text-fg shadow-sm hover:border-fg/15 hover:bg-surface-2 hover:shadow-md",
         ghost:
           "text-fg hover:bg-surface-2 hover:shadow-sm",
         danger:
-          "bg-danger text-primary-fg shadow-[0_8px_20px_-10px_rgba(180,35,24,0.6)] hover:bg-danger/92 hover:shadow-[0_12px_24px_-12px_rgba(180,35,24,0.65)]",
+          "bg-danger text-primary-fg shadow-[0_8px_20px_-10px_color-mix(in_oklch,var(--color-danger)_58%,transparent)] hover:bg-danger/92 hover:shadow-[0_12px_26px_-12px_color-mix(in_oklch,var(--color-danger)_64%,transparent)]",
       },
 
       size: {
