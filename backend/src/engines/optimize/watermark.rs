@@ -18,12 +18,7 @@ pub fn add_watermark_from_path(pdf_path: &Path, text: &str) -> Result<Vec<u8>, S
     validate_watermark_text(text)?;
 
     let watermark = text.trim().to_owned();
-    add_text_to_pages_from_path(
-        pdf_path,
-        |_| watermark.clone(),
-        WATERMARK_FONT_SIZE,
-        true,
-    )
+    add_text_to_pages_from_path(pdf_path, |_| watermark.clone(), WATERMARK_FONT_SIZE, true)
 }
 
 #[cfg(test)]
