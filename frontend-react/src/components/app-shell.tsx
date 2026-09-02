@@ -1,6 +1,6 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import { CloudCog, MonitorCheck } from "lucide-react";
 
 import { Logo } from "@/components/logo";
 import { TOOLS } from "@/lib/tools-catalog";
@@ -31,69 +31,34 @@ export function AppShell({ children }: AppShellProps) {
         Loncat ke isi
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-surface/82 shadow-[0_1px_0_rgba(32,33,36,0.02)] backdrop-blur-xl">
+      <header className="app-header sticky top-0 z-40 border-b border-border/70 bg-surface/82 shadow-[0_1px_0_rgba(32,33,36,0.02)] backdrop-blur-xl">
         <div className="mx-auto flex min-h-18 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Logo />
 
           <nav className="hidden items-center gap-1 rounded-2xl bg-bg/70 p-1 md:flex" aria-label="Navigasi utama">
-            <Link
-              to="/"
-              className={`${navLinkClass} font-semibold`}
-              activeProps={{ className: navLinkActiveClass }}
-              activeOptions={{ exact: true }}
-            >
+            <Link to="/" className={`${navLinkClass} font-semibold`} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
               Semua alat
             </Link>
-
-            <Link
-              to="/alat/$slug"
-              params={{ slug: "gabung" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
-            >
+            <Link to="/alat/$slug" params={{ slug: "gabung" }} className={navLinkClass} activeProps={{ className: navLinkActiveClass }}>
               Atur PDF
             </Link>
-
-            <Link
-              to="/alat/$slug"
-              params={{ slug: "pdf-ke-word" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
-            >
+            <Link to="/alat/$slug" params={{ slug: "pdf-ke-word" }} className={navLinkClass} activeProps={{ className: navLinkActiveClass }}>
               Konversi
             </Link>
-
-            <Link
-              to="/panduan"
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
-            >
+            <Link to="/panduan" className={navLinkClass} activeProps={{ className: navLinkActiveClass }}>
               Panduan
             </Link>
           </nav>
 
-          <Link
-            to="/panduan"
-            className={`${navLinkClass} md:hidden`}
-            activeProps={{ className: navLinkActiveClass }}
-          >
+          <Link to="/panduan" className={`${navLinkClass} md:hidden`} activeProps={{ className: navLinkActiveClass }}>
             Panduan
           </Link>
         </div>
 
         <div className="border-t border-border/60 md:hidden">
-          <nav
-            className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 scrollbar-none"
-            aria-label="Alat"
-          >
+          <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 scrollbar-none" aria-label="Alat">
             {TOOLS.map((tool) => (
-              <Link
-                key={tool.slug}
-                to="/alat/$slug"
-                params={{ slug: tool.slug }}
-                className={toolLinkClass}
-                activeProps={{ className: toolLinkActiveClass }}
-              >
+              <Link key={tool.slug} to="/alat/$slug" params={{ slug: tool.slug }} className={toolLinkClass} activeProps={{ className: toolLinkActiveClass }}>
                 {tool.short}
               </Link>
             ))}
@@ -101,13 +66,24 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
 
-      <div className="border-b border-border/65 bg-surface/62">
-        <p className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 text-xs font-medium text-muted sm:px-6 sm:text-sm">
-          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10">
-            <ShieldCheck className="size-3.5 text-primary" aria-hidden="true" />
+      <div className="processing-banner border-b border-border/65 bg-surface/62">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-xs font-medium text-muted sm:px-6 sm:text-sm">
+          <span className="inline-flex items-center gap-2">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <MonitorCheck className="size-3.5" aria-hidden="true" />
+            </span>
+            Pemrosesan berbeda menurut alat.
           </span>
-          Pemrosesan berbeda menurut alat. Beberapa file diproses di perangkat, lainnya dikirim ke server.
-        </p>
+          <span className="hidden text-border sm:inline" aria-hidden="true">·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <MonitorCheck className="size-3.5 text-ok" aria-hidden="true" />
+            Sebagian diproses di perangkat
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <CloudCog className="size-3.5 text-muted" aria-hidden="true" />
+            Sebagian diproses di server
+          </span>
+        </div>
       </div>
 
       <main id="isi" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
@@ -117,15 +93,10 @@ export function AppShell({ children }: AppShellProps) {
       <footer className="border-t border-border/80 bg-surface/40">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
-            <span className="font-semibold text-fg">
-              pdf<span className="text-primary">in</span>
-            </span>{" "}
-            &ndash; alat PDF Indonesia, dengan pemrosesan di perangkat atau server sesuai alat.
+            <span className="font-semibold text-fg">pdf<span className="text-primary">in</span></span>{" "}
+            – alat PDF Indonesia dengan pemrosesan di perangkat atau server sesuai alat.
           </p>
-
-          <p className="rounded-full bg-bg px-3 py-1.5 text-xs font-medium">
-            Lokasi pemrosesan ditampilkan di setiap alat
-          </p>
+          <p className="rounded-full bg-bg px-3 py-1.5 text-xs font-medium">Lokasi pemrosesan ditampilkan di setiap alat</p>
         </div>
       </footer>
     </div>
