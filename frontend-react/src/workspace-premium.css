@@ -1,0 +1,229 @@
+/* Workspace-only visual refinements. Presentation only. */
+
+.tool-workspace-shell {
+  width: min(100%, 52rem);
+  margin-inline: auto;
+}
+
+/* The workspace component intentionally keeps its existing DOM/behavior. */
+main > .mx-auto.max-w-3xl:not(.guide-page) {
+  width: min(100%, 52rem);
+  padding-block: .5rem 4rem;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > a:first-child {
+  min-height: 2.3rem;
+  margin-bottom: 1.3rem;
+  padding-inline: .55rem;
+  border-radius: .75rem;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > a:first-child:hover {
+  background: var(--color-surface-2);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > p:first-of-type {
+  margin-top: 0;
+  color: var(--color-primary);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > h1 {
+  margin-top: .55rem;
+  max-width: 15ch;
+  font-size: clamp(2.2rem, 5vw, 3.55rem);
+  line-height: 1.02;
+  letter-spacing: -.055em;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > h1 + p {
+  max-width: 42rem;
+  margin-top: .8rem;
+  font-size: .95rem;
+  line-height: 1.7;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > h1 + p + p {
+  max-width: 42rem;
+  margin-top: .45rem;
+  color: var(--color-primary);
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface {
+  margin-top: 1.6rem;
+  padding: .6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.4rem;
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-bg));
+  box-shadow: var(--shadow-floating);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > button {
+  min-height: 17rem;
+  border-radius: 1rem;
+  border-color: color-mix(in srgb, var(--color-muted) 24%, var(--color-border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 2.5%, var(--color-surface)), var(--color-surface));
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > button:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 3.5%, var(--color-surface));
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > button > span:first-child {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 1.05rem;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  color: var(--color-primary);
+  box-shadow: 0 10px 24px -20px rgba(223,81,72,.8);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > button > span:nth-child(2) {
+  font-size: .95rem;
+  font-weight: 750;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > ul {
+  padding: .4rem;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > ul > li {
+  min-height: 3.45rem;
+  padding: .6rem .75rem;
+  border: 1px solid transparent;
+  border-radius: .9rem;
+  background: transparent;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > ul > li + li {
+  margin-top: .25rem;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > ul > li:hover {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > section.mt-6.rounded-2xl.bg-surface {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--color-surface) 95%, var(--color-bg));
+  box-shadow: var(--shadow-card);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > section.mt-6.rounded-2xl.bg-surface h2 {
+  font-size: .95rem;
+  font-weight: 760;
+  letter-spacing: -.02em;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > section.mt-6.rounded-2xl.bg-surface > p {
+  color: var(--color-muted);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) input:not([type="file"]),
+main > .mx-auto.max-w-3xl:not(.guide-page) select,
+main > .mx-auto.max-w-3xl:not(.guide-page) textarea {
+  min-height: 2.8rem;
+  border-radius: .82rem;
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  transition: border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) input:not([type="file"]):hover,
+main > .mx-auto.max-w-3xl:not(.guide-page) select:hover,
+main > .mx-auto.max-w-3xl:not(.guide-page) textarea:hover {
+  border-color: color-mix(in srgb, var(--color-muted) 28%, var(--color-border));
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) input:not([type="file"]):focus,
+main > .mx-auto.max-w-3xl:not(.guide-page) select:focus,
+main > .mx-auto.max-w-3xl:not(.guide-page) textarea:focus {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  background: var(--color-surface);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 9%, transparent);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) fieldset label {
+  border-radius: .9rem;
+  transition: transform var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) fieldset label:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -22px rgba(32,33,36,.34);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > p[role="alert"] {
+  margin-top: 1rem;
+  padding: .8rem .9rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 17%, var(--color-border));
+  border-radius: .9rem;
+  background: color-mix(in srgb, var(--color-danger) 5.5%, var(--color-surface));
+  color: var(--color-danger);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-6 > div.flex.items-center.justify-between.text-xs {
+  margin-bottom: .5rem;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) [role="progressbar"] {
+  height: .7rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-2);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-6.rounded-2xl.bg-fg {
+  margin-top: 1.75rem;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 1.35rem;
+  padding: 1.15rem;
+  background: linear-gradient(180deg, #28292b, #1d1e20);
+  box-shadow: 0 26px 66px -42px rgba(32,33,36,.65);
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-6.rounded-2xl.bg-fg p:first-child {
+  font-size: .85rem;
+  font-weight: 800;
+}
+
+main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-6.rounded-2xl.bg-fg p:nth-child(2) {
+  color: rgba(255,255,255,.67);
+  font-size: .75rem;
+}
+
+@media (max-width: 639px) {
+  main > .mx-auto.max-w-3xl:not(.guide-page) {
+    padding-bottom: 2.5rem;
+  }
+  main > .mx-auto.max-w-3xl:not(.guide-page) > h1 {
+    max-width: 11ch;
+    font-size: clamp(2rem, 12vw, 3rem);
+  }
+  main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface {
+    margin-top: 1.25rem;
+    padding: .45rem;
+  }
+  main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-8.rounded-2xl.bg-surface > button {
+    min-height: 13rem;
+  }
+  main > .mx-auto.max-w-3xl:not(.guide-page) > div.mt-6.rounded-2xl.bg-fg {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main > .mx-auto.max-w-3xl:not(.guide-page) fieldset label,
+  main > .mx-auto.max-w-3xl:not(.guide-page) fieldset label:hover {
+    transform: none;
+  }
+}
