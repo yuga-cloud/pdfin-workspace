@@ -216,10 +216,34 @@
 .workspace-download-button { box-shadow: 0 10px 26px -18px rgba(223,81,72,.9); }
 .workspace-back-link { width: fit-content; }
 
+/* When files exist, make the picker recede and the selected-file list become the visual focus. */
+.workspace-dropzone-shell:has(.workspace-file-list) {
+  padding-bottom: .7rem;
+}
+
+.workspace-dropzone-shell:has(.workspace-file-list) .workspace-dropzone {
+  min-height: 9.5rem;
+}
+
+.workspace-dropzone-shell:has(.workspace-file-list) .workspace-upload-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: .9rem;
+}
+
+.workspace-dropzone-shell:has(.workspace-file-list) .workspace-drop-meta {
+  max-width: 30rem;
+}
+
+.workspace-dropzone-shell:has(.workspace-file-list) .workspace-file-list {
+  margin-top: .65rem;
+}
+
 @media (max-width: 639px) {
   .workspace-tool-heading-top { align-items: flex-start; flex-direction: column; }
   .workspace-processing-pill { width: fit-content; }
   .workspace-dropzone { min-height: 13rem; padding-block: 2.5rem; }
+  .workspace-dropzone-shell:has(.workspace-file-list) .workspace-dropzone { min-height: 8.5rem; padding-block: 1.8rem; }
   .workspace-file-row { align-items: flex-start; padding-block: .7rem; }
   .workspace-inline-actions { margin-left: auto; }
   .workspace-result-heading { align-items: flex-start; }
