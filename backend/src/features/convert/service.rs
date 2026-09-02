@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::fs;
 
 use axum::{extract::Multipart, extract::multipart::Field};
 use tempfile::NamedTempFile;
@@ -178,10 +178,8 @@ async fn stream_field(
     Ok(TempUpload { file: temp })
 }
 
-fn read_temp_file(upload: TempUpload) -> Result<(PathBuf, Vec<u8>), String> {
-    let path = upload.path().to_owned();
-    let data = fs::read(&path).map_err(|error| format!("Gagal membaca file sementara: {error}"))?;
-    Ok((path, data))
+fn read_temp_file(upload: TempUpload) -> Result<Vec<u8>, String> {
+    fs::read(upload.path()).map_err(|error| format!("Gagal membaca file sementara: {error}"))
 }
 
 async fn acquire_conversion_permit(
@@ -219,7 +217,7 @@ where
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
-        let (_path, data) = read_temp_file(data)?;
+        let data = read_temp_file(data)?;
         validate(&data).map_err(|error| format!("VALIDATION_ERROR:{error}"))?;
         engine(&data)
     })
@@ -264,10 +262,7 @@ where
         let buffers = data
             .into_iter()
             .map(read_temp_file)
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .map(|(_, bytes)| bytes)
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, _>>()?;
         let refs: Vec<&[u8]> = buffers.iter().map(Vec::as_slice).collect();
         engine(&refs)
     })
@@ -305,7 +300,7 @@ where
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
-        let (_path, data) = read_temp_file(data)?;
+        let data = read_temp_file(data)?;
         engine(&data)
     })
     .await
