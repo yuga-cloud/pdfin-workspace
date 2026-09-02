@@ -6,6 +6,7 @@
 @import "./premium-ui.css";
 @import "./workspace-premium.css";
 @import "./frontend-finish.css";
+@import "./design-system-2026.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
