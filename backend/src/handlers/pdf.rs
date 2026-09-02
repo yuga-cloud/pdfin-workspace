@@ -10,8 +10,9 @@ use tracing::error;
 
 use crate::{
     engines::pdf::{
-        common::validate_pdf_path, merge::merge_pdfs_from_paths as merge_pdf_engine,
-        rotate::rotate_pdf as rotate_pdf_engine,
+        common::validate_pdf_path,
+        merge::merge_pdfs_from_paths as merge_pdf_engine,
+        rotate::rotate_pdf_from_path as rotate_pdf_engine,
     },
     error::AppError,
     state::AppState,
@@ -102,8 +103,11 @@ pub async fn rotate(
     State(state): State<AppState>,
     multipart: Multipart,
 ) -> Result<impl IntoResponse, AppError> {
-    let (data, degrees) = read_rotate_request(multipart).await?;
+    let (file, degrees) = read_rotate_request(multipart).await?;
     validate_rotation_degrees(degrees)?;
+    validate_pdf_path(file.file.path()).map_err(|message| {
+        AppError::bad_request("invalid_input", message)
+    })?;
 
     let permit = state
         .pdf_semaphore
@@ -117,7 +121,7 @@ pub async fn rotate(
 
     let result = task::spawn_blocking(move || {
         let _permit = permit;
-        rotate_pdf_engine(&data, degrees)
+        rotate_pdf_engine(file.file.path(), degrees)
     })
     .await
     .map_err(|error| {
@@ -225,24 +229,74 @@ async fn read_multiple_files_to_tempfiles(
     Ok(files)
 }
 
-async fn read_rotate_request(mut multipart: Multipart) -> Result<(Bytes, i64), AppError> {
-    let mut file_bytes = None;
+async fn read_rotate_request(
+    mut multipart: Multipart,
+) -> Result<(TempPdfUpload, i64), AppError> {
+    let mut file = None;
     let mut degrees = DEFAULT_ROTATION_DEGREES;
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(field)) => match field.name().unwrap_or_default() {
-                "file" => match field.bytes().await {
-                    Ok(bytes) if !bytes.is_empty() => file_bytes = Some(bytes),
-                    Ok(_) => return Err(AppError::bad_request("empty_file", "File PDF kosong")),
-                    Err(error) => {
-                        error!(%error, "Gagal membaca file PDF");
+            Ok(Some(mut field)) => match field.name().unwrap_or_default() {
+                "file" => {
+                    if file.is_some() {
                         return Err(AppError::bad_request(
-                            "invalid_upload",
-                            "Gagal membaca file PDF yang diunggah",
+                            "duplicate_file",
+                            "Field file hanya boleh dikirim sekali",
                         ));
                     }
-                },
+
+                    let temp = NamedTempFile::new().map_err(|error| {
+                        error!(%error, "Gagal membuat temporary file PDF");
+                        AppError::internal(
+                            "tempfile_failed",
+                            "Gagal menyiapkan penyimpanan sementara",
+                        )
+                    })?;
+                    let mut output = tokio::fs::File::from_std(temp.reopen().map_err(|error| {
+                        error!(%error, "Gagal membuka temporary file PDF");
+                        AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
+                    })?);
+
+                    let mut size = 0usize;
+                    while let Some(chunk) = field.chunk().await.map_err(|error| {
+                        error!(%error, "Gagal membaca file PDF");
+                        AppError::bad_request(
+                            "invalid_upload",
+                            "Gagal membaca file PDF yang diunggah",
+                        )
+                    })? {
+                        size = size.checked_add(chunk.len()).ok_or_else(|| {
+                            AppError::bad_request(
+                                "rotate_input_too_large",
+                                "Ukuran PDF melebihi kapasitas yang didukung",
+                            )
+                        })?;
+
+                        if size > MAX_TOTAL_MERGE_INPUT_BYTES {
+                            return Err(AppError::bad_request(
+                                "rotate_input_too_large",
+                                "Ukuran PDF melebihi batas maksimum (500 MB)",
+                            ));
+                        }
+
+                        output.write_all(&chunk).await.map_err(|error| {
+                            error!(%error, "Gagal menulis temporary PDF");
+                            AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
+                        })?;
+                    }
+
+                    output.flush().await.map_err(|error| {
+                        error!(%error, "Gagal flush temporary PDF");
+                        AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
+                    })?;
+
+                    if size == 0 {
+                        return Err(AppError::bad_request("empty_file", "File PDF kosong"));
+                    }
+
+                    file = Some(TempPdfUpload { file: temp, size });
+                }
                 "degrees" => {
                     let text = field.text().await.map_err(|error| {
                         error!(%error, "Gagal membaca degrees");
@@ -266,9 +320,9 @@ async fn read_rotate_request(mut multipart: Multipart) -> Result<(Bytes, i64), A
         }
     }
 
-    let data = file_bytes
-        .ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
-    Ok((data, degrees))
+    let file =
+        file.ok_or_else(|| AppError::bad_request("file_missing", "Field file tidak ditemukan"))?;
+    Ok((file, degrees))
 }
 
 fn validate_rotation_degrees(degrees: i64) -> Result<(), AppError> {
