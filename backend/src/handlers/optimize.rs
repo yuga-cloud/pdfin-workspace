@@ -87,14 +87,10 @@ async fn stream_pdf_field(mut field: Field<'_>) -> Result<TempPdfUpload, AppErro
     let mut output = tokio::fs::File::from_std(std_file);
     let mut size = 0usize;
 
-    while let Some(chunk) = field
-        .chunk()
-        .await
-        .map_err(|error| {
-            error!(%error, "Gagal membaca file PDF");
-            AppError::bad_request("invalid_upload", "Gagal membaca file PDF yang diunggah")
-        })?
-    {
+    while let Some(chunk) = field.chunk().await.map_err(|error| {
+        error!(%error, "Gagal membaca file PDF");
+        AppError::bad_request("invalid_upload", "Gagal membaca file PDF yang diunggah")
+    })? {
         size = size.checked_add(chunk.len()).ok_or_else(|| {
             AppError::bad_request(
                 "pdf_upload_too_large",
