@@ -101,10 +101,7 @@ async fn stream_field(
 ) -> Result<TempUpload, AppError> {
     let temp = NamedTempFile::new().map_err(|error| {
         error!(%error, "Gagal membuat temporary file conversion");
-        AppError::internal(
-            "tempfile_failed",
-            "Gagal menyiapkan penyimpanan sementara",
-        )
+        AppError::internal("tempfile_failed", "Gagal menyiapkan penyimpanan sementara")
     })?;
 
     let std_file = temp.reopen().map_err(|error| {
