@@ -212,6 +212,7 @@ fn run_pymupdf(
         PYMUPDF_TIMEOUT,
         stderr_path,
         "PyMuPDF",
+        output_path,
         &[
             script.as_os_str(),
             quality_name(quality).as_ref(),
@@ -230,6 +231,7 @@ fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, 
         QPDF_TIMEOUT,
         &stderr_path,
         "qpdf",
+        &output_path,
         &[
             "--object-streams=generate".as_ref(),
             "--compress-streams=y".as_ref(),
@@ -266,6 +268,7 @@ fn run_ghostscript(
         GHOSTSCRIPT_TIMEOUT,
         &stderr_path,
         "Ghostscript",
+        &output_path,
         &[
             "-dSAFER".as_ref(),
             "-dBATCH".as_ref(),
@@ -310,6 +313,7 @@ fn run_external_command(
     timeout: Duration,
     stderr_path: &Path,
     tool_name: &str,
+    output_path: &Path,
     args: &[&std::ffi::OsStr],
 ) -> Result<(), String> {
     for arg in args {
@@ -329,6 +333,13 @@ fn run_external_command(
     loop {
         match child.try_wait() {
             Ok(Some(status)) => {
+                if output_size_exceeds(output_path)? {
+                    return Err(format!(
+                        "Hasil {tool_name} melebihi batas ukuran {} MiB",
+                        MAX_OUTPUT_BYTES / 1024 / 1024
+                    ));
+                }
+
                 if status.success() {
                     return Ok(());
                 }
@@ -339,21 +350,40 @@ fn run_external_command(
                     status.code()
                 ));
             }
-            Ok(None) if Instant::now() >= deadline => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(format!(
-                    "{tool_name} melebihi batas waktu {} detik",
-                    timeout.as_secs()
-                ));
+            Ok(None) => {
+                if output_size_exceeds(output_path)? {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "Hasil {tool_name} melebihi batas ukuran {} MiB dan proses dihentikan.",
+                        MAX_OUTPUT_BYTES / 1024 / 1024
+                    ));
+                }
+
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "{tool_name} melebihi batas waktu {} detik",
+                        timeout.as_secs()
+                    ));
+                }
+                thread::sleep(PROCESS_POLL_INTERVAL);
             }
-            Ok(None) => thread::sleep(PROCESS_POLL_INTERVAL),
             Err(error) => {
                 let _ = child.kill();
                 let _ = child.wait();
                 return Err(format!("Gagal memantau {tool_name}: {error}"));
             }
         }
+    }
+}
+
+fn output_size_exceeds(path: &Path) -> Result<bool, String> {
+    match fs::metadata(path) {
+        Ok(metadata) => Ok(metadata.len() > MAX_OUTPUT_BYTES as u64),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(format!("Gagal memeriksa ukuran hasil PDF: {error}")),
     }
 }
 
