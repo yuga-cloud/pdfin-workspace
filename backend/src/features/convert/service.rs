@@ -150,19 +150,13 @@ async fn stream_field(
 
         output.write_all(&chunk).await.map_err(|error| {
             error!(%error, "Gagal menulis temporary conversion file");
-            AppError::internal(
-                "tempfile_write_failed",
-                "Gagal menyimpan file sementara",
-            )
+            AppError::internal("tempfile_write_failed", "Gagal menyimpan file sementara")
         })?;
     }
 
     output.flush().await.map_err(|error| {
         error!(%error, "Gagal flush temporary conversion file");
-        AppError::internal(
-            "tempfile_write_failed",
-            "Gagal menyimpan file sementara",
-        )
+        AppError::internal("tempfile_write_failed", "Gagal menyimpan file sementara")
     })?;
 
     if file_size == 0 {
