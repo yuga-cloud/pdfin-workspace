@@ -210,10 +210,7 @@ where
         let _permit = permit;
         let data = read_temp_file(data).map_err(|error| {
             error!(%error, operation, "Gagal membaca file sementara");
-            AppError::internal(
-                error_code::INVALID_UPLOAD,
-                "Gagal membaca file sementara",
-            )
+            AppError::internal(error_code::INVALID_UPLOAD, "Gagal membaca file sementara")
         })?;
 
         validate(&data)?;
