@@ -10,7 +10,8 @@ use tracing::error;
 
 use crate::{
     engines::pdf::{
-        common::validate_pdf_path, merge::merge_pdfs_from_paths as merge_pdf_engine,
+        common::validate_pdf_path,
+        merge::merge_pdfs_from_paths as merge_pdf_engine,
         rotate::rotate_pdf_from_path as rotate_pdf_engine,
     },
     error::AppError,
@@ -230,9 +231,7 @@ async fn read_multiple_files_to_tempfiles(
     Ok(files)
 }
 
-async fn read_rotate_request(
-    mut multipart: Multipart,
-) -> Result<(TempPdfUpload, i64), AppError> {
+async fn read_rotate_request(mut multipart: Multipart) -> Result<(TempPdfUpload, i64), AppError> {
     let mut file = None;
     let mut degrees = DEFAULT_ROTATION_DEGREES;
 
