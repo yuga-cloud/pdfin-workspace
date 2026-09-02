@@ -10,6 +10,7 @@ const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
 const MAX_OUTPUT_SIZE_BYTES: usize = 200 * 1024 * 1024;
 const MAX_STDERR_BYTES: usize = 16 * 1024;
 const CONVERSION_TIMEOUT: Duration = Duration::from_secs(120);
+const OUTPUT_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 fn unique_temp_dir() -> Result<tempfile::TempDir, String> {
     tempfile::Builder::new()
@@ -37,6 +38,7 @@ pub fn convert_to_pdf(
     let temp_dir = unique_temp_dir()?;
     let temp_path = temp_dir.path();
     let input_path = temp_path.join(format!("input.{input_extension}"));
+    let output_path = temp_path.join("input.pdf");
     let stderr_path = temp_path.join("libreoffice.stderr");
 
     fs::write(&input_path, document_bytes)
@@ -64,6 +66,16 @@ pub fn convert_to_pdf(
     let deadline = Instant::now() + CONVERSION_TIMEOUT;
 
     loop {
+        if output_size_exceeds(&output_path, MAX_OUTPUT_SIZE_BYTES)? {
+            let _ = process.kill();
+            let _ = process.wait();
+
+            return Err(format!(
+                "Hasil PDF melebihi batas ukuran {} MB dan proses dihentikan",
+                MAX_OUTPUT_SIZE_BYTES / 1024 / 1024
+            ));
+        }
+
         match process.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() {
@@ -85,7 +97,7 @@ pub fn convert_to_pdf(
                     CONVERSION_TIMEOUT.as_secs()
                 ));
             }
-            Ok(None) => thread::sleep(Duration::from_millis(50)),
+            Ok(None) => thread::sleep(OUTPUT_POLL_INTERVAL),
             Err(error) => {
                 let _ = process.kill();
                 let _ = process.wait();
@@ -95,7 +107,6 @@ pub fn convert_to_pdf(
         }
     }
 
-    let output_path = temp_path.join("input.pdf");
     let pdf_bytes = fs::read(&output_path).map_err(|error| {
         format!("LibreOffice tidak menghasilkan file PDF untuk {document_type}: {error}")
     })?;
@@ -112,6 +123,14 @@ pub fn convert_to_pdf(
     }
 
     Ok(pdf_bytes)
+}
+
+fn output_size_exceeds(path: &std::path::Path, max_size: usize) -> Result<bool, String> {
+    match fs::metadata(path) {
+        Ok(metadata) => Ok(metadata.len() > max_size as u64),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(format!("Gagal memeriksa ukuran hasil PDF: {error}")),
+    }
 }
 
 fn read_limited_stderr(path: &std::path::Path) -> Result<String, String> {
