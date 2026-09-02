@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "./workspace-polish.css";
 @import "./home-modern.css";
+@import "./workspace-neo.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
