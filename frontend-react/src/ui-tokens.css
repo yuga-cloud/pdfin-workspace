@@ -1,0 +1,4 @@
+/* Reserved visual tokens for future UI refinements. */
+:root {
+  --ui-focus-ring: 0 0 0 4px rgba(223, 81, 72, 0.09);
+}
