@@ -1,0 +1,105 @@
+/* Final interaction polish: reusable UI motion and focus states. Visual only. */
+.tool-card:focus-visible,
+.home-hero-action:focus-visible,
+.workspace-back-link:focus-visible,
+.tool-missing a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 14%, transparent), 0 0 0 1px var(--color-ring), var(--shadow-card);
+}
+
+.tool-card:hover .tool-processing-badge .lucide,
+.workspace-inline-actions button:not(:disabled):hover .lucide,
+.workspace-result button:not(:disabled):hover .lucide {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.tool-processing-badge .lucide,
+.workspace-inline-actions .lucide,
+.workspace-result .lucide {
+  transition: transform 180ms var(--ease-out), stroke-width 180ms ease;
+}
+
+.home-hero-action-primary:hover .lucide { transform: translateX(2px) rotate(-2deg); }
+.home-hero-action-secondary:hover .lucide { transform: translateX(3px); }
+.workspace-back-link:hover .lucide { transform: translateX(-2px); }
+.workspace-back-link .lucide,
+.home-hero-action .lucide { transition: transform 180ms var(--ease-out); }
+
+.processing-mode-card {
+  transition: transform 180ms var(--ease-out), border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.processing-mode-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--color-fg) 13%, var(--color-border));
+  box-shadow: var(--shadow-card);
+  background: var(--color-surface);
+}
+
+.processing-mode-card.device:hover { border-color: color-mix(in oklch, var(--color-ok) 22%, var(--color-border)); }
+
+.guide-step {
+  transition: transform 180ms var(--ease-out), border-color 180ms ease, background-color 180ms ease;
+}
+
+.guide-section:hover .guide-step {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
+  background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-2));
+}
+
+.workspace-check-row:has(input:focus-visible),
+.workspace-choice:has(input:focus-visible) {
+  border-color: color-mix(in oklch, var(--color-ring) 42%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 9%, transparent);
+}
+
+.workspace-process-button:not(:disabled) {
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-process-button:not(:disabled)::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.1) 42%, rgba(255,255,255,.16) 50%, transparent 58%);
+  transform: translateX(-120%);
+  transition: transform 600ms var(--ease-out);
+  content: "";
+}
+
+.workspace-process-button:not(:disabled):hover::after { transform: translateX(120%); }
+
+.product-window-side-item svg,
+.product-window-drop-icon .lucide,
+.processing-banner svg {
+  transition: transform 180ms var(--ease-out);
+}
+
+.product-window-side-item:hover svg { transform: translateX(1px) scale(1.05); }
+.product-window-drop:hover .product-window-drop-icon .lucide { transform: translateY(-1px) scale(1.06); }
+.processing-banner span:hover > svg,
+.processing-banner span:hover .lucide { transform: scale(1.05); }
+
+@media (max-width: 760px) {
+  .tool-filter button { min-height: 2.75rem; padding-inline: .85rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-card:hover .tool-processing-badge .lucide,
+  .workspace-inline-actions button:not(:disabled):hover .lucide,
+  .workspace-result button:not(:disabled):hover .lucide,
+  .home-hero-action-primary:hover .lucide,
+  .home-hero-action-secondary:hover .lucide,
+  .workspace-back-link:hover .lucide,
+  .processing-mode-card:hover,
+  .guide-section:hover .guide-step,
+  .product-window-side-item:hover svg,
+  .product-window-drop:hover .product-window-drop-icon .lucide,
+  .processing-banner span:hover > svg,
+  .processing-banner span:hover .lucide,
+  .workspace-process-button:not(:disabled)::after {
+    transform: none;
+  }
+}
