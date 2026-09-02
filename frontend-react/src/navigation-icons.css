@@ -19,13 +19,15 @@
 
 .app-nav-link-active .app-nav-icon { color: currentColor; }
 
-.app-primary-nav .app-nav-link:hover .app-nav-icon {
+.app-primary-nav .app-nav-link:hover .app-nav-icon,
+.app-primary-nav .app-nav-link:focus-visible .app-nav-icon {
   color: var(--color-primary);
   transform: translateY(-1px) scale(1.08) rotate(-2deg);
   filter: drop-shadow(0 3px 6px color-mix(in oklch, var(--color-primary) 20%, transparent));
 }
 
-.app-primary-nav .app-nav-link-active:hover .app-nav-icon {
+.app-primary-nav .app-nav-link-active:hover .app-nav-icon,
+.app-primary-nav .app-nav-link-active:focus-visible .app-nav-icon {
   color: var(--color-primary-fg);
   transform: translateY(-1px) scale(1.08) rotate(2deg);
   filter: drop-shadow(0 3px 6px rgba(255,255,255,.12));
@@ -45,7 +47,8 @@
   transform-origin: 50% 50%;
 }
 
-.app-tool-link:hover .app-tool-link-icon {
+.app-tool-link:hover .app-tool-link-icon,
+.app-tool-link:focus-visible .app-tool-link-icon {
   color: var(--color-primary);
   stroke-width: 1.95;
   transform: translateY(-1px) scale(1.1) rotate(-2deg);
@@ -54,7 +57,8 @@
 
 .app-tool-link:active .app-tool-link-icon { transform: scale(.95); }
 .app-tool-link-active .app-tool-link-icon,
-.app-tool-link-active:hover .app-tool-link-icon { color: currentColor; stroke-width: 1.98; }
+.app-tool-link-active:hover .app-tool-link-icon,
+.app-tool-link-active:focus-visible .app-tool-link-icon { color: currentColor; stroke-width: 1.98; }
 
 /* Tool cards use the same motion language as navigation. */
 .tool-card .tool-icon {
@@ -66,14 +70,16 @@
   transition: transform 180ms cubic-bezier(.23,1,.32,1), stroke-width 180ms ease, color 180ms ease;
 }
 
-.tool-card:hover .tool-icon {
+.tool-card:hover .tool-icon,
+.tool-card:focus-visible .tool-icon {
   transform: translateY(-2px) scale(1.04) rotate(-2deg);
   border-color: color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
   background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
   box-shadow: 0 9px 20px -15px color-mix(in oklch, var(--color-primary) 42%, transparent);
 }
 
-.tool-card:hover .tool-icon .lucide {
+.tool-card:hover .tool-icon .lucide,
+.tool-card:focus-visible .tool-icon .lucide {
   color: var(--color-primary);
   stroke-width: 2;
   transform: scale(1.08);
@@ -85,67 +91,47 @@
   transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, background-color 180ms ease;
 }
 
-.trust-item:hover .trust-item-icon {
-  transform: translateY(-1px) scale(1.03);
-  background: color-mix(in oklch, var(--color-primary) 9%, var(--color-surface));
-  box-shadow: 0 8px 18px -15px color-mix(in oklch, var(--color-primary) 38%, transparent);
-}
+.trust-item:hover .trust-item-icon { transform: translateY(-1px) scale(1.03); background: color-mix(in oklch, var(--color-primary) 9%, var(--color-surface)); box-shadow: 0 8px 18px -15px color-mix(in oklch, var(--color-primary) 38%, transparent); }
 
 /* Upload/drop affordances: animated only when the control is interactive. */
-.workspace-dropzone-shell {
-  transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, border-color 180ms ease;
-}
-
+.workspace-dropzone-shell { transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, border-color 180ms ease; }
 .workspace-dropzone-shell:hover { transform: translateY(-1px); }
-
 .workspace-dropzone:hover .workspace-upload-icon,
 .workspace-dropzone:focus-visible .workspace-upload-icon,
-.workspace-dropzone.is-dragover .workspace-upload-icon {
-  transform: translateY(-2px) scale(1.06) rotate(-2deg);
-  box-shadow: 0 10px 22px -14px color-mix(in oklch, var(--color-primary) 45%, transparent);
-}
-
+.workspace-dropzone.is-dragover .workspace-upload-icon { transform: translateY(-2px) scale(1.06) rotate(-2deg); box-shadow: 0 10px 22px -14px color-mix(in oklch, var(--color-primary) 45%, transparent); }
 .workspace-upload-icon { transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease; }
 
 /* File and page action icons follow the same interaction curve. */
 .workspace-file-row .lucide,
 .workspace-page-card button .lucide,
 .workspace-process-button .lucide,
-.workspace-result button .lucide {
-  transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease, stroke-width 180ms ease;
-}
-
+.workspace-result button .lucide { transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease, stroke-width 180ms ease; }
 .workspace-file-row button:hover .lucide,
-.workspace-page-card button:hover .lucide {
-  transform: translateY(-1px) scale(1.08);
-  stroke-width: 1.95;
-}
+.workspace-file-row button:focus-visible .lucide,
+.workspace-page-card button:hover .lucide,
+.workspace-page-card button:focus-visible .lucide { transform: translateY(-1px) scale(1.08); stroke-width: 1.95; }
+.workspace-file-row .workspace-remove-button:hover .lucide,
+.workspace-file-row .workspace-remove-button:focus-visible .lucide { color: var(--color-danger); transform: rotate(5deg) scale(1.06); }
+.workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle),
+.workspace-process-button:focus-visible:not(:disabled) .lucide:not(.lucide-loader-circle) { transform: translateX(2px) scale(1.04); }
+.workspace-result button:hover .lucide,
+.workspace-result button:focus-visible .lucide { transform: translateY(-1px) scale(1.06); }
 
-.workspace-file-row .workspace-remove-button:hover .lucide {
-  color: var(--color-danger);
-  transform: rotate(5deg) scale(1.06);
-}
+.home-hero-action svg { transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease; }
+.home-hero-action:hover svg,
+.home-hero-action:focus-visible svg { transform: translateY(-1px) scale(1.05); }
+.home-hero-action-secondary:hover svg,
+.home-hero-action-secondary:focus-visible svg { transform: translateX(3px); }
 
-.workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle) {
-  transform: translateX(2px) scale(1.04);
-}
+.app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon { color: color-mix(in oklch, currentColor 82%, transparent); }
 
-.workspace-result button:hover .lucide {
-  transform: translateY(-1px) scale(1.06);
-}
-
-.home-hero-action svg {
-  transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease;
-}
-
-.home-hero-action:hover svg {
-  transform: translateY(-1px) scale(1.05);
-}
-
-.home-hero-action-secondary:hover svg { transform: translateX(3px); }
-
-.app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon {
-  color: color-mix(in oklch, currentColor 82%, transparent);
+@media (hover: none) {
+  .app-primary-nav .app-nav-link:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
+  .app-tool-link:hover .app-tool-link-icon,
+  .tool-card:hover .tool-icon,
+  .tool-card:hover .tool-icon .lucide,
+  .workspace-dropzone-shell:hover { transform: none; filter: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -163,12 +149,17 @@
   .workspace-result button .lucide,
   .home-hero-action svg,
   .app-primary-nav .app-nav-link:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link:focus-visible .app-nav-icon,
   .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link-active:focus-visible .app-nav-icon,
   .app-primary-nav .app-nav-link:active .app-nav-icon,
   .app-tool-link:hover .app-tool-link-icon,
+  .app-tool-link:focus-visible .app-tool-link-icon,
   .app-tool-link:active .app-tool-link-icon,
   .tool-card:hover .tool-icon,
+  .tool-card:focus-visible .tool-icon,
   .tool-card:hover .tool-icon .lucide,
+  .tool-card:focus-visible .tool-icon .lucide,
   .tool-card:active .tool-icon,
   .trust-item:hover .trust-item-icon,
   .workspace-dropzone:hover .workspace-upload-icon,
@@ -176,11 +167,17 @@
   .workspace-dropzone.is-dragover .workspace-upload-icon,
   .workspace-dropzone-shell:hover,
   .workspace-file-row button:hover .lucide,
+  .workspace-file-row button:focus-visible .lucide,
   .workspace-page-card button:hover .lucide,
+  .workspace-page-card button:focus-visible .lucide,
   .workspace-file-row .workspace-remove-button:hover .lucide,
+  .workspace-file-row .workspace-remove-button:focus-visible .lucide,
   .workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle),
+  .workspace-process-button:focus-visible:not(:disabled) .lucide:not(.lucide-loader-circle),
   .workspace-result button:hover .lucide,
-  .home-hero-action:hover svg {
+  .workspace-result button:focus-visible .lucide,
+  .home-hero-action:hover svg,
+  .home-hero-action:focus-visible svg {
     transform: none;
     filter: none;
   }
@@ -188,4 +185,21 @@
 
 @media (max-width: 767px) {
   .app-tool-link { padding-inline: .7rem; }
+}
+
+@media (forced-colors: active) {
+  .app-nav-link-active,
+  .app-tool-link-active,
+  .tool-card:focus-visible,
+  .home-hero-action:focus-visible,
+  .workspace-back-link:focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+
+  .app-nav-link-active,
+  .app-tool-link-active { forced-color-adjust: none; background: Highlight; color: HighlightText !important; border-color: Highlight; }
+  .app-nav-link-active .lucide,
+  .app-tool-link-active .lucide { color: HighlightText !important; }
+  .tool-card .tool-icon { border-color: CanvasText; }
 }
