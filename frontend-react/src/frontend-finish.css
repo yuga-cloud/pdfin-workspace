@@ -60,7 +60,9 @@
 .workspace-options input[type="range"]:focus-visible { outline: 3px solid rgba(223,81,72,.2); outline-offset: 3px; }
 .workspace-info-note { border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg) 82%, var(--color-surface)); }
 .workspace-error { border: 1px solid color-mix(in srgb, var(--color-danger) 20%, var(--color-border)); background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface)); }
+.workspace-error::before { content: ""; display: inline-block; width: .42rem; height: .42rem; margin: 0 .55rem .08rem 0; border-radius: 999px; background: var(--color-danger); vertical-align: middle; box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 9%, transparent); }
 .workspace-progress { padding: .85rem 1rem 1rem; border: 1px solid var(--color-border); border-radius: 1rem; background: var(--color-surface); box-shadow: 0 8px 24px -22px rgba(32,33,36,.38); }
+.workspace-progress > div:first-child { min-height: 1.5rem; }
 .workspace-process-row { padding-top: .2rem; }
 .workspace-process-button:not(:disabled) { min-width: 13rem; }
 .workspace-result { background: linear-gradient(135deg, var(--color-fg), color-mix(in srgb, var(--color-fg) 90%, var(--color-primary))); box-shadow: var(--shadow-floating); }
@@ -93,6 +95,7 @@
   .workspace-option-grid { grid-template-columns: 1fr; }
   .workspace-segmented { width: 100%; }
   .workspace-segmented button { flex: 1 1 0; }
+  .workspace-progress { padding: .75rem .8rem .9rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .workspace-file-row:hover, .workspace-page-card:hover, .workspace-choice:hover, .workspace-segmented button:hover, .workspace-chip:hover { transform: none; }
@@ -101,4 +104,5 @@
   .workspace-choice.is-selected::after { background: ButtonText; box-shadow: 0 0 0 2px Canvas; }
   .workspace-choice:has(input:focus-visible), .workspace-segmented button:focus-visible, .workspace-chip:focus-visible, .workspace-check-row:has(input:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; box-shadow: none; }
   .workspace-segmented button.is-selected { background: Highlight; color: HighlightText; border-color: Highlight; }
+  .workspace-error::before { background: Highlight; box-shadow: 0 0 0 2px Canvas; }
 }
