@@ -23,7 +23,7 @@ const toolLinkActiveClass =
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="min-h-dvh bg-bg text-fg">
+    <div className="app-shell min-h-dvh bg-bg text-fg">
       <a
         href="#isi"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-fg focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-bg focus:shadow-lg"
@@ -36,30 +36,13 @@ export function AppShell({ children }: AppShellProps) {
           <Logo />
 
           <nav className="hidden items-center gap-1 rounded-2xl bg-bg/70 p-1 md:flex" aria-label="Navigasi utama">
-            <Link
-              to="/"
-              className={`${navLinkClass} font-semibold`}
-              activeProps={{ className: navLinkActiveClass }}
-              activeOptions={{ exact: true }}
-            >
+            <Link to="/" className={`${navLinkClass} font-semibold`} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
               Semua alat
             </Link>
-            <Link
-              to="/alat/$slug"
-              params={{ slug: "gabung" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
-              activeOptions={{ exact: true }}
-            >
+            <Link to="/alat/$slug" params={{ slug: "gabung" }} className={navLinkClass} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
               Atur PDF
             </Link>
-            <Link
-              to="/alat/$slug"
-              params={{ slug: "pdf-ke-word" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
-              activeOptions={{ exact: true }}
-            >
+            <Link to="/alat/$slug" params={{ slug: "pdf-ke-word" }} className={navLinkClass} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
               Konversi
             </Link>
             <Link to="/panduan" className={navLinkClass} activeProps={{ className: navLinkActiveClass }} activeOptions={{ exact: true }}>
@@ -107,7 +90,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
 
-      <footer className="border-t border-border/80 bg-surface/40">
+      <footer className="app-footer border-t border-border/80 bg-surface/40">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
             <span className="font-semibold text-fg">pdf<span className="text-primary">in</span></span>{" "}
