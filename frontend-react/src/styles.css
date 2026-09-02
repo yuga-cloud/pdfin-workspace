@@ -9,6 +9,7 @@
 @import "./design-system-2026.css";
 @import "./navigation-icons.css";
 @import "./interaction-finish.css";
+@import "./ui-pruning.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
