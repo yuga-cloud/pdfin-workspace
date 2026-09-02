@@ -1,0 +1,25 @@
+/* Primary navigation polish: compact pill hierarchy, no underline. */
+.app-primary-nav .app-nav-link {
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+}
+
+.app-primary-nav .app-nav-link-active {
+  border-color: color-mix(in oklch, var(--color-fg) 92%, var(--color-border));
+  background: var(--color-fg);
+  color: var(--color-primary-fg);
+  box-shadow: 0 8px 20px -15px rgba(32, 33, 36, 0.55);
+}
+
+.app-primary-nav .app-nav-link-active:hover,
+.app-primary-nav .app-nav-link-active:focus-visible {
+  background: color-mix(in oklch, var(--color-fg) 94%, var(--color-primary));
+  color: var(--color-primary-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-primary-nav .app-nav-link-active:hover,
+  .app-primary-nav .app-nav-link-active:focus-visible {
+    transform: none;
+  }
+}
