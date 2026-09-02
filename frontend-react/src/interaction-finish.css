@@ -54,9 +54,14 @@
 .tool-processing-badge .lucide,
 .workspace-inline-actions .lucide,
 .workspace-result .lucide,
-.pdfin-progress-bar {
-  transition: transform 180ms var(--ease-out), stroke-width 180ms ease, opacity 180ms ease;
+.pdfin-progress-bar,
+.product-window-drop-icon .lucide,
+.product-window-side-item svg,
+.processing-banner svg {
+  transition: transform 180ms var(--ease-out), stroke-width 180ms ease, opacity 180ms ease, color 180ms ease;
 }
+
+.tool-card:hover .tool-processing-badge { border-color: color-mix(in oklch, currentColor 22%, var(--color-border)); }
 
 .home-hero-action-primary:hover .lucide { transform: translateX(2px) rotate(-2deg); }
 .home-hero-action-secondary:hover .lucide { transform: translateX(3px); }
@@ -76,6 +81,7 @@
 }
 
 .processing-mode-card.device:hover { border-color: color-mix(in oklch, var(--color-ok) 22%, var(--color-border)); }
+.processing-mode-card.server:hover { border-color: color-mix(in oklch, var(--color-fg) 16%, var(--color-border)); }
 
 .guide-step {
   transition: transform 180ms var(--ease-out), border-color 180ms ease, background-color 180ms ease;
@@ -91,6 +97,44 @@
 .workspace-choice:has(input:focus-visible) {
   border-color: color-mix(in oklch, var(--color-ring) 42%, var(--color-border));
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 9%, transparent);
+}
+
+.workspace-choice.is-selected {
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--color-primary) 10%, transparent), 0 8px 22px -18px color-mix(in oklch, var(--color-primary) 35%, transparent);
+}
+
+.workspace-segmented button.is-selected {
+  box-shadow: 0 5px 14px -10px color-mix(in oklch, var(--color-fg) 55%, transparent);
+}
+
+.workspace-chip {
+  border: 1px solid transparent;
+  background: var(--color-surface-2);
+  color: var(--color-muted);
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.workspace-chip:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
+  background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface));
+  color: var(--color-fg);
+}
+
+.workspace-chip:active { transform: scale(.97); }
+
+.workspace-file-row {
+  transition: transform 160ms var(--ease-out), border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.workspace-file-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -18px color-mix(in oklch, var(--color-fg) 35%, transparent);
+}
+
+.workspace-file-row .workspace-remove-button:hover {
+  color: var(--color-danger);
+  background: color-mix(in oklch, var(--color-danger) 6%, var(--color-surface));
 }
 
 .workspace-process-button:not(:disabled) {
@@ -131,15 +175,7 @@
   animation: progress-sheen 1.8s linear infinite;
 }
 
-@keyframes progress-sheen {
-  to { transform: translateX(110%); }
-}
-
-.product-window-side-item svg,
-.product-window-drop-icon .lucide,
-.processing-banner svg {
-  transition: transform 180ms var(--ease-out);
-}
+@keyframes progress-sheen { to { transform: translateX(110%); } }
 
 .product-window-side-item:hover svg { transform: translateX(1px) scale(1.05); }
 .product-window-drop:hover .product-window-drop-icon .lucide { transform: translateY(-1px) scale(1.06); }
@@ -148,6 +184,7 @@
 
 @media (max-width: 760px) {
   .tool-filter button { min-height: 2.75rem; padding-inline: .85rem; }
+  .workspace-chip { min-height: 2.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -162,6 +199,10 @@
   .workspace-back-link:hover .lucide,
   .processing-mode-card:hover,
   .guide-section:hover .guide-step,
+  .workspace-chip,
+  .workspace-chip:hover,
+  .workspace-file-row,
+  .workspace-file-row:hover,
   .product-window-side-item:hover svg,
   .product-window-drop:hover .product-window-drop-icon .lucide,
   .processing-banner span:hover > svg,
