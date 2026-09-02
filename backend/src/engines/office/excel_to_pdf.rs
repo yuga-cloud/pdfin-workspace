@@ -4,8 +4,8 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{
-        OnceLock,
         atomic::{AtomicU64, Ordering},
+        OnceLock,
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -98,19 +98,15 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
             .arg(&output_path)
             .arg(&pipe_name);
 
-        let python_output = match run_with_timeout(
-            python_command,
-            PYTHON_TIMEOUT,
-            &stderr_path,
-            &output_path,
-        ) {
-            Ok(output) => output,
-            Err(error) => {
-                stop_office(&mut office);
-                last_error = Some(format!("Helper UNO gagal: {error}"));
-                continue;
-            }
-        };
+        let python_output =
+            match run_with_timeout(python_command, PYTHON_TIMEOUT, &stderr_path, &output_path) {
+                Ok(output) => output,
+                Err(error) => {
+                    stop_office(&mut office);
+                    last_error = Some(format!("Helper UNO gagal: {error}"));
+                    continue;
+                }
+            };
 
         stop_office(&mut office);
 
