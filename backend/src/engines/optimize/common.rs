@@ -1,15 +1,18 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, path::Path};
 
 use lopdf::{
-    Dictionary, Document, Object, ObjectId,
     content::{Content, Operation},
+    Dictionary, Document, Object, ObjectId,
 };
 
-use crate::engines::pdf::common::{load_pdf_document, validate_pdf};
+use crate::engines::pdf::common::{
+    load_pdf_document, load_pdf_document_from_path, validate_pdf, validate_pdf_path,
+};
 
 const OVERLAY_FONT_NAME: &[u8] = b"PDFinOverlayFont";
 const PAGE_MARGIN: f64 = 24.0;
 const MAX_WATERMARK_TEXT_BYTES: usize = 1024;
+const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 
 pub fn validate_input(bytes: &[u8], format: &str) -> Result<(), String> {
     if bytes.is_empty() {
@@ -45,8 +48,48 @@ pub fn add_text_to_pages(
     center: bool,
 ) -> Result<Vec<u8>, String> {
     validate_pdf(pdf_bytes)?;
+    let document = load_pdf_document(pdf_bytes)?;
+    add_text_to_document(
+        document,
+        pdf_bytes.len(),
+        text_for_page,
+        font_size,
+        center,
+    )
+}
 
-    let mut document = load_pdf_document(pdf_bytes)?;
+pub fn add_text_to_pages_from_path(
+    pdf_path: &Path,
+    text_for_page: impl Fn(u32) -> String,
+    font_size: f64,
+    center: bool,
+) -> Result<Vec<u8>, String> {
+    validate_pdf_path(pdf_path)?;
+
+    let input_size = usize::try_from(
+        std::fs::metadata(pdf_path)
+            .map_err(|error| format!("Gagal membaca metadata PDF: {error}"))?
+            .len(),
+    )
+    .map_err(|_| "Ukuran PDF melebihi kapasitas yang didukung".to_owned())?;
+
+    let document = load_pdf_document_from_path(pdf_path)?;
+    add_text_to_document(
+        document,
+        input_size,
+        text_for_page,
+        font_size,
+        center,
+    )
+}
+
+fn add_text_to_document(
+    mut document: Document,
+    input_size: usize,
+    text_for_page: impl Fn(u32) -> String,
+    font_size: f64,
+    center: bool,
+) -> Result<Vec<u8>, String> {
     let pages = document.get_pages();
 
     if pages.is_empty() {
@@ -102,13 +145,20 @@ pub fn add_text_to_pages(
     }
 
     let mut output = Vec::with_capacity(
-        pdf_bytes
-            .len()
-            .saturating_add(page_count.saturating_mul(128)),
+        input_size
+            .saturating_add(page_count.saturating_mul(128))
+            .min(MAX_OUTPUT_BYTES),
     );
     document
         .save_to(&mut output)
         .map_err(|error| format!("Gagal menyimpan PDF hasil overlay: {error}"))?;
+
+    if output.len() > MAX_OUTPUT_BYTES {
+        return Err(format!(
+            "Ukuran PDF hasil overlay melebihi batas maksimum ({} MiB)",
+            MAX_OUTPUT_BYTES / 1024 / 1024
+        ));
+    }
 
     Ok(output)
 }
