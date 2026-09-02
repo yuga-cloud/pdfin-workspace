@@ -1,30 +1,36 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fs, path::Path};
 
 use lopdf::{Document, Object, ObjectId};
 
-use super::common::{load_pdf_document, validate_pdf};
+use super::common::{load_pdf_document_from_path, validate_pdf_path};
 
 const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 
-/// Memutar seluruh halaman PDF.
+/// Memutar seluruh halaman PDF langsung dari file sementara.
 ///
-/// `extra_deg` harus berupa kelipatan 90 derajat.
-///
-/// Nilai yang umum:
-/// - 90
-/// - 180
-/// - 270
-///
-/// Nilai negatif seperti -90 juga diperbolehkan
-/// dan akan dinormalisasi menjadi 270 derajat.
-pub fn rotate_pdf(pdf_bytes: &[u8], extra_deg: i64) -> Result<Vec<u8>, String> {
-    validate_pdf(pdf_bytes)?;
+/// Upload besar tidak perlu disalin lagi ke heap hanya untuk memuat PDF.
+pub fn rotate_pdf_from_path(pdf_path: &Path, extra_deg: i64) -> Result<Vec<u8>, String> {
+    validate_pdf_path(pdf_path)?;
 
+    let input_size = usize::try_from(
+        fs::metadata(pdf_path)
+            .map_err(|error| format!("Gagal membaca metadata PDF: {error}"))?
+            .len(),
+    )
+    .map_err(|_| "Ukuran PDF melebihi kapasitas yang didukung".to_owned())?;
+
+    let document = load_pdf_document_from_path(pdf_path)?;
+    rotate_document(document, extra_deg, input_size)
+}
+
+fn rotate_document(
+    mut document: Document,
+    extra_deg: i64,
+    input_size: usize,
+) -> Result<Vec<u8>, String> {
     if extra_deg % 90 != 0 {
         return Err("Sudut rotasi PDF harus merupakan kelipatan 90 derajat.".to_owned());
     }
-
-    let mut document = load_pdf_document(pdf_bytes)?;
 
     let page_ids = document.get_pages().values().copied().collect::<Vec<_>>();
 
@@ -47,7 +53,7 @@ pub fn rotate_pdf(pdf_bytes: &[u8], extra_deg: i64) -> Result<Vec<u8>, String> {
         dictionary.set("Rotate", Object::Integer(rotation));
     }
 
-    let mut output = Vec::with_capacity(pdf_bytes.len());
+    let mut output = Vec::with_capacity(input_size);
 
     document
         .save_to(&mut output)
@@ -137,7 +143,8 @@ mod tests {
 
     #[test]
     fn rejects_invalid_rotation() {
-        let error = rotate_pdf(b"%PDF-1.7", 45).unwrap_err();
+        let document = Document::with_version("1.7");
+        let error = rotate_document(document, 45, 0).unwrap_err();
         assert!(error.contains("kelipatan 90"));
     }
 
