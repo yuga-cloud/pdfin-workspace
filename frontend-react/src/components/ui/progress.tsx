@@ -11,7 +11,7 @@ export function Progress({
   return (
     <div
       className={cn(
-        "h-2 w-full overflow-hidden rounded-full border border-fg/[0.05] bg-surface-2 shadow-[inset_0_1px_2px_rgba(32,33,36,0.06)]",
+        "pdfin-progress h-2 w-full overflow-hidden rounded-full border border-fg/[0.05] bg-surface-2 shadow-[inset_0_1px_2px_rgba(32,33,36,0.06)]",
         className,
       )}
       role="progressbar"
@@ -20,7 +20,7 @@ export function Progress({
       aria-valuemax={100}
     >
       <div
-        className="h-full min-w-0 rounded-full bg-primary shadow-[0_0_14px_rgba(223,81,72,0.22)] transition-[width] duration-200 ease-out"
+        className="pdfin-progress-bar h-full min-w-0 rounded-full bg-primary shadow-[0_0_14px_rgba(223,81,72,0.22)] transition-[width] duration-200 ease-out"
         style={{ width: `${pct}%` }}
       />
     </div>
