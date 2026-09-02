@@ -1,5 +1,6 @@
 @import "@fontsource-variable/plus-jakarta-sans/wght.css";
 @import "tailwindcss";
+@import "./workspace-polish.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
