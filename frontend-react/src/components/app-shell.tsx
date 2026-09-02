@@ -27,10 +27,10 @@ interface AppShellProps {
 }
 
 const navLinkClass =
-  "app-nav-link inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform,box-shadow] duration-200 hover:-translate-y-px hover:bg-surface-2 hover:text-fg";
+  "app-nav-link inline-flex items-center gap-2 px-3.5 py-2.5 text-sm font-medium text-muted transition-[color,transform] duration-200 hover:-translate-y-px hover:text-fg";
 
 const navLinkActiveClass =
-  "app-nav-link app-nav-link-active inline-flex items-center gap-2 rounded-xl bg-fg px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm";
+  "app-nav-link app-nav-link-active inline-flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold text-fg";
 
 const toolLinkClass =
   "app-tool-link inline-flex shrink-0 items-center gap-1.5 rounded-full border border-transparent px-3 py-2 text-xs font-medium text-muted transition-[background-color,border-color,color,transform] duration-200 hover:-translate-y-px hover:border-border hover:bg-surface hover:text-fg";
@@ -77,7 +77,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="mx-auto flex min-h-18 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Logo />
 
-          <nav className="app-primary-nav hidden items-center gap-1 rounded-2xl border border-border/70 bg-bg/85 p-1 shadow-sm md:flex" aria-label="Navigasi utama">
+          <nav className="app-primary-nav hidden items-stretch gap-0.5 border-b border-border/70 md:flex" aria-label="Navigasi utama">
             <Link
               to="/"
               className={navLinkClass}
