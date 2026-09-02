@@ -20,7 +20,6 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Link } from "@tanstack/react-router";
 import { acceptFor, type ToolDef } from "@/lib/tools-catalog";
 import {
   countPages,
@@ -89,6 +88,12 @@ function getFileErrorMessage(accept: ToolDef["accept"]): string {
       return "Pilih file yang sesuai.";
   }
 }
+
+const GROUP_LABELS: Record<ToolDef["group"], string> = {
+  atur: "Atur PDF",
+  optimalkan: "Optimalkan",
+  konversi: "Konversi",
+};
 
 export function ToolWorkspace({ tool }: { tool: ToolDef }) {
   return <ToolWorkspaceInner key={tool.slug} tool={tool} />;
@@ -318,6 +323,21 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
   const ready = items.length >= tool.minFiles && !busy;
   const pct = progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
   const dropLabel = getDropLabel(tool);
+  const backLabel = `Kembali ke ${GROUP_LABELS[tool.group]}`;
+
+  function handleBack() {
+    const sameOriginReferrer =
+      typeof document !== "undefined" &&
+      typeof window !== "undefined" &&
+      document.referrer.startsWith(window.location.origin);
+
+    if (sameOriginReferrer && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    window.location.assign("/");
+  }
 
   return (
     <div
@@ -327,10 +347,14 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
         `tool-accept-${tool.accept}`,
       )}
     >
-      <Link to="/" className="workspace-back-link mb-7 inline-flex items-center gap-2 text-sm font-medium text-muted">
+      <button
+        type="button"
+        onClick={handleBack}
+        className="workspace-back-link mb-7 inline-flex items-center gap-2 rounded-lg px-1 py-1 text-sm font-medium text-muted transition-colors hover:text-fg"
+      >
         <ArrowLeft className="size-4" aria-hidden />
-        Kembali ke semua alat
-      </Link>
+        {backLabel}
+      </button>
 
       <div className="workspace-tool-heading">
         <div className="workspace-tool-heading-top">
@@ -534,7 +558,11 @@ function OptionsPanel({ tool, options, setOptions, pageCount }: { tool: ToolDef;
         <fieldset className="mt-4">
           <legend className="text-sm text-muted">Kualitas</legend>
           <div className="workspace-option-grid mt-3 grid gap-2 sm:grid-cols-3">
-            {([ ["high", "Halus", "Lebih tajam, file lebih besar"], ["medium", "Sedang", "Seimbang, disarankan"], ["low", "Kecil", "Paling hemat, untuk WhatsApp"] ] as const).map(([value, label, hint]) => (
+            {([
+              ["high", "Halus", "Lebih tajam, file lebih besar"],
+              ["medium", "Sedang", "Seimbang, disarankan"],
+              ["low", "Kecil", "Paling hemat, untuk WhatsApp"],
+            ] as const).map(([value, label, hint]) => (
               <label key={value} className={cn("workspace-choice cursor-pointer rounded-lg border px-3 py-3 text-sm", options.quality === value && "is-selected")}>
                 <input type="radio" name="quality" className="sr-only" checked={options.quality === value} onChange={() => setOptions((current) => ({ ...current, quality: value }))} />
                 <span className="font-semibold">{label}</span>
