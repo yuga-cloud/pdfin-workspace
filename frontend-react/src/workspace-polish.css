@@ -148,6 +148,103 @@ main .max-w-3xl > .mt-8.rounded-2xl.bg-fg button:hover {
   transform: translateY(-1px);
 }
 
+/* Guide page */
+.guide-page {
+  padding-block: 0.25rem 2rem;
+}
+
+.guide-hero {
+  margin-bottom: 2.5rem;
+}
+
+.guide-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.guide-eyebrow::before {
+  width: 1.5rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  content: "";
+}
+
+.guide-section {
+  padding-block: 1.75rem;
+  border-top: 1px solid rgba(32, 33, 36, 0.08);
+}
+
+.guide-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.guide-step {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid rgba(223, 81, 72, 0.15);
+  border-radius: 0.75rem;
+  background: rgba(223, 81, 72, 0.07);
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.guide-list li::marker {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.guide-notes li {
+  position: relative;
+  padding: 0.9rem 1rem 0.9rem 1.1rem;
+  border: 1px solid rgba(32, 33, 36, 0.07);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.52);
+  transition: transform var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out);
+}
+
+.guide-notes li::before {
+  position: absolute;
+  top: 1.15rem;
+  left: 0;
+  width: 3px;
+  height: calc(100% - 2.3rem);
+  min-height: 1rem;
+  border-radius: 999px;
+  background: rgba(223, 81, 72, 0.45);
+  content: "";
+}
+
+.guide-notes li:hover {
+  border-color: rgba(223, 81, 72, 0.15);
+  background: #ffffff;
+  transform: translateX(2px);
+}
+
+.guide-callout {
+  border: 1px solid rgba(223, 81, 72, 0.12);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(223, 81, 72, 0.08), transparent 15rem),
+    rgba(255, 255, 255, 0.78);
+}
+
+.guide-callout code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+}
+
+.tool-missing {
+  margin-top: 2rem;
+}
+
 @media (max-width: 639px) {
   main .max-w-3xl > .mt-8.rounded-2xl.bg-surface > button {
     min-height: 14rem;
@@ -159,5 +256,13 @@ main .max-w-3xl > .mt-8.rounded-2xl.bg-fg button:hover {
 
   main .max-w-3xl > section.mt-6.rounded-2xl.bg-surface ol {
     gap: 0.65rem;
+  }
+
+  .guide-hero {
+    margin-bottom: 1.5rem;
+  }
+
+  .guide-section {
+    padding-block: 1.35rem;
   }
 }
