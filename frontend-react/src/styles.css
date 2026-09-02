@@ -5,6 +5,7 @@
 @import "./workspace-neo.css";
 @import "./premium-ui.css";
 @import "./workspace-premium.css";
+@import "./frontend-finish.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
