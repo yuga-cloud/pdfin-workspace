@@ -1,8 +1,8 @@
-use std::{path::Path, sync::Arc};
+use std::path::Path;
 
 use axum::{
     body::Bytes,
-    extract::{Multipart, State, multipart::Field},
+    extract::{multipart::Field, Multipart, State},
     http::header,
     response::IntoResponse,
 };
@@ -25,7 +25,6 @@ const MAX_WATERMARK_TEXT_BYTES: usize = 1024;
 
 struct TempPdfUpload {
     file: NamedTempFile,
-    size: usize,
 }
 
 pub async fn add_page_numbers(
@@ -46,7 +45,6 @@ pub async fn add_watermark(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, AppError> {
     let (file, text) = read_watermark_request(&mut multipart).await?;
-    validate_watermark_text(&text)?;
 
     let permit = acquire_pdf_permit(&state, "Watermark PDF").await?;
     let input_path = file.file.path().to_owned();
@@ -134,7 +132,7 @@ async fn stream_pdf_field(mut field: Field<'_>) -> Result<TempPdfUpload, AppErro
         return Err(AppError::bad_request("empty_file", "File PDF kosong"));
     }
 
-    Ok(TempPdfUpload { file: temp, size })
+    Ok(TempPdfUpload { file: temp })
 }
 
 async fn read_single_file(mut multipart: Multipart) -> Result<TempPdfUpload, AppError> {
@@ -209,6 +207,13 @@ async fn read_watermark_request(
                         ));
                     }
 
+                    if !value.is_ascii() {
+                        return Err(AppError::bad_request(
+                            "invalid_watermark",
+                            "Teks watermark saat ini hanya mendukung karakter ASCII",
+                        ));
+                    }
+
                     text = Some(value);
                 }
                 _ => {}
@@ -229,17 +234,6 @@ async fn read_watermark_request(
     let text = text
         .ok_or_else(|| AppError::bad_request("watermark_missing", "Field text tidak ditemukan"))?;
     Ok((file, text))
-}
-
-fn validate_watermark_text(text: &str) -> Result<(), AppError> {
-    if !text.is_ascii() {
-        return Err(AppError::bad_request(
-            "invalid_watermark",
-            "Teks watermark saat ini hanya mendukung karakter ASCII",
-        ));
-    }
-
-    Ok(())
 }
 
 async fn acquire_pdf_permit(
@@ -267,7 +261,6 @@ where
     F: FnOnce(&Path) -> Result<Vec<u8>, String> + Send + 'static,
 {
     let file = read_single_file(multipart).await?;
-    let _size = file.size;
     let input_path = file.file.path().to_owned();
     let permit = acquire_pdf_permit(&state, operation).await?;
 
