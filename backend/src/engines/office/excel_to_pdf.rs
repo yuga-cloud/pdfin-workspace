@@ -4,8 +4,8 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{
-        OnceLock,
         atomic::{AtomicU64, Ordering},
+        OnceLock,
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
