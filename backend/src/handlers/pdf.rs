@@ -188,10 +188,7 @@ async fn read_multiple_files_to_tempfiles(
 
                     output.write_all(&chunk).await.map_err(|error| {
                         error!(%error, "Gagal menulis temporary PDF");
-                        AppError::internal(
-                            "tempfile_write_failed",
-                            "Gagal menyimpan PDF sementara",
-                        )
+                        AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
                     })?;
                 }
 
