@@ -12,6 +12,7 @@
 @import "./ui-pruning.css";
 @import "./nav-pill-polish.css";
 @import "./workspace-heading-polish.css";
+@import "./home-navigation-polish.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
