@@ -21,41 +21,17 @@ export class ApiError extends Error {
 }
 
 export const DEFAULT_API_TIMEOUT_MS = 130_000;
-export const MAX_REQUEST_BODY_BYTES = 50 * 1024 * 1024;
 export const MAX_FIELD_TEXT_LENGTH = 16 * 1024;
 export const MAX_ERROR_MESSAGE_LENGTH = 2_000;
 
 function validateFormData(formData: FormData): void {
-  let totalBytes = 0;
-
   for (const [, value] of formData.entries()) {
-    if (value instanceof Blob) {
-      totalBytes += value.size;
-    } else if (value.length > MAX_FIELD_TEXT_LENGTH) {
+    if (typeof value === "string" && value.length > MAX_FIELD_TEXT_LENGTH) {
       throw new ApiError("Nilai field multipart terlalu panjang.", {
         status: 0,
         code: "field_too_large",
       });
     }
-
-    if (totalBytes > MAX_REQUEST_BODY_BYTES) {
-      throw new ApiError(
-        `Total ukuran upload melebihi batas ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MiB.`,
-        {
-          status: 0,
-          code: "request_too_large",
-        },
-      );
-    }
-  }
-}
-
-function validateUploadSize(file: File | Blob): void {
-  if (file.size > MAX_REQUEST_BODY_BYTES) {
-    throw new ApiError(
-      `Ukuran file melebihi batas upload ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MiB.`,
-      { status: 0, code: "file_too_large" },
-    );
   }
 }
 
@@ -87,6 +63,13 @@ async function parseError(response: Response): Promise<ApiError> {
     } catch {
       // Fallback ke pesan status HTTP.
     }
+  }
+
+  if (response.status === 413) {
+    return new ApiError("Ukuran upload melebihi batas server.", {
+      status: response.status,
+      code: "request_too_large",
+    });
   }
 
   return new ApiError(`Request gagal (${response.status}).`, {
@@ -165,7 +148,6 @@ export async function postFile(
   file: File | Blob,
   timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
-  validateUploadSize(file);
   const formData = new FormData();
   formData.append("file", file);
   return postMultipart(endpoint, formData, timeoutMs);
@@ -178,7 +160,6 @@ export async function postFileWithText(
   value: string,
   timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ): Promise<Blob> {
-  validateUploadSize(file);
   validateTextField(fieldName, value);
   const formData = new FormData();
   formData.append("file", file);
