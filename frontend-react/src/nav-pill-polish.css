@@ -1,12 +1,8 @@
-/* Primary navigation polish: bordered segmented control with a quiet active pill. */
+/* Primary navigation polish: the shell owns the outer border; active state stays text-led. */
 .app-primary-nav {
   align-items: center;
   gap: 0.15rem;
   padding: 0.22rem;
-  border: 1px solid color-mix(in oklch, var(--color-border) 92%, var(--color-fg));
-  border-radius: 0.95rem;
-  background: color-mix(in oklch, var(--color-surface) 92%, var(--color-bg));
-  box-shadow: 0 8px 24px -22px rgba(32, 33, 36, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.7);
   scrollbar-width: none;
 }
 
@@ -26,16 +22,18 @@
 }
 
 .app-primary-nav .app-nav-link-active {
-  border-color: color-mix(in oklch, var(--color-fg) 90%, var(--color-border));
-  background: var(--color-fg);
-  color: var(--color-primary-fg);
-  box-shadow: 0 7px 18px -14px rgba(32, 33, 36, 0.7);
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-fg);
+  box-shadow: none;
 }
 
 .app-primary-nav .app-nav-link-active:hover,
 .app-primary-nav .app-nav-link-active:focus-visible {
-  background: color-mix(in oklch, var(--color-fg) 94%, var(--color-primary));
-  color: var(--color-primary-fg);
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-fg);
+  box-shadow: none;
 }
 
 @media (max-width: 767px) {
