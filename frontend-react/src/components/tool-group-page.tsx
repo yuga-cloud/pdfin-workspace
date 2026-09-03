@@ -36,17 +36,17 @@ const ICONS: Record<ToolDef["slug"], typeof Files> = {
   "pdf-ke-powerpoint": Presentation,
 };
 
-const GROUP_COPY: Record<ToolDef["group"], { eyebrow: string; description: string }> = {
+const GROUP_COPY: Record<ToolDef["group"], { label: string; description: string }> = {
   atur: {
-    eyebrow: "Atur PDF",
+    label: "Atur PDF",
     description: "Gabungkan, pisahkan, putar, dan susun halaman PDF dalam satu tempat.",
   },
   optimalkan: {
-    eyebrow: "Optimalkan",
+    label: "Optimalkan",
     description: "Kecilkan ukuran atau siapkan PDF agar lebih praktis dipakai dan dibagikan.",
   },
   konversi: {
-    eyebrow: "Konversi",
+    label: "Konversi",
     description: "Ubah PDF dan dokumen kantor ke format yang kamu perlukan.",
   },
 };
@@ -58,8 +58,8 @@ export function ToolGroupPage({ group }: { group: ToolDef["group"] }) {
   return (
     <div className="tool-group-page">
       <section className="tool-group-hero" aria-labelledby="tool-group-title">
-        <p className="tool-group-eyebrow">{copy.eyebrow}</p>
-        <h1 id="tool-group-title">Semua alat {copy.eyebrow}</h1>
+        <p className="tool-group-eyebrow">{copy.label}</p>
+        <h1 id="tool-group-title">{copy.label}</h1>
         <p className="tool-group-description">{copy.description}</p>
       </section>
 
