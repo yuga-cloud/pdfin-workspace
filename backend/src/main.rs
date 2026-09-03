@@ -17,6 +17,7 @@ use std::{
 use axum::{
     extract::DefaultBodyLimit,
     extract::{ConnectInfo, Request, State},
+    http::{header::RETRY_AFTER, HeaderValue},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::get,
@@ -165,11 +166,15 @@ async fn enforce_rate_limit(
     next: Next,
 ) -> Response {
     if !state.rate_limiter.allow(addr.ip()) {
-        return AppError::too_many_requests(
+        let mut response = AppError::too_many_requests(
             "rate_limited",
             "Terlalu banyak request. Silakan coba lagi sebentar.",
         )
         .into_response();
+        response
+            .headers_mut()
+            .insert(RETRY_AFTER, HeaderValue::from_static("1"));
+        return response;
     }
 
     next.run(request).await
