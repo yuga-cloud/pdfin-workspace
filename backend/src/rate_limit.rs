@@ -25,11 +25,8 @@ struct Bucket {
 
 impl IpRateLimiter {
     pub fn from_env() -> Self {
-        let requests_per_minute = parse_env_u32(
-            "PDFIN_RATE_LIMIT_PER_MINUTE",
-            DEFAULT_REQUESTS_PER_MINUTE,
-        )
-        .max(1);
+        let requests_per_minute =
+            parse_env_u32("PDFIN_RATE_LIMIT_PER_MINUTE", DEFAULT_REQUESTS_PER_MINUTE).max(1);
         let burst_size = parse_env_u32("PDFIN_RATE_LIMIT_BURST", DEFAULT_BURST_SIZE)
             .max(1)
             .min(requests_per_minute);
@@ -78,7 +75,10 @@ impl IpRateLimiter {
 fn parse_env_u32(name: &str, default: u32) -> u32 {
     match std::env::var(name) {
         Ok(value) => value.parse::<u32>().unwrap_or_else(|_| {
-            tracing::warn!(variable = name, "Nilai rate-limit environment tidak valid; memakai default");
+            tracing::warn!(
+                variable = name,
+                "Nilai rate-limit environment tidak valid; memakai default"
+            );
             default
         }),
         Err(_) => default,
