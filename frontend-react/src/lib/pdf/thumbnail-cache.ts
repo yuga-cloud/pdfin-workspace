@@ -8,6 +8,13 @@ export type PdfThumbnail = {
 
 const THUMBNAIL_WIDTH = 180;
 const JPEG_QUALITY = 0.68;
+const MAX_CACHED_THUMBNAILS = 48;
+
+function createAbortError(): Error {
+  const error = new Error("Preview dibatalkan.");
+  error.name = "AbortError";
+  return error;
+}
 
 export class PdfThumbnailCache {
   private readonly file: File;
@@ -40,15 +47,20 @@ export class PdfThumbnailCache {
   async render(pageNumber: number, signal?: AbortSignal): Promise<PdfThumbnail> {
     if (pageNumber < 1) throw new RangeError("Nomor halaman harus dimulai dari 1.");
     const cached = this.cache.get(pageNumber);
-    if (cached) return cached;
-    if (signal?.aborted) {
-      const error = new Error("Preview dibatalkan.");
-      error.name = "AbortError";
-      throw error;
+    if (cached) {
+      this.cache.delete(pageNumber);
+      this.cache.set(pageNumber, cached);
+      return cached;
     }
+    if (signal?.aborted) throw createAbortError();
 
     const pdf = await this.getDocument();
+    if (signal?.aborted) throw createAbortError();
+
     const page = await pdf.getPage(pageNumber);
+    let renderTask: ReturnType<typeof page.render> | null = null;
+    let abortListener: (() => void) | null = null;
+
     try {
       const base = page.getViewport({ scale: 1 });
       const scale = THUMBNAIL_WIDTH / Math.max(1, base.width);
@@ -62,12 +74,19 @@ export class PdfThumbnailCache {
       if (!context) throw new Error("Browser tidak mendukung canvas.");
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, width, height);
-      await page.render({ canvas, canvasContext: context, viewport }).promise;
-      if (signal?.aborted) {
-        const error = new Error("Preview dibatalkan.");
-        error.name = "AbortError";
+
+      renderTask = page.render({ canvas, canvasContext: context, viewport });
+      abortListener = () => renderTask?.cancel();
+      signal?.addEventListener("abort", abortListener, { once: true });
+
+      try {
+        await renderTask.promise;
+      } catch (error) {
+        if (signal?.aborted) throw createAbortError();
         throw error;
       }
+
+      if (signal?.aborted) throw createAbortError();
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
           (value) => value ? resolve(value) : reject(new Error("Gagal membuat pratinjau JPG.")),
@@ -82,9 +101,19 @@ export class PdfThumbnailCache {
         URL.revokeObjectURL(result.url);
         throw new Error("Preview sudah dibuang.");
       }
+
       this.cache.set(pageNumber, result);
+      while (this.cache.size > MAX_CACHED_THUMBNAILS) {
+        const oldestPage = this.cache.keys().next().value;
+        if (oldestPage === undefined) break;
+        const oldest = this.cache.get(oldestPage);
+        this.cache.delete(oldestPage);
+        if (oldest) URL.revokeObjectURL(oldest.url);
+      }
+
       return result;
     } finally {
+      if (signal && abortListener) signal.removeEventListener("abort", abortListener);
       page.cleanup();
     }
   }
