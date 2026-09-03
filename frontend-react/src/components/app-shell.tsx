@@ -62,56 +62,55 @@ export function AppShell({ children }: AppShellProps) {
       </a>
 
       <header className="app-header sticky top-0 z-40 border-b border-border/70 bg-surface/90 shadow-[0_1px_0_rgba(32,33,36,0.02)] backdrop-blur-xl">
-        <div className="mx-auto flex min-h-18 max-w-6xl items-center gap-3 px-4 py-2 sm:px-6 md:gap-4 md:py-0">
-          <Logo className="shrink-0" />
+        <div className="app-header-inner mx-auto flex min-h-18 max-w-6xl items-center px-4 py-2 sm:px-6 md:py-0">
+          <Logo className="app-header-logo shrink-0" />
 
-          <nav
-            className="app-primary-nav flex min-w-0 flex-1 items-center overflow-x-auto"
-            aria-label="Navigasi utama"
-          >
-            <Link
-              to="/"
-              className={homeActive ? navLinkActiveClass : navLinkClass}
-              aria-current={homeActive ? "page" : undefined}
-              activeOptions={{ exact: true }}
-            >
-              <NavIcon><Files /></NavIcon>
-              Semua
-            </Link>
-            <Link
-              to="/alat/atur"
-              className={organizeActive ? navLinkActiveClass : navLinkClass}
-              aria-current={organizeActive ? "page" : undefined}
-            >
-              <NavIcon><Layers2 /></NavIcon>
-              Atur PDF
-            </Link>
-            <Link
-              to="/alat/optimalkan"
-              className={optimizeActive ? navLinkActiveClass : navLinkClass}
-              aria-current={optimizeActive ? "page" : undefined}
-            >
-              <NavIcon><Minimize2 /></NavIcon>
-              Optimalkan
-            </Link>
-            <Link
-              to="/alat/konversi"
-              className={convertActive ? navLinkActiveClass : navLinkClass}
-              aria-current={convertActive ? "page" : undefined}
-            >
-              <NavIcon><ArrowLeftRight /></NavIcon>
-              Konversi
-            </Link>
-            <Link
-              to="/panduan"
-              className={guideActive ? navLinkActiveClass : navLinkClass}
-              aria-current={guideActive ? "page" : undefined}
-              activeOptions={{ exact: true }}
-            >
-              <NavIcon><BookOpen /></NavIcon>
-              Panduan
-            </Link>
-          </nav>
+          <div className="app-primary-nav-shell">
+            <nav className="app-primary-nav" aria-label="Navigasi utama">
+              <Link
+                to="/"
+                className={homeActive ? navLinkActiveClass : navLinkClass}
+                aria-current={homeActive ? "page" : undefined}
+                activeOptions={{ exact: true }}
+              >
+                <NavIcon><Files /></NavIcon>
+                Semua
+              </Link>
+              <Link
+                to="/alat/atur"
+                className={organizeActive ? navLinkActiveClass : navLinkClass}
+                aria-current={organizeActive ? "page" : undefined}
+              >
+                <NavIcon><Layers2 /></NavIcon>
+                Atur PDF
+              </Link>
+              <Link
+                to="/alat/optimalkan"
+                className={optimizeActive ? navLinkActiveClass : navLinkClass}
+                aria-current={optimizeActive ? "page" : undefined}
+              >
+                <NavIcon><Minimize2 /></NavIcon>
+                Optimalkan
+              </Link>
+              <Link
+                to="/alat/konversi"
+                className={convertActive ? navLinkActiveClass : navLinkClass}
+                aria-current={convertActive ? "page" : undefined}
+              >
+                <NavIcon><ArrowLeftRight /></NavIcon>
+                Konversi
+              </Link>
+              <Link
+                to="/panduan"
+                className={guideActive ? navLinkActiveClass : navLinkClass}
+                aria-current={guideActive ? "page" : undefined}
+                activeOptions={{ exact: true }}
+              >
+                <NavIcon><BookOpen /></NavIcon>
+                Panduan
+              </Link>
+            </nav>
+          </div>
         </div>
       </header>
 
