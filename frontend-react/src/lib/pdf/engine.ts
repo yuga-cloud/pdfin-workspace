@@ -221,7 +221,7 @@ export function parsePageRange(
     }
 
     fail(
-      `Rentang tidak valid: \"${part}\". Contoh: 1-3, 5, 8-10`,
+      `Rentang tidak valid: "${part}". Contoh: 1-3, 5, 8-10`,
     );
   }
 
@@ -779,27 +779,25 @@ async function renderPageJpeg(
       pageNumber,
     );
 
-  const viewport =
-    page.getViewport({
-      scale,
-    });
-
-  const width = Math.max(
-    1,
-    Math.floor(viewport.width),
-  );
-  const height = Math.max(
-    1,
-    Math.floor(viewport.height),
-  );
-
-  const canvas =
-    document.createElement("canvas");
-
-  canvas.width = width;
-  canvas.height = height;
-
   try {
+    const viewport =
+      page.getViewport({
+        scale,
+      });
+
+    const canvas =
+      document.createElement("canvas");
+
+    canvas.width = Math.max(
+      1,
+      Math.floor(viewport.width),
+    );
+
+    canvas.height = Math.max(
+      1,
+      Math.floor(viewport.height),
+    );
+
     const context =
       canvas.getContext("2d");
 
@@ -848,13 +846,19 @@ async function renderPageJpeg(
 
     return {
       blob,
-      width,
-      height,
+      width:
+        Math.max(
+          1,
+          Math.floor(viewport.width),
+        ),
+      height:
+        Math.max(
+          1,
+          Math.floor(viewport.height),
+        ),
     };
   } finally {
     page.cleanup();
-    canvas.width = 0;
-    canvas.height = 0;
   }
 }
 
@@ -879,8 +883,8 @@ async function pdfToImages(
   const base =
     stem(file.name);
 
-  try {
-    if (total === 1) {
+  if (total === 1) {
+    try {
       onProgress?.(
         0,
         1,
@@ -895,6 +899,12 @@ async function pdfToImages(
           0.86,
         );
 
+      onProgress?.(
+        1,
+        1,
+        "Selesai",
+      );
+
       return {
         blob: image.blob,
         filename:
@@ -902,13 +912,18 @@ async function pdfToImages(
         mime:
           "image/jpeg",
       };
+    } finally {
+      await source.cleanup();
     }
+  }
 
-    const { default: JSZip } =
-      await import("jszip");
-    const zip =
-      new JSZip();
+  const { default: JSZip } =
+    await import("jszip");
 
+  const zip =
+    new JSZip();
+
+  try {
     for (
       let index = 1;
       index <= total;
@@ -1168,15 +1183,14 @@ export async function processTool(
       onProgress?.(
         0,
         files.length,
-        "Menyiapkan gambar...",
+        "Menyiapkan gambar",
       );
 
       const jpegFiles: Blob[] = [];
 
       for (let index = 0; index < files.length; index += 1) {
-        jpegFiles.push(
-          await normalizeImageToJpeg(files[index]),
-        );
+        const jpeg = await normalizeImageToJpeg(files[index]);
+        jpegFiles.push(jpeg);
         onProgress?.(
           index + 1,
           files.length,
@@ -1188,7 +1202,7 @@ export async function processTool(
       onProgress?.(
         0,
         1,
-        "Mengubah JPG ke PDF di server Rust...",
+        "Mengirim JPG ke server Rust...",
       );
 
       const blob =
