@@ -59,15 +59,11 @@
 .processing-banner .lucide { width: 0.95rem; height: 0.95rem; }
 .button .lucide, button .lucide, a .lucide { color: currentColor; }
 
-/* Clickable navigation: filled active state always uses white text. */
+/* Navigation is intentionally text-led: the outer shell provides the border and the active item uses an underline. */
 .app-primary-nav { border-color: color-mix(in oklch, var(--color-border) 82%, var(--color-fg)); }
 .app-nav-link { color: var(--color-muted); }
 .app-nav-link:hover { color: var(--color-fg); }
-.app-nav-link-active,
-.app-nav-link-active:visited,
-.app-nav-link-active:hover,
-.app-nav-link-active:focus-visible { color: #fff !important; background: var(--color-fg); border-color: var(--color-fg); }
-.app-nav-link-active .lucide { color: #fff !important; }
+
 .app-tool-link { color: var(--color-muted); }
 .app-tool-link:hover { color: var(--color-fg); }
 .app-tool-link-active,
