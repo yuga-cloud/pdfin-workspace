@@ -15,13 +15,13 @@ use std::{
 };
 
 use axum::{
-    Router,
-    extract::{ConnectInfo, Request, State},
     extract::DefaultBodyLimit,
+    extract::{ConnectInfo, Request, State},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::get,
     serve::ListenerExt,
+    Router,
 };
 use tokio::{net::TcpListener, sync::Semaphore};
 use tower::limit::ConcurrencyLimitLayer;
@@ -99,10 +99,10 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let app = Router::new()
         .route("/health", get(health))
-        .merge(
-            routes::api_routes()
-                .layer(middleware::from_fn_with_state(state.clone(), enforce_rate_limit)),
-        )
+        .merge(routes::api_routes().layer(middleware::from_fn_with_state(
+            state.clone(),
+            enforce_rate_limit,
+        )))
         .with_state(state)
         .layer(ConcurrencyLimitLayer::new(max_in_flight_requests))
         .layer(DefaultBodyLimit::max(max_request_body_size))
@@ -142,9 +142,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     info!(address = %server_addr, "Backend Axum berjalan");
 
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     info!("Backend Axum berhenti");
 
@@ -244,8 +247,9 @@ async fn shutdown_signal() {
 
     #[cfg(unix)]
     let terminate = async {
-        let mut signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-            .expect("gagal memasang SIGTERM handler");
+        let mut signal =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("gagal memasang SIGTERM handler");
 
         signal.recv().await;
     };
