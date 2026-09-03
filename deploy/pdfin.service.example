@@ -20,6 +20,9 @@ Environment=PDFIN_MAX_CONCURRENCY=4
 Environment=PDFIN_MAX_CONVERSION_CONCURRENCY=2
 Environment=PDFIN_RATE_LIMIT_PER_MINUTE=60
 Environment=PDFIN_RATE_LIMIT_BURST=10
+# Only list proxy addresses that you fully control and that sanitize X-Forwarded-For.
+# Multiple values may be separated by commas.
+Environment=PDFIN_TRUSTED_PROXY_IPS=127.0.0.1
 
 # Least-privilege hardening for untrusted PDF/Office processing.
 NoNewPrivileges=true
