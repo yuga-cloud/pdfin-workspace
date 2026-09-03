@@ -19,7 +19,7 @@ use axum::{
     extract::{ConnectInfo, Request, State},
     extract::DefaultBodyLimit,
     middleware::{self, Next},
-    response::Response,
+    response::{IntoResponse, Response},
     routing::get,
     serve::ListenerExt,
 };
