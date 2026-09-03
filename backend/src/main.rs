@@ -165,9 +165,7 @@ async fn enforce_rate_limit(
     request: Request,
     next: Next,
 ) -> Response {
-    let client_ip = state
-        .rate_limiter
-        .client_ip(addr.ip(), request.headers());
+    let client_ip = state.rate_limiter.client_ip(addr.ip(), request.headers());
 
     if !state.rate_limiter.allow(client_ip) {
         let mut response = AppError::too_many_requests(
