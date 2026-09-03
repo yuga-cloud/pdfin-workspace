@@ -167,6 +167,7 @@ mod tests {
         let second = "127.0.0.2".parse().unwrap();
 
         assert!(limiter.allow(first));
+        assert!(limiter.allow(first));
         assert!(!limiter.allow(first));
         assert!(limiter.allow(second));
     }
