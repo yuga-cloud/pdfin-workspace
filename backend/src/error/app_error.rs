@@ -21,6 +21,14 @@ impl AppError {
         }
     }
 
+    pub fn too_many_requests(code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::TOO_MANY_REQUESTS,
+            code: code.into(),
+            message: message.into(),
+        }
+    }
+
     pub fn internal(code: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
