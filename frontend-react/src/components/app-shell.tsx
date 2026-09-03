@@ -4,56 +4,24 @@ import {
   ArrowLeftRight,
   BookOpen,
   CloudCog,
-  FileImage,
-  FileSpreadsheet,
-  FileText,
-  FileType,
   Files,
-  ImagePlus,
   Layers2,
   Minimize2,
   MonitorCheck,
-  Presentation,
-  RotateCw,
-  Scissors,
-  Stamp,
 } from "lucide-react";
 
 import { Logo } from "@/components/logo";
-import { getTool, TOOLS, type ToolDef } from "@/lib/tools-catalog";
+import { getTool } from "@/lib/tools-catalog";
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 const navLinkClass =
-  "app-nav-link inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform] duration-200 hover:-translate-y-px hover:bg-surface hover:text-fg";
+  "app-nav-link inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform] duration-200 hover:-translate-y-px hover:bg-surface hover:text-fg";
 
 const navLinkActiveClass =
-  "app-nav-link app-nav-link-active inline-flex items-center gap-2 rounded-xl bg-fg px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm";
-
-const toolLinkClass =
-  "app-tool-link inline-flex shrink-0 items-center gap-1.5 rounded-full border border-transparent px-3 py-2 text-xs font-medium text-muted transition-[background-color,border-color,color,transform] duration-200 hover:-translate-y-px hover:border-border hover:bg-surface hover:text-fg";
-
-const toolLinkActiveClass =
-  "app-tool-link app-tool-link-active inline-flex shrink-0 items-center gap-1.5 rounded-full border border-fg bg-fg px-3 py-2 text-xs font-semibold text-white shadow-sm";
-
-const TOOL_ICONS: Record<ToolDef["slug"], typeof Files> = {
-  gabung: Files,
-  pisah: Scissors,
-  halaman: Layers2,
-  kompres: Minimize2,
-  "jpg-ke-pdf": ImagePlus,
-  "pdf-ke-jpg": FileImage,
-  putar: RotateCw,
-  watermark: Stamp,
-  "word-ke-pdf": FileType,
-  "excel-ke-pdf": FileSpreadsheet,
-  "powerpoint-ke-pdf": Presentation,
-  "pdf-ke-word": FileText,
-  "pdf-ke-excel": FileSpreadsheet,
-  "pdf-ke-powerpoint": Presentation,
-};
+  "app-nav-link app-nav-link-active inline-flex shrink-0 items-center gap-2 rounded-xl bg-fg px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm";
 
 function NavIcon({ children }: { children: ReactNode }) {
   return (
@@ -85,10 +53,13 @@ export function AppShell({ children }: AppShellProps) {
       </a>
 
       <header className="app-header sticky top-0 z-40 border-b border-border/70 bg-surface/90 shadow-[0_1px_0_rgba(32,33,36,0.02)] backdrop-blur-xl">
-        <div className="mx-auto flex min-h-18 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Logo />
+        <div className="mx-auto flex min-h-18 max-w-6xl flex-wrap items-center gap-3 px-4 py-2 sm:px-6 md:flex-nowrap md:gap-4 md:py-0">
+          <Logo className="shrink-0" />
 
-          <nav className="app-primary-nav hidden items-center gap-0.5 md:flex" aria-label="Navigasi utama">
+          <nav
+            className="app-primary-nav order-2 flex min-w-0 w-full items-center overflow-x-auto md:order-none md:ml-auto md:w-auto"
+            aria-label="Navigasi utama"
+          >
             <Link
               to="/"
               className={homeActive ? navLinkActiveClass : navLinkClass}
@@ -134,37 +105,6 @@ export function AppShell({ children }: AppShellProps) {
               <NavIcon><BookOpen /></NavIcon>
               Panduan
             </Link>
-          </nav>
-
-          <Link
-            to="/panduan"
-            className={`${guideActive ? navLinkActiveClass : navLinkClass} md:hidden`}
-            aria-current={guideActive ? "page" : undefined}
-            activeOptions={{ exact: true }}
-          >
-            <NavIcon><BookOpen /></NavIcon>
-            Panduan
-          </Link>
-        </div>
-
-        <div className="border-t border-border/60 md:hidden">
-          <nav className="app-tool-rail mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 scrollbar-none" aria-label="Alat">
-            {TOOLS.map((tool) => {
-              const Icon = TOOL_ICONS[tool.slug];
-              return (
-                <Link
-                  key={tool.slug}
-                  to="/alat/$slug"
-                  params={{ slug: tool.slug }}
-                  className={toolLinkClass}
-                  activeProps={{ className: toolLinkActiveClass }}
-                  activeOptions={{ exact: true }}
-                >
-                  <Icon className="app-tool-link-icon" aria-hidden="true" />
-                  {tool.short}
-                </Link>
-              );
-            })}
           </nav>
         </div>
       </header>
