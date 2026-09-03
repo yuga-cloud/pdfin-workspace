@@ -20,7 +20,9 @@ export class PdfThumbnailCache {
   private readonly file: File;
   private pdfPromise: ReturnType<PdfThumbnailCache["loadDocument"]> | null = null;
   private readonly cache = new Map<number, PdfThumbnail>();
+  private activeRenders = 0;
   private disposed = false;
+  private documentCleanupStarted = false;
 
   constructor(file: File) {
     this.file = file;
@@ -36,6 +38,16 @@ export class PdfThumbnailCache {
   private async getDocument() {
     if (!this.pdfPromise) this.pdfPromise = this.loadDocument();
     return this.pdfPromise;
+  }
+
+  private cleanupDocumentWhenIdle(): void {
+    if (!this.disposed || this.activeRenders !== 0 || this.documentCleanupStarted) return;
+    const promise = this.pdfPromise;
+    if (!promise) return;
+
+    this.documentCleanupStarted = true;
+    this.pdfPromise = null;
+    void promise.then((pdf) => pdf.cleanup()).catch(() => undefined);
   }
 
   async getPageCount(): Promise<number> {
@@ -54,67 +66,73 @@ export class PdfThumbnailCache {
     }
     if (signal?.aborted) throw createAbortError();
 
-    const pdf = await this.getDocument();
-    if (signal?.aborted) throw createAbortError();
-
-    const page = await pdf.getPage(pageNumber);
-    let renderTask: ReturnType<typeof page.render> | null = null;
-    let abortListener: (() => void) | null = null;
-
+    this.activeRenders += 1;
     try {
-      const base = page.getViewport({ scale: 1 });
-      const scale = THUMBNAIL_WIDTH / Math.max(1, base.width);
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      const width = Math.max(1, Math.floor(viewport.width));
-      const height = Math.max(1, Math.floor(viewport.height));
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Browser tidak mendukung canvas.");
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, width, height);
+      const pdf = await this.getDocument();
+      if (signal?.aborted) throw createAbortError();
 
-      renderTask = page.render({ canvas, canvasContext: context, viewport });
-      abortListener = () => renderTask?.cancel();
-      signal?.addEventListener("abort", abortListener, { once: true });
+      const page = await pdf.getPage(pageNumber);
+      let renderTask: ReturnType<typeof page.render> | null = null;
+      let abortListener: (() => void) | null = null;
 
       try {
-        await renderTask.promise;
-      } catch (error) {
+        const base = page.getViewport({ scale: 1 });
+        const scale = THUMBNAIL_WIDTH / Math.max(1, base.width);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        const width = Math.max(1, Math.floor(viewport.width));
+        const height = Math.max(1, Math.floor(viewport.height));
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Browser tidak mendukung canvas.");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
+
+        renderTask = page.render({ canvas, canvasContext: context, viewport });
+        abortListener = () => renderTask?.cancel();
+        signal?.addEventListener("abort", abortListener, { once: true });
+
+        try {
+          await renderTask.promise;
+        } catch (error) {
+          if (signal?.aborted) throw createAbortError();
+          throw error;
+        }
+
         if (signal?.aborted) throw createAbortError();
-        throw error;
-      }
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (value) => value ? resolve(value) : reject(new Error("Gagal membuat pratinjau JPG.")),
+            "image/jpeg",
+            JPEG_QUALITY,
+          );
+        });
+        canvas.width = 0;
+        canvas.height = 0;
+        const result = { url: URL.createObjectURL(blob), width, height } satisfies PdfThumbnail;
+        if (this.disposed) {
+          URL.revokeObjectURL(result.url);
+          throw new Error("Preview sudah dibuang.");
+        }
 
-      if (signal?.aborted) throw createAbortError();
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (value) => value ? resolve(value) : reject(new Error("Gagal membuat pratinjau JPG.")),
-          "image/jpeg",
-          JPEG_QUALITY,
-        );
-      });
-      canvas.width = 0;
-      canvas.height = 0;
-      const result = { url: URL.createObjectURL(blob), width, height } satisfies PdfThumbnail;
-      if (this.disposed) {
-        URL.revokeObjectURL(result.url);
-        throw new Error("Preview sudah dibuang.");
-      }
+        this.cache.set(pageNumber, result);
+        while (this.cache.size > MAX_CACHED_THUMBNAILS) {
+          const oldestPage = this.cache.keys().next().value;
+          if (oldestPage === undefined) break;
+          const oldest = this.cache.get(oldestPage);
+          this.cache.delete(oldestPage);
+          if (oldest) URL.revokeObjectURL(oldest.url);
+        }
 
-      this.cache.set(pageNumber, result);
-      while (this.cache.size > MAX_CACHED_THUMBNAILS) {
-        const oldestPage = this.cache.keys().next().value;
-        if (oldestPage === undefined) break;
-        const oldest = this.cache.get(oldestPage);
-        this.cache.delete(oldestPage);
-        if (oldest) URL.revokeObjectURL(oldest.url);
+        return result;
+      } finally {
+        if (signal && abortListener) signal.removeEventListener("abort", abortListener);
+        page.cleanup();
       }
-
-      return result;
     } finally {
-      if (signal && abortListener) signal.removeEventListener("abort", abortListener);
-      page.cleanup();
+      this.activeRenders -= 1;
+      this.cleanupDocumentWhenIdle();
     }
   }
 
@@ -122,8 +140,6 @@ export class PdfThumbnailCache {
     this.disposed = true;
     for (const thumbnail of this.cache.values()) URL.revokeObjectURL(thumbnail.url);
     this.cache.clear();
-    const promise = this.pdfPromise;
-    this.pdfPromise = null;
-    if (promise) void promise.then((pdf) => pdf.cleanup()).catch(() => undefined);
+    this.cleanupDocumentWhenIdle();
   }
 }
