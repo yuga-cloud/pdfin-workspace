@@ -76,10 +76,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths: '/' | '/panduan' | '/alat/atur' | '/alat/konversi' | '/alat/optimalkan' | '/alat/$slug'
   fileRoutesByTo: FileRoutesByTo
-  fileRoutesById: FileRoutesById
-  fileRoutesByTo: FileRoutesByTo
   to: '/' | '/panduan' | '/alat/atur' | '/alat/konversi' | '/alat/optimalkan' | '/alat/$slug'
   id: '__root__' | '/' | '/panduan' | '/alat/atur' | '/alat/konversi' | '/alat/optimalkan' | '/alat/$slug'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
