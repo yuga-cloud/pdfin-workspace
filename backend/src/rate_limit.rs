@@ -175,7 +175,7 @@ mod tests {
     fn does_not_trust_forwarded_for_from_untrusted_peer() {
         let limiter = limiter_with(&[]);
         let peer = "198.51.100.10".parse().unwrap();
-        let client = "203.0.113.20".parse().unwrap();
+        let client: IpAddr = "203.0.113.20".parse().unwrap();
         let mut headers = HeaderMap::new();
         headers.insert("x-forwarded-for", client.to_string().parse().unwrap());
 
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn resolves_forwarded_client_through_trusted_proxy() {
         let proxy = "127.0.0.1".parse().unwrap();
-        let client = "203.0.113.20".parse().unwrap();
+        let client: IpAddr = "203.0.113.20".parse().unwrap();
         let limiter = limiter_with(&[proxy]);
         let mut headers = HeaderMap::new();
         headers.insert("x-forwarded-for", client.to_string().parse().unwrap());
