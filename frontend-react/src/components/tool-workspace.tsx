@@ -22,6 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { acceptFor, type ToolDef } from "@/lib/tools-catalog";
 import {
+  effectiveProcessingLocation,
+  validateDeviceProcessingSize,
+} from "@/lib/processing-policy";
+import {
   countPages,
   processTool,
   renderThumbs,
@@ -116,12 +120,13 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
 
   const accept = acceptFor(tool.accept);
   const inputSize = items.reduce((sum, item) => sum + item.file.size, 0);
+  const processingLocation = effectiveProcessingLocation(tool, options);
   const processingNote =
-    tool.processing === "server"
+    processingLocation === "server"
       ? "File dikirim ke server untuk diproses."
       : "File diproses di perangkat ini.";
   const processButtonLabel =
-    tool.processing === "server" ? "Proses di server" : "Proses di perangkat ini";
+    processingLocation === "server" ? "Proses di server" : "Proses di perangkat ini";
 
   useEffect(() => {
     return () => {
@@ -297,6 +302,17 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
       return;
     }
 
+    const files = items.map((item) => item.file);
+
+    try {
+      validateDeviceProcessingSize(tool, files, options);
+    } catch (validationError) {
+      const message = validationError instanceof Error ? validationError.message : "File terlalu besar untuk pemrosesan di perangkat.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     setProgress({ done: 0, total: 1, label: "Menyiapkan…" });
@@ -304,7 +320,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
     try {
       const output = await processTool(
         tool.slug,
-        items.map((item) => item.file),
+        files,
         options,
         (done, total, label) => setProgress({ done, total, label }),
       );
@@ -348,7 +364,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
     <div
       className={cn(
         "tool-workspace-page mx-auto max-w-3xl",
-        `tool-processing-${tool.processing}`,
+        `tool-processing-${processingLocation}`,
         `tool-accept-${tool.accept}`,
       )}
     >
@@ -367,7 +383,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
             {tool.group === "atur" ? "Atur" : tool.group === "optimalkan" ? "Optimalkan" : "Konversi"}
           </p>
           <span className="workspace-processing-pill">
-            {tool.processing === "server" ? "Diproses di server" : "Diproses di perangkat"}
+            {processingLocation === "server" ? "Diproses di server" : "Diproses di perangkat"}
           </span>
         </div>
 
@@ -613,9 +629,13 @@ function OptionsPanel({ tool, options, setOptions, pageCount }: { tool: ToolDef;
 
       {(tool.slug === "pdf-ke-jpg" || tool.slug === "word-ke-pdf" || tool.slug === "powerpoint-ke-pdf" || tool.slug === "pdf-ke-word" || tool.slug === "pdf-ke-excel" || tool.slug === "pdf-ke-powerpoint" || tool.slug === "excel-ke-pdf") ? (
         <div className="workspace-info-note mt-4 rounded-xl bg-bg px-3 py-3 text-xs leading-relaxed text-muted">
-          Mode pemrosesan: {tool.processing === "server" ? "server" : "perangkat"}. Detail dan batasan hasil mengikuti alat yang kamu pilih.
+          Mode pemrosesan: {processingLocationLabel(tool, options)}. Detail dan batasan hasil mengikuti alat yang kamu pilih.
         </div>
       ) : null}
     </section>
   );
+}
+
+function processingLocationLabel(tool: ToolDef, options: ToolOptions): string {
+  return effectiveProcessingLocation(tool, options) === "server" ? "server" : "perangkat";
 }
