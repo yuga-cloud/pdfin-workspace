@@ -36,6 +36,20 @@ describe("postMultipart", () => {
     } satisfies Partial<ApiError>);
   });
 
+  it("maps an HTTP 413 response to request_too_large", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response("Payload Too Large", { status: 413 }),
+    );
+
+    await expect(
+      postMultipart("/rust-api/test", new FormData()),
+    ).rejects.toMatchObject({
+      code: "request_too_large",
+      status: 413,
+      message: "Ukuran upload melebihi batas server.",
+    } satisfies Partial<ApiError>);
+  });
+
   it("maps a transport failure to network_error", async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new TypeError("offline"));
 
@@ -86,21 +100,6 @@ describe("postMultipart", () => {
     } satisfies Partial<ApiError>);
   });
 
-  it("rejects an oversized multipart payload before fetch", async () => {
-    const fetchMock = vi.fn();
-    globalThis.fetch = fetchMock;
-
-    const formData = new FormData();
-    formData.append("file", new Blob([new Uint8Array(51 * 1024 * 1024)]));
-
-    await expect(postMultipart("/rust-api/test", formData)).rejects.toMatchObject({
-      code: "request_too_large",
-      status: 0,
-    } satisfies Partial<ApiError>);
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
   it("rejects an oversized text field before fetch", async () => {
     const fetchMock = vi.fn();
     globalThis.fetch = fetchMock;
@@ -116,6 +115,24 @@ describe("postMultipart", () => {
     } satisfies Partial<ApiError>);
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("lets the backend enforce upload-size limits", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new Blob(["pdf"]), {
+        status: 200,
+        headers: { "content-type": "application/pdf" },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    const formData = new FormData();
+    formData.append("file", new Blob([new Uint8Array(51 * 1024 * 1024)]));
+
+    const result = await postMultipart("/rust-api/test", formData);
+
+    expect(result.size).toBeGreaterThan(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("rejects empty successful responses", async () => {
