@@ -17,7 +17,7 @@ import {
   Stamp,
 } from "lucide-react";
 
-import { GROUPS, TOOLS, type ToolDef } from "@/lib/tools-catalog";
+import { TOOLS, type ToolDef } from "@/lib/tools-catalog";
 
 const ICONS: Record<ToolDef["slug"], typeof Files> = {
   gabung: Files,
@@ -78,20 +78,6 @@ export function ToolGroupPage({ group }: { group: ToolDef["group"] }) {
           ))}
         </div>
       </section>
-
-      <nav className="tool-group-switcher" aria-label="Kategori alat lainnya">
-        {GROUPS.map((item) => (
-          <Link
-            key={item.id}
-            to={`/alat/${item.id}` as "/alat/atur" | "/alat/optimalkan" | "/alat/konversi"}
-            className={item.id === group ? "is-active" : undefined}
-            aria-current={item.id === group ? "page" : undefined}
-          >
-            {item.label}
-            <ArrowRight className="size-3.5" aria-hidden="true" />
-          </Link>
-        ))}
-      </nav>
     </div>
   );
 }
