@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   ArrowRight,
   CloudCog,
@@ -20,7 +20,7 @@ import {
   Stamp,
   Upload,
 } from "lucide-react";
-import { GROUPS, TOOLS, type ToolDef } from "@/lib/tools-catalog";
+import { TOOLS, type ToolDef } from "@/lib/tools-catalog";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -43,15 +43,7 @@ const ICONS: Record<ToolDef["slug"], typeof Files> = {
   "pdf-ke-powerpoint": Presentation,
 };
 
-type Filter = "semua" | ToolDef["group"];
-
 function Home() {
-  const [filter, setFilter] = useState<Filter>("semua");
-  const visibleTools = useMemo(
-    () => (filter === "semua" ? TOOLS : TOOLS.filter((tool) => tool.group === filter)),
-    [filter],
-  );
-
   return (
     <div className="home-page">
       <section className="home-hero home-hero-wrap" aria-labelledby="home-title">
@@ -100,20 +92,10 @@ function Home() {
             <h2 id="tools-heading">Pilih yang kamu butuhkan</h2>
             <p className="section-lede">Satu tempat untuk pekerjaan PDF harian, dengan lokasi pemrosesan yang jelas.</p>
           </div>
-          <div className="tool-filter" role="tablist" aria-label="Kategori alat">
-            <FilterTab active={filter === "semua"} onClick={() => setFilter("semua")}>
-              Semua
-            </FilterTab>
-            {GROUPS.map((group) => (
-              <FilterTab key={group.id} active={filter === group.id} onClick={() => setFilter(group.id)}>
-                {group.label}
-              </FilterTab>
-            ))}
-          </div>
         </div>
 
         <div className="tool-grid">
-          {visibleTools.map((tool) => (
+          {TOOLS.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />
           ))}
         </div>
@@ -174,22 +156,6 @@ function ProductPreview() {
         </div>
       </div>
     </div>
-  );
-}
-
-function FilterTab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={active ? "is-active" : ""}>
-      {children}
-    </button>
   );
 }
 
