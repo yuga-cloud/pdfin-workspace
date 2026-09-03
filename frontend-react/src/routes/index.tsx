@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
+  CheckCircle2,
   CloudCog,
+  FileCheck2,
   FileImage,
   FileSpreadsheet,
   FileText,
@@ -13,6 +15,7 @@ import {
   LockKeyhole,
   Minimize2,
   MonitorCheck,
+  MousePointer2,
   Presentation,
   RotateCw,
   Scissors,
@@ -113,6 +116,7 @@ function Home() {
 function ProductPreview() {
   return (
     <div className="product-preview" aria-hidden="true">
+      <div className="product-preview-cursor"><MousePointer2 /></div>
       <div className="product-window">
         <div className="product-window-bar">
           <div className="product-window-dots"><span /><span /><span /></div>
@@ -135,13 +139,44 @@ function ProductPreview() {
               </div>
               <span className="product-window-status"><CloudCog /> Server</span>
             </div>
-            <div className="product-window-drop">
-              <span className="product-window-drop-icon"><Upload className="size-5" /></span>
-              <div className="product-window-drop-copy">
-                <strong>Letakkan file di sini</strong>
-                <span>atau pilih dari perangkat</span>
+
+            <div className="product-demo-stage">
+              <div className="product-window-drop">
+                <span className="product-window-drop-icon"><Upload className="size-5" /></span>
+                <div className="product-window-drop-copy">
+                  <strong>Letakkan file di sini</strong>
+                  <span>atau pilih dari perangkat</span>
+                </div>
+              </div>
+
+              <div className="product-demo-files">
+                <div className="product-demo-file product-demo-file-one">
+                  <span className="product-demo-file-icon"><FileText /></span>
+                  <span><strong>laporan.pdf</strong><small>4.8 MB</small></span>
+                  <CheckCircle2 className="product-demo-file-check" />
+                </div>
+                <div className="product-demo-file product-demo-file-two">
+                  <span className="product-demo-file-icon"><FileCheck2 /></span>
+                  <span><strong>invoice.pdf</strong><small>1.9 MB</small></span>
+                  <CheckCircle2 className="product-demo-file-check" />
+                </div>
+              </div>
+
+              <div className="product-demo-progress">
+                <div className="product-demo-progress-copy">
+                  <span><LoaderDot /> Menggabungkan dokumen</span>
+                  <strong>78%</strong>
+                </div>
+                <div className="product-demo-progress-track"><span /></div>
+              </div>
+
+              <div className="product-demo-success">
+                <div className="product-demo-success-icon"><CheckCircle2 /></div>
+                <div><strong>PDF selesai</strong><span>2 dokumen berhasil digabung</span></div>
+                <span className="product-demo-download">Unduh <ArrowRight /></span>
               </div>
             </div>
+
             <div className="product-window-mini-row">
               <div className="product-window-mini-card">
                 <span className="product-window-mini-label">FILES</span>
@@ -157,6 +192,10 @@ function ProductPreview() {
       </div>
     </div>
   );
+}
+
+function LoaderDot() {
+  return <span className="product-demo-loader-dot" aria-hidden="true" />;
 }
 
 function ToolCard({ tool }: { tool: ToolDef }) {
