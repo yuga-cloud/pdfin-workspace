@@ -1,0 +1,45 @@
+[Unit]
+Description=pdfin Rust PDF processing backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pdfin
+Group=pdfin
+ExecStart=/opt/pdfin/bin/backend
+Restart=on-failure
+RestartSec=2
+
+# Keep the HTTP listener private; put a TLS reverse proxy in front for public deployments.
+Environment=PDFIN_HOST=127.0.0.1
+Environment=PDFIN_PORT=3000
+Environment=PDFIN_MAX_REQUEST_MB=50
+Environment=PDFIN_REQUEST_TIMEOUT_SECONDS=120
+Environment=PDFIN_MAX_CONCURRENCY=4
+Environment=PDFIN_MAX_CONVERSION_CONCURRENCY=2
+Environment=PDFIN_RATE_LIMIT_PER_MINUTE=60
+Environment=PDFIN_RATE_LIMIT_BURST=10
+
+# Least-privilege hardening for untrusted PDF/Office processing.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+# The service only needs a temporary working area plus its executable and libraries.
+ReadWritePaths=/tmp
+
+[Install]
+WantedBy=multi-user.target
