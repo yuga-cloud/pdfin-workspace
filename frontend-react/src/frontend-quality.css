@@ -1,0 +1,129 @@
+/* Performance + visual quality pass. Keep effects cheap and layout predictable. */
+
+.workspace-page-grid {
+  contain: layout paint style;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 760px;
+}
+
+.workspace-page-card {
+  contain: layout paint;
+  overflow: clip;
+  border: 1px solid color-mix(in oklch, var(--color-border) 78%, transparent);
+  transition:
+    border-color var(--motion-quick) ease,
+    box-shadow var(--motion-fast) var(--ease-out),
+    transform var(--motion-quick) var(--ease-out);
+}
+
+.workspace-page-card:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
+  box-shadow: var(--shadow-card);
+}
+
+.workspace-page-card:focus-within {
+  border-color: color-mix(in oklch, var(--color-primary) 28%, var(--color-border));
+}
+
+.workspace-page-card img {
+  display: block;
+  contain: layout paint;
+  content-visibility: auto;
+  background: var(--color-surface-2);
+}
+
+.workspace-dropzone-shell,
+.workspace-options,
+.workspace-pages,
+.workspace-result {
+  contain: layout style;
+}
+
+.workspace-file-row,
+.workspace-check-row,
+.workspace-choice,
+.workspace-chip,
+.workspace-process-button,
+.workspace-download-button {
+  min-height: 44px;
+}
+
+.workspace-choice,
+.workspace-chip,
+.workspace-segmented > button,
+.workspace-inline-actions > button,
+.workspace-page-card button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.workspace-field {
+  transition:
+    border-color var(--motion-quick) ease,
+    box-shadow var(--motion-quick) ease,
+    background-color var(--motion-quick) ease;
+}
+
+.workspace-field:hover {
+  border-color: color-mix(in oklch, var(--color-fg) 18%, var(--color-border));
+}
+
+.workspace-field:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-primary) 14%, transparent);
+}
+
+.tool-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.tool-card,
+.home-hero-action,
+.workspace-back-link,
+.workspace-process-button {
+  transition-property: transform, box-shadow, border-color, background-color, color, opacity;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease-out);
+}
+
+@media (hover: hover) {
+  .tool-card:hover,
+  .home-hero-action:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 639px) {
+  .workspace-page-grid {
+    gap: .625rem;
+  }
+
+  .workspace-page-card {
+    border-radius: .875rem;
+  }
+
+  .workspace-process-row {
+    position: sticky;
+    bottom: .75rem;
+    z-index: 20;
+    padding: .625rem;
+    margin-inline: -.625rem;
+    border: 1px solid color-mix(in oklch, var(--color-border) 82%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklch, var(--color-surface) 88%, transparent);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow-floating);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-page-card,
+  .workspace-field,
+  .tool-card,
+  .home-hero-action,
+  .workspace-back-link,
+  .workspace-process-button {
+    transition: none;
+  }
+}
