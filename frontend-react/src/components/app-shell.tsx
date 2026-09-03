@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { Logo } from "@/components/logo";
-import { getTool } from "@/lib/tools-catalog";
+import { getTool, type ToolDef } from "@/lib/tools-catalog";
 
 interface AppShellProps {
   children: ReactNode;
@@ -31,12 +31,21 @@ function NavIcon({ children }: { children: ReactNode }) {
   );
 }
 
+function groupFromPath(pathname: string): ToolDef["group"] | undefined {
+  if (pathname === "/alat/atur" || pathname === "/alat/optimalkan" || pathname === "/alat/konversi") {
+    return pathname.slice("/alat/".length) as ToolDef["group"];
+  }
+
+  if (pathname.startsWith("/alat/")) {
+    return getTool(pathname.slice("/alat/".length))?.group;
+  }
+
+  return undefined;
+}
+
 export function AppShell({ children }: AppShellProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const currentTool = pathname.startsWith("/alat/")
-    ? getTool(pathname.slice("/alat/".length))
-    : undefined;
-  const activeGroup = currentTool?.group;
+  const activeGroup = groupFromPath(pathname);
   const homeActive = pathname === "/";
   const guideActive = pathname === "/panduan";
   const organizeActive = activeGroup === "atur";
@@ -53,11 +62,11 @@ export function AppShell({ children }: AppShellProps) {
       </a>
 
       <header className="app-header sticky top-0 z-40 border-b border-border/70 bg-surface/90 shadow-[0_1px_0_rgba(32,33,36,0.02)] backdrop-blur-xl">
-        <div className="mx-auto flex min-h-18 max-w-6xl flex-wrap items-center gap-3 px-4 py-2 sm:px-6 md:flex-nowrap md:gap-4 md:py-0">
+        <div className="mx-auto flex min-h-18 max-w-6xl items-center gap-3 px-4 py-2 sm:px-6 md:gap-4 md:py-0">
           <Logo className="shrink-0" />
 
           <nav
-            className="app-primary-nav order-2 flex min-w-0 w-full items-center overflow-x-auto md:order-none md:ml-auto md:w-auto"
+            className="app-primary-nav flex min-w-0 flex-1 items-center overflow-x-auto"
             aria-label="Navigasi utama"
           >
             <Link
@@ -70,8 +79,7 @@ export function AppShell({ children }: AppShellProps) {
               Semua
             </Link>
             <Link
-              to="/alat/$slug"
-              params={{ slug: "gabung" }}
+              to="/alat/atur"
               className={organizeActive ? navLinkActiveClass : navLinkClass}
               aria-current={organizeActive ? "page" : undefined}
             >
@@ -79,8 +87,7 @@ export function AppShell({ children }: AppShellProps) {
               Atur PDF
             </Link>
             <Link
-              to="/alat/$slug"
-              params={{ slug: "kompres" }}
+              to="/alat/optimalkan"
               className={optimizeActive ? navLinkActiveClass : navLinkClass}
               aria-current={optimizeActive ? "page" : undefined}
             >
@@ -88,8 +95,7 @@ export function AppShell({ children }: AppShellProps) {
               Optimalkan
             </Link>
             <Link
-              to="/alat/$slug"
-              params={{ slug: "pdf-ke-word" }}
+              to="/alat/konversi"
               className={convertActive ? navLinkActiveClass : navLinkClass}
               aria-current={convertActive ? "page" : undefined}
             >
