@@ -22,6 +22,7 @@ use crate::{
 };
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
+const MAX_PDF_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
 const MAX_QUALITY_FIELD_BYTES: usize = 32;
 const PDF_HEADER_SCAN_BYTES: usize = 1024;
 
@@ -70,9 +71,16 @@ pub async fn compress_pdf(
                     total_written = total_written.checked_add(chunk.len()).ok_or_else(|| {
                         AppError::bad_request(
                             "upload_too_large",
-                            "Ukuran file PDF melebihi batas yang didukung",
+                            "Ukuran file PDF melebihi batas maksimum (500 MB)",
                         )
                     })?;
+
+                    if total_written > MAX_PDF_UPLOAD_BYTES {
+                        return Err(AppError::bad_request(
+                            "upload_too_large",
+                            "Ukuran file PDF melebihi batas maksimum (500 MB)",
+                        ));
+                    }
 
                     output.write_all(&chunk).await.map_err(|error| {
                         error!(%error, "Gagal menulis chunk PDF sementara");
