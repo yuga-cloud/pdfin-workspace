@@ -15,14 +15,14 @@ use std::{
 };
 
 use axum::{
+    Router,
     extract::DefaultBodyLimit,
     extract::{ConnectInfo, Request, State},
-    http::{header::RETRY_AFTER, HeaderValue},
+    http::{HeaderValue, header::RETRY_AFTER},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::get,
     serve::ListenerExt,
-    Router,
 };
 use tokio::{net::TcpListener, sync::Semaphore};
 use tower::limit::ConcurrencyLimitLayer;
@@ -252,9 +252,8 @@ async fn shutdown_signal() {
 
     #[cfg(unix)]
     let terminate = async {
-        let mut signal =
-            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-                .expect("gagal memasang SIGTERM handler");
+        let mut signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("gagal memasang SIGTERM handler");
 
         signal.recv().await;
     };
