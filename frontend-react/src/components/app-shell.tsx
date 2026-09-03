@@ -21,7 +21,7 @@ const navLinkClass =
   "app-nav-link inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform] duration-200 hover:-translate-y-px hover:bg-surface hover:text-fg";
 
 const navLinkActiveClass =
-  "app-nav-link app-nav-link-active inline-flex shrink-0 items-center gap-2 rounded-xl bg-fg px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm";
+  "app-nav-link app-nav-link-active inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-fg";
 
 function NavIcon({ children }: { children: ReactNode }) {
   return (
