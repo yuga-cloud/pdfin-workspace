@@ -97,7 +97,6 @@
   p { text-wrap: pretty; }
   img, svg { max-width: 100%; }
   main { isolation: isolate; }
-  main > * { animation: page-enter 380ms var(--ease-smooth-out) both; }
   footer { background: rgba(255,255,255,.34); }
 
   input,
@@ -130,8 +129,6 @@
     margin: 0;
   }
 }
-
-@keyframes page-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
 .shadow-\\[var\\(--shadow-card\\)\\] { box-shadow: var(--shadow-card); }
 .shadow-\\[var\\(--shadow-card-hover\\)\\] { box-shadow: var(--shadow-card-hover); }
