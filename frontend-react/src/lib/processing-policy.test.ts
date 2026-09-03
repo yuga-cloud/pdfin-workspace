@@ -17,10 +17,7 @@ const baseTool = (overrides: Partial<ToolDef> = {}): ToolDef => ({
 
 const options = (splitEach = false) => ({ splitEach });
 
-const makeFile = (size: number) =>
-  new File([new Uint8Array(Math.min(size, 1))], "sample.pdf", {
-    type: "application/pdf",
-  });
+const makeFile = (size: number) => ({ size }) as File;
 
 describe("processing policy", () => {
   it("keeps the declared server execution mode", () => {
