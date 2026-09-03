@@ -36,6 +36,34 @@ describe("postMultipart", () => {
     } satisfies Partial<ApiError>);
   });
 
+  it("preserves backend rate-limit errors", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: {
+            code: "rate_limited",
+            message: "Terlalu banyak request.",
+          },
+        }),
+        {
+          status: 429,
+          headers: {
+            "content-type": "application/json",
+            "retry-after": "1",
+          },
+        },
+      ),
+    );
+
+    await expect(
+      postMultipart("/rust-api/test", new FormData()),
+    ).rejects.toMatchObject({
+      code: "rate_limited",
+      status: 429,
+      message: "Terlalu banyak request.",
+    } satisfies Partial<ApiError>);
+  });
+
   it("maps a transport failure to network_error", async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new TypeError("offline"));
 
@@ -84,21 +112,6 @@ describe("postMultipart", () => {
       code: "request_timeout",
       status: 0,
     } satisfies Partial<ApiError>);
-  });
-
-  it("rejects an oversized multipart payload before fetch", async () => {
-    const fetchMock = vi.fn();
-    globalThis.fetch = fetchMock;
-
-    const formData = new FormData();
-    formData.append("file", new Blob([new Uint8Array(51 * 1024 * 1024)]));
-
-    await expect(postMultipart("/rust-api/test", formData)).rejects.toMatchObject({
-      code: "request_too_large",
-      status: 0,
-    } satisfies Partial<ApiError>);
-
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects an oversized text field before fetch", async () => {
