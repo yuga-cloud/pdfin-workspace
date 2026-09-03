@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { effectiveProcessingLocation, validateDeviceProcessingSize } from "@/lib/processing-policy";
+import {
+  effectiveProcessingLocation,
+  validateDeviceProcessingSize,
+} from "@/lib/processing-policy";
 import type { ToolDef } from "@/lib/tools-catalog";
 
 const baseTool = (overrides: Partial<ToolDef> = {}): ToolDef => ({
   slug: "watermark",
   title: "Watermark",
+  short: "Watermark",
   description: "",
   hint: "",
   group: "atur",
@@ -17,16 +21,24 @@ const baseTool = (overrides: Partial<ToolDef> = {}): ToolDef => ({
 
 const options = (splitEach = false) => ({ splitEach });
 
-const makeFile = (size: number) => ({ size }) as File;
+const makeFile = (size: number) => ({ size, name: "sample.pdf" }) as File;
 
 describe("processing policy", () => {
   it("keeps the declared server execution mode", () => {
-    expect(effectiveProcessingLocation(baseTool({ processing: "server" }), options())).toBe("server");
+    expect(
+      effectiveProcessingLocation(
+        baseTool({ processing: "server" }),
+        options(),
+      ),
+    ).toBe("server");
   });
 
   it("uses device execution for per-page split", () => {
     expect(
-      effectiveProcessingLocation(baseTool({ slug: "pisah", processing: "server" }), options(true)),
+      effectiveProcessingLocation(
+        baseTool({ slug: "pisah", processing: "server" }),
+        options(true),
+      ),
     ).toBe("device");
   });
 
