@@ -116,12 +116,13 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
 
   const accept = acceptFor(tool.accept);
   const inputSize = items.reduce((sum, item) => sum + item.file.size, 0);
+  const processing = tool.slug === "pisah" && options.splitEach ? "device" : tool.processing;
   const processingNote =
-    tool.processing === "server"
+    processing === "server"
       ? "File dikirim ke server untuk diproses."
       : "File diproses di perangkat ini.";
   const processButtonLabel =
-    tool.processing === "server" ? "Proses di server" : "Proses di perangkat ini";
+    processing === "server" ? "Proses di server" : "Proses di perangkat ini";
 
   useEffect(() => {
     return () => {
@@ -348,7 +349,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
     <div
       className={cn(
         "tool-workspace-page mx-auto max-w-3xl",
-        `tool-processing-${tool.processing}`,
+        `tool-processing-${processing}`,
         `tool-accept-${tool.accept}`,
       )}
     >
@@ -367,7 +368,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
             {tool.group === "atur" ? "Atur" : tool.group === "optimalkan" ? "Optimalkan" : "Konversi"}
           </p>
           <span className="workspace-processing-pill">
-            {tool.processing === "server" ? "Diproses di server" : "Diproses di perangkat"}
+            {processing === "server" ? "Diproses di server" : "Diproses di perangkat"}
           </span>
         </div>
 
@@ -535,6 +536,8 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
 function OptionsPanel({ tool, options, setOptions, pageCount }: { tool: ToolDef; options: ToolOptions; setOptions: Dispatch<SetStateAction<ToolOptions>>; pageCount: number | null }) {
   if (tool.slug === "gabung" || tool.slug === "jpg-ke-pdf" || tool.slug === "halaman") return null;
 
+  const processing = tool.slug === "pisah" && options.splitEach ? "device" : tool.processing;
+
   return (
     <section className="workspace-options mt-6 rounded-2xl bg-surface p-4 sm:p-5">
       <div className="workspace-panel-heading">
@@ -613,7 +616,7 @@ function OptionsPanel({ tool, options, setOptions, pageCount }: { tool: ToolDef;
 
       {(tool.slug === "pdf-ke-jpg" || tool.slug === "word-ke-pdf" || tool.slug === "powerpoint-ke-pdf" || tool.slug === "pdf-ke-word" || tool.slug === "pdf-ke-excel" || tool.slug === "pdf-ke-powerpoint" || tool.slug === "excel-ke-pdf") ? (
         <div className="workspace-info-note mt-4 rounded-xl bg-bg px-3 py-3 text-xs leading-relaxed text-muted">
-          Mode pemrosesan: {tool.processing === "server" ? "server" : "perangkat"}. Detail dan batasan hasil mengikuti alat yang kamu pilih.
+          Mode pemrosesan: {processing === "server" ? "server" : "perangkat"}. Detail dan batasan hasil mengikuti alat yang kamu pilih.
         </div>
       ) : null}
     </section>
