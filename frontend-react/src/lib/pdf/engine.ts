@@ -1,1 +1,1 @@
-RESTORE_FROM_ORIGINAL_BLOB
+I need the original file content to restore this safely. This placeholder must be replaced from the original blob SHA e0afc85311b04f9cc5842ce3e16aa3432e2c3365.
