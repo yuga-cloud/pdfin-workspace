@@ -149,8 +149,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: frontend-react/package.json
+          # No package-lock.json is committed yet, so npm dependency caching
+          # would not have a lockfile-based cache key and could reuse a stale
+          # dependency cache. Re-enable cache together with npm ci once the
+          # lockfile is committed to the repository.
+          package-manager-cache: false
 
       - name: Install dependencies
         run: npm install
