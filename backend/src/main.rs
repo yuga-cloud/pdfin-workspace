@@ -2,6 +2,7 @@ mod engines;
 mod error;
 mod features;
 mod handlers;
+mod rate_limit;
 mod routes;
 mod state;
 mod zip;
@@ -13,7 +14,16 @@ use std::{
     time::Duration,
 };
 
-use axum::{Router, extract::DefaultBodyLimit, routing::get, serve::ListenerExt};
+use axum::{
+    Router,
+    extract::DefaultBodyLimit,
+    extract::{ConnectInfo, Request, State},
+    http::{HeaderValue, header::RETRY_AFTER},
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
+    routing::get,
+    serve::ListenerExt,
+};
 use tokio::{net::TcpListener, sync::Semaphore};
 use tower::limit::ConcurrencyLimitLayer;
 use tower_http::{
@@ -21,7 +31,7 @@ use tower_http::{
 };
 use tracing::info;
 
-use crate::state::AppState;
+use crate::{error::AppError, rate_limit::IpRateLimiter, state::AppState};
 
 const DEFAULT_HOST: Ipv4Addr = Ipv4Addr::LOCALHOST;
 const DEFAULT_PORT: u16 = 3000;
@@ -72,6 +82,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let state = AppState {
         pdf_semaphore: Arc::new(Semaphore::new(pdf_concurrency)),
         conversion_semaphore: Arc::new(Semaphore::new(conversion_concurrency)),
+        rate_limiter: IpRateLimiter::from_env(),
     };
 
     info!(
@@ -89,7 +100,10 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let app = Router::new()
         .route("/health", get(health))
-        .merge(routes::api_routes())
+        .merge(routes::api_routes().layer(middleware::from_fn_with_state(
+            state.clone(),
+            enforce_rate_limit,
+        )))
         .with_state(state)
         .layer(ConcurrencyLimitLayer::new(max_in_flight_requests))
         .layer(DefaultBodyLimit::max(max_request_body_size))
@@ -129,9 +143,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     info!(address = %server_addr, "Backend Axum berjalan");
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     info!("Backend Axum berhenti");
 
@@ -140,6 +157,27 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 async fn health() -> &'static str {
     "ok"
+}
+
+async fn enforce_rate_limit(
+    State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if !state.rate_limiter.allow(addr.ip()) {
+        let mut response = AppError::too_many_requests(
+            "rate_limited",
+            "Terlalu banyak request. Silakan coba lagi sebentar.",
+        )
+        .into_response();
+        response
+            .headers_mut()
+            .insert(RETRY_AFTER, HeaderValue::from_static("1"));
+        return response;
+    }
+
+    next.run(request).await
 }
 
 fn parse_env<T>(name: &str, default: T) -> T

@@ -1,135 +1,151 @@
-﻿import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  ArrowLeftRight,
+  BookOpen,
+  CloudCog,
+  Files,
+  Layers2,
+  Minimize2,
+  MonitorCheck,
+} from "lucide-react";
 
 import { Logo } from "@/components/logo";
-import { TOOLS } from "@/lib/tools-catalog";
+import { getTool, type ToolDef } from "@/lib/tools-catalog";
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 const navLinkClass =
-  "rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-fg";
+  "app-nav-link inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform] duration-200 hover:-translate-y-px hover:bg-surface hover:text-fg";
 
 const navLinkActiveClass =
-  "rounded-md bg-surface-2 px-3 py-2 text-sm text-fg";
+  "app-nav-link app-nav-link-active inline-flex shrink-0 items-center gap-2 rounded-xl bg-fg px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm";
 
-const toolLinkClass =
-  "shrink-0 rounded-full px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg";
+function NavIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="app-nav-icon" aria-hidden="true">
+      {children}
+    </span>
+  );
+}
 
-const toolLinkActiveClass =
-  "shrink-0 rounded-full bg-fg px-3 py-2 text-xs font-medium text-bg hover:bg-fg hover:text-bg";
+function groupFromPath(pathname: string): ToolDef["group"] | undefined {
+  if (pathname === "/alat/atur" || pathname === "/alat/optimalkan" || pathname === "/alat/konversi") {
+    return pathname.slice("/alat/".length) as ToolDef["group"];
+  }
+
+  if (pathname.startsWith("/alat/")) {
+    return getTool(pathname.slice("/alat/".length))?.group;
+  }
+
+  return undefined;
+}
 
 export function AppShell({ children }: AppShellProps) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeGroup = groupFromPath(pathname);
+  const homeActive = pathname === "/";
+  const guideActive = pathname === "/panduan";
+  const organizeActive = activeGroup === "atur";
+  const optimizeActive = activeGroup === "optimalkan";
+  const convertActive = activeGroup === "konversi";
+
   return (
-    <div className="min-h-dvh bg-bg text-fg">
+    <div className="app-shell min-h-dvh bg-bg text-fg">
       <a
         href="#isi"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-fg focus:px-3 focus:py-2 focus:text-bg"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-fg focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
       >
         Loncat ke isi
       </a>
 
-      <header className="border-b border-border/80 bg-surface/90 backdrop-blur-sm">
-        <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-4 px-4">
-          <Logo />
+      <header className="app-header sticky top-0 z-40 border-b border-border/70 bg-surface/90 shadow-[0_1px_0_rgba(32,33,36,0.02)] backdrop-blur-xl">
+        <div className="mx-auto flex min-h-18 max-w-6xl items-center gap-3 px-4 py-2 sm:px-6 md:gap-4 md:py-0">
+          <Logo className="shrink-0" />
 
           <nav
-            className="hidden items-center gap-1 md:flex"
+            className="app-primary-nav flex min-w-0 flex-1 items-center overflow-x-auto"
             aria-label="Navigasi utama"
           >
             <Link
               to="/"
-              className={`${navLinkClass} font-medium`}
-              activeProps={{ className: `${navLinkActiveClass} font-medium` }}
+              className={homeActive ? navLinkActiveClass : navLinkClass}
+              aria-current={homeActive ? "page" : undefined}
+              activeOptions={{ exact: true }}
             >
-              Semua alat
+              <NavIcon><Files /></NavIcon>
+              Semua
             </Link>
-
             <Link
-              to="/alat/$slug"
-              params={{ slug: "gabung" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
+              to="/alat/atur"
+              className={organizeActive ? navLinkActiveClass : navLinkClass}
+              aria-current={organizeActive ? "page" : undefined}
             >
+              <NavIcon><Layers2 /></NavIcon>
               Atur PDF
             </Link>
-
             <Link
-              to="/alat/$slug"
-              params={{ slug: "pdf-ke-word" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
+              to="/alat/optimalkan"
+              className={optimizeActive ? navLinkActiveClass : navLinkClass}
+              aria-current={optimizeActive ? "page" : undefined}
             >
+              <NavIcon><Minimize2 /></NavIcon>
+              Optimalkan
+            </Link>
+            <Link
+              to="/alat/konversi"
+              className={convertActive ? navLinkActiveClass : navLinkClass}
+              aria-current={convertActive ? "page" : undefined}
+            >
+              <NavIcon><ArrowLeftRight /></NavIcon>
               Konversi
             </Link>
-
             <Link
               to="/panduan"
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
+              className={guideActive ? navLinkActiveClass : navLinkClass}
+              aria-current={guideActive ? "page" : undefined}
+              activeOptions={{ exact: true }}
             >
+              <NavIcon><BookOpen /></NavIcon>
               Panduan
             </Link>
-          </nav>
-
-          <Link
-            to="/panduan"
-            className={`${navLinkClass} md:hidden`}
-            activeProps={{ className: `${navLinkActiveClass} md:hidden` }}
-          >
-            Panduan
-          </Link>
-        </div>
-
-        <div className="border-t border-border/60 md:hidden">
-          <nav
-            className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 scrollbar-none"
-            aria-label="Alat"
-          >
-            {TOOLS.map((tool) => (
-              <Link
-                key={tool.slug}
-                to="/alat/$slug"
-                params={{ slug: tool.slug }}
-                className={toolLinkClass}
-                activeProps={{ className: toolLinkActiveClass }}
-              >
-                {tool.short}
-              </Link>
-            ))}
           </nav>
         </div>
       </header>
 
-      <div className="border-b border-border/70 bg-surface-2/60">
-        <p className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 text-xs text-muted sm:text-sm">
-          <ShieldCheck
-            className="size-4 shrink-0 text-primary"
-            aria-hidden="true"
-          />
-          File tidak pernah diunggah. Semua diproses di HP atau laptop kamu.
-        </p>
+      <div className="processing-banner border-b border-border/65 bg-surface/72">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-xs font-medium text-muted sm:px-6 sm:text-sm">
+          <span className="inline-flex items-center gap-2">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <MonitorCheck className="size-3.5" aria-hidden="true" />
+            </span>
+            Pemrosesan berbeda menurut alat.
+          </span>
+          <span className="hidden text-border sm:inline" aria-hidden="true">·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <MonitorCheck className="size-3.5 text-ok" aria-hidden="true" />
+            Sebagian diproses di perangkat
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <CloudCog className="size-3.5 text-muted" aria-hidden="true" />
+            Sebagian diproses di server
+          </span>
+        </div>
       </div>
 
-      <main
-        id="isi"
-        className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-10"
-      >
+      <main id="isi" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         {children}
       </main>
 
-      <footer className="border-t border-border/80">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+      <footer className="app-footer border-t border-border/80 bg-surface/45">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
-            <span className="font-medium text-fg">
-              pdf<span className="text-primary">in</span>
-            </span>{" "}
-            &ndash; alat PDF Indonesia, tanpa server menyimpan file.
+            <span className="font-semibold text-fg">pdf<span className="text-primary">in</span></span>{" "}
+            – alat PDF Indonesia dengan pemrosesan di perangkat atau server sesuai alat.
           </p>
-
-          <p>Gelombang 1 &middot; proses di perangkat</p>
+          <p className="rounded-full bg-bg px-3 py-1.5 text-xs font-medium">Lokasi pemrosesan ditampilkan di setiap alat</p>
         </div>
       </footer>
     </div>

@@ -17,6 +17,7 @@ use crate::{
 };
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
+const MAX_PDF_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
 const MAX_PAGE_ORDER_LENGTH: usize = 16 * 1024;
 
 pub async fn manage_pages(
@@ -50,10 +51,25 @@ pub async fn manage_pages(
                     AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
                 })?);
 
+                let mut size = 0usize;
                 while let Some(chunk) = field.chunk().await.map_err(|error| {
                     error!(%error, "Gagal membaca file PDF");
                     AppError::bad_request("invalid_upload", "Gagal membaca file PDF yang diunggah")
                 })? {
+                    size = size.checked_add(chunk.len()).ok_or_else(|| {
+                        AppError::bad_request(
+                            "pages_input_too_large",
+                            "Ukuran PDF melebihi batas maksimum (500 MB)",
+                        )
+                    })?;
+
+                    if size > MAX_PDF_UPLOAD_BYTES {
+                        return Err(AppError::bad_request(
+                            "pages_input_too_large",
+                            "Ukuran PDF melebihi batas maksimum (500 MB)",
+                        ));
+                    }
+
                     output.write_all(&chunk).await.map_err(|error| {
                         error!(%error, "Gagal menulis temporary PDF");
                         AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
@@ -64,6 +80,10 @@ pub async fn manage_pages(
                     error!(%error, "Gagal flush temporary PDF");
                     AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
                 })?;
+
+                if size == 0 {
+                    return Err(AppError::bad_request("empty_file", "File PDF kosong"));
+                }
 
                 file_present = true;
             }
