@@ -101,7 +101,13 @@ fn parse_trusted_proxies() -> HashSet<IpAddr> {
     std::env::var("PDFIN_TRUSTED_PROXY_IPS")
         .ok()
         .into_iter()
-        .flat_map(|value| value.split(',').map(str::trim).map(str::to_owned).collect::<Vec<_>>())
+        .flat_map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        })
         .filter_map(|value| match value.parse::<IpAddr>() {
             Ok(ip) => Some(ip),
             Err(_) => {
