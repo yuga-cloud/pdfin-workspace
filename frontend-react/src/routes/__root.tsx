@@ -15,9 +15,10 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Alat PDF Indonesia: gabung, pisah, kompres, JPG, putar, watermark. File tidak pernah diunggah.",
+          "Alat PDF Indonesia untuk menggabung, memisah, mengompres, memutar, memberi watermark, dan mengonversi dokumen. Lokasi pemrosesan ditampilkan sesuai alat.",
       },
-      { name: "theme-color", content: "#0f6e6e" },
+      { name: "theme-color", content: "#f7f7f5" },
+      { name: "color-scheme", content: "light" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

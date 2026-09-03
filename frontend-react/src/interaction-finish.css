@@ -1,0 +1,166 @@
+/* Final interaction polish: reusable UI motion and focus states. Visual only. */
+.tool-card:focus-visible,
+.home-hero-action:focus-visible,
+.workspace-back-link:focus-visible,
+.tool-missing a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 14%, transparent), 0 0 0 1px var(--color-ring), var(--shadow-card);
+}
+
+/* Compact controls stay visually quiet while remaining easy to tap. */
+.workspace-inline-actions button,
+.workspace-remove-button,
+.workspace-page-card button { touch-action: manipulation; }
+.workspace-page-card button:disabled,
+.workspace-inline-actions button:disabled,
+.workspace-remove-button:disabled { cursor: not-allowed; opacity: .38; }
+.workspace-page-card button:not(:disabled):hover,
+.workspace-inline-actions button:not(:disabled):hover,
+.workspace-remove-button:not(:disabled):hover { background: color-mix(in oklch, var(--color-fg) 5%, var(--color-surface)); }
+
+.brand-mark {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(32,33,36,.12), 0 8px 18px -14px rgba(32,33,36,.45);
+  transition: transform 220ms var(--ease-out), box-shadow 220ms ease, background-color 180ms ease;
+}
+.brand-mark::after { position: absolute; inset: -50% -80%; background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,.16) 50%, transparent 58%); content: ""; transform: translateX(-55%) rotate(8deg); transition: transform 600ms var(--ease-out); }
+.group:hover .brand-mark,
+.group:focus-visible .brand-mark { transform: translateY(-1px) scale(1.035) rotate(-2deg); box-shadow: 0 2px 3px rgba(32,33,36,.14), 0 12px 24px -15px rgba(32,33,36,.5); }
+.group:hover .brand-mark::after,
+.group:focus-visible .brand-mark::after { transform: translateX(55%) rotate(8deg); }
+.brand-mark-icon { position: relative; z-index: 1; transition: transform 220ms var(--ease-out); }
+.group:hover .brand-mark-icon,
+.group:focus-visible .brand-mark-icon { transform: scale(1.06); }
+
+.tool-card:hover .tool-processing-badge .lucide,
+.workspace-inline-actions button:not(:disabled):hover .lucide,
+.workspace-result button:not(:disabled):hover .lucide { transform: translateY(-1px) scale(1.05); }
+.tool-processing-badge .lucide,
+.workspace-inline-actions .lucide,
+.workspace-result .lucide,
+.pdfin-progress-bar,
+.product-window-drop-icon .lucide,
+.product-window-side-item svg,
+.processing-banner svg { transition: transform 180ms var(--ease-out), stroke-width 180ms ease, opacity 180ms ease, color 180ms ease; }
+.tool-card:hover .tool-processing-badge { border-color: color-mix(in oklch, currentColor 22%, var(--color-border)); }
+.home-hero-action-primary:hover .lucide { transform: translateX(2px) rotate(-2deg); }
+.home-hero-action-secondary:hover .lucide { transform: translateX(3px); }
+.workspace-back-link:hover .lucide { transform: translateX(-2px); }
+.workspace-back-link .lucide,
+.home-hero-action .lucide { transition: transform 180ms var(--ease-out); }
+
+.processing-mode-card { transition: transform 180ms var(--ease-out), border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+.processing-mode-card:hover { transform: translateY(-1px); border-color: color-mix(in oklch, var(--color-fg) 13%, var(--color-border)); box-shadow: var(--shadow-card); background: var(--color-surface); }
+.processing-mode-card.device:hover { border-color: color-mix(in oklch, var(--color-ok) 22%, var(--color-border)); }
+.processing-mode-card.server:hover { border-color: color-mix(in oklch, var(--color-fg) 16%, var(--color-border)); }
+
+.guide-step { transition: transform 180ms var(--ease-out), border-color 180ms ease, background-color 180ms ease; }
+.guide-section:hover .guide-step { transform: translateY(-1px); border-color: color-mix(in oklch, var(--color-primary) 22%, var(--color-border)); background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-2)); }
+
+.workspace-check-row:has(input:focus-visible),
+.workspace-choice:has(input:focus-visible) { border-color: color-mix(in oklch, var(--color-ring) 42%, var(--color-border)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 9%, transparent); }
+.workspace-choice.is-selected { box-shadow: 0 0 0 1px color-mix(in oklch, var(--color-primary) 10%, transparent), 0 8px 22px -18px color-mix(in oklch, var(--color-primary) 35%, transparent); }
+.workspace-segmented button.is-selected { box-shadow: 0 5px 14px -10px color-mix(in oklch, var(--color-fg) 55%, transparent); }
+
+.workspace-chip { border: 1px solid transparent; background: var(--color-surface-2); color: var(--color-muted); transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease; }
+.workspace-chip:hover { transform: translateY(-1px); border-color: color-mix(in oklch, var(--color-primary) 18%, var(--color-border)); background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface)); color: var(--color-fg); }
+.workspace-chip:active { transform: scale(.97); }
+
+.workspace-file-row { transition: transform 160ms var(--ease-out), border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
+.workspace-file-row:hover { transform: translateY(-1px); box-shadow: 0 8px 18px -18px color-mix(in oklch, var(--color-fg) 35%, transparent); }
+.workspace-file-row .workspace-remove-button:hover { color: var(--color-danger); background: color-mix(in oklch, var(--color-danger) 6%, var(--color-surface)); }
+.workspace-file-row .workspace-remove-button:focus-visible { color: var(--color-danger); background: color-mix(in oklch, var(--color-danger) 8%, var(--color-surface)); }
+
+.workspace-process-button:not(:disabled) { position: relative; overflow: hidden; }
+.workspace-process-button:disabled { cursor: not-allowed; }
+.workspace-process-button:not(:disabled)::after { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.1) 42%, rgba(255,255,255,.16) 50%, transparent 58%); transform: translateX(-120%); transition: transform 600ms var(--ease-out); content: ""; }
+.workspace-process-button:not(:disabled):hover::after { transform: translateX(120%); }
+.workspace-process-button:disabled .lucide { opacity: .72; }
+
+.pdfin-progress { position: relative; isolation: isolate; }
+.pdfin-progress-bar { position: relative; overflow: hidden; background-image: linear-gradient(90deg, var(--color-primary), color-mix(in oklch, var(--color-primary) 84%, #fff)); box-shadow: 0 0 16px -5px color-mix(in oklch, var(--color-primary) 55%, transparent); }
+.pdfin-progress-bar::after { position: absolute; inset: 0; background: linear-gradient(100deg, transparent 24%, rgba(255,255,255,.24) 50%, transparent 76%); content: ""; transform: translateX(-110%); animation: progress-sheen 1.8s linear infinite; }
+@keyframes progress-sheen { to { transform: translateX(110%); } }
+
+/* Result, error, and loading states should read as deliberate product states. */
+.workspace-error { display: flex; align-items: flex-start; gap: .65rem; box-shadow: 0 8px 22px -20px color-mix(in oklch, var(--color-danger) 35%, transparent); }
+.workspace-error::before { content: "!"; display: grid; width: 1.35rem; height: 1.35rem; flex: 0 0 1.35rem; place-items: center; margin-top: .02rem; border: 1px solid color-mix(in oklch, var(--color-danger) 20%, transparent); border-radius: 999px; background: color-mix(in oklch, var(--color-danger) 8%, var(--color-surface)); font-size: .72rem; font-weight: 850; line-height: 1; }
+.workspace-progress { padding: .8rem .9rem; border: 1px solid var(--color-border); border-radius: 1rem; background: color-mix(in oklch, var(--color-surface) 96%, var(--color-bg)); box-shadow: var(--shadow-card); }
+.workspace-progress > div:first-child span:first-child { font-weight: 650; color: var(--color-fg); }
+.workspace-result { animation: result-enter 360ms var(--ease-smooth-out) both; box-shadow: 0 28px 60px -42px color-mix(in oklch, var(--color-fg) 65%, transparent); }
+.workspace-result-check { display: grid; width: 2rem; height: 2rem; flex: 0 0 2rem; place-items: center; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: rgba(255,255,255,.09); color: rgba(255,255,255,.94); font-size: .95rem; font-weight: 800; box-shadow: 0 8px 20px -16px rgba(255,255,255,.5); }
+.workspace-download-button { box-shadow: 0 10px 22px -18px rgba(255,255,255,.55); }
+.workspace-download-button:hover { box-shadow: 0 14px 28px -18px rgba(255,255,255,.68); }
+@keyframes result-enter { from { opacity: 0; transform: translateY(8px) scale(.992); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.product-window-side-item:hover svg { transform: translateX(1px) scale(1.05); }
+.product-window-drop:hover .product-window-drop-icon .lucide { transform: translateY(-1px) scale(1.06); }
+.processing-banner span:hover > svg,
+.processing-banner span:hover .lucide { transform: scale(1.05); }
+
+@media (max-width: 760px) {
+  .tool-filter button,
+  .workspace-chip { min-height: 2.75rem; touch-action: manipulation; }
+  .workspace-inline-actions button,
+  .workspace-remove-button,
+  .workspace-page-card button,
+  .app-nav-link,
+  .app-tool-link { min-width: 2.75rem; min-height: 2.75rem; touch-action: manipulation; }
+  .workspace-page-card button { width: 2.75rem; }
+  .tool-card,
+  .home-hero-action,
+  .workspace-back-link { touch-action: manipulation; }
+  .workspace-file-row { gap: .7rem; }
+  .workspace-process-row { padding-bottom: env(safe-area-inset-bottom); }
+  .workspace-result-heading { align-items: center; }
+  .workspace-result-check { width: 1.8rem; height: 1.8rem; flex-basis: 1.8rem; font-size: .84rem; }
+  .workspace-error { gap: .55rem; }
+}
+
+@media (max-width: 480px) {
+  .workspace-result .mt-4 { flex-direction: column; }
+  .workspace-result .mt-4 > * { width: 100%; justify-content: center; }
+  .workspace-progress { padding: .72rem .8rem; }
+}
+
+@media (max-width: 639px) {
+  .app-header,
+  .app-mobile-header,
+  .app-nav { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+}
+
+@media (hover: none) {
+  .tool-card:hover .tool-processing-badge .lucide,
+  .workspace-inline-actions button:not(:disabled):hover .lucide,
+  .workspace-result button:not(:disabled):hover .lucide,
+  .processing-mode-card:hover,
+  .guide-section:hover .guide-step,
+  .workspace-chip:hover,
+  .workspace-file-row:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark,
+  .brand-mark::after,
+  .brand-mark-icon,
+  .tool-card:hover .tool-processing-badge .lucide,
+  .workspace-inline-actions button:not(:disabled):hover .lucide,
+  .workspace-result button:not(:disabled):hover .lucide,
+  .home-hero-action-primary:hover .lucide,
+  .home-hero-action-secondary:hover .lucide,
+  .workspace-back-link:hover .lucide,
+  .processing-mode-card:hover,
+  .guide-section:hover .guide-step,
+  .workspace-chip,
+  .workspace-chip:hover,
+  .workspace-file-row,
+  .workspace-file-row:hover,
+  .product-window-side-item:hover svg,
+  .product-window-drop:hover .product-window-drop-icon .lucide,
+  .processing-banner span:hover > svg,
+  .processing-banner span:hover .lucide,
+  .workspace-process-button:not(:disabled)::after,
+  .pdfin-progress-bar::after,
+  .workspace-result { transform: none; animation: none; transition: none; }
+}
