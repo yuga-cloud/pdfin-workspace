@@ -320,28 +320,6 @@
   border-left: 1px solid rgba(32, 33, 36, 0.08);
 }
 
-/* Discovery controls stay single-line and scroll rather than wrap unpredictably. */
-.tools-heading {
-  min-width: 0;
-}
-
-.tool-filter {
-  max-width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.tool-filter::-webkit-scrollbar {
-  display: none;
-}
-
-.tool-filter button {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
 @media (max-width: 1100px) {
   .home-hero-wrap {
     gap: clamp(1.75rem, 4vw, 3rem);
@@ -430,11 +408,6 @@
   .home-trust-grid .trust-item + .trust-item {
     border-top: 1px solid rgba(32, 33, 36, 0.08);
     border-left: 0;
-  }
-
-  .tool-filter {
-    margin-inline: -0.25rem;
-    padding-inline: 0.25rem;
   }
 }
 
