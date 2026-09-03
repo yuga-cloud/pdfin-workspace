@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   BookOpen,
@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { Logo } from "@/components/logo";
-import { TOOLS, type ToolDef } from "@/lib/tools-catalog";
+import { getTool, TOOLS, type ToolDef } from "@/lib/tools-catalog";
 
 interface AppShellProps {
   children: ReactNode;
@@ -64,6 +64,17 @@ function NavIcon({ children }: { children: ReactNode }) {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const currentTool = pathname.startsWith("/alat/")
+    ? getTool(pathname.slice("/alat/".length))
+    : undefined;
+  const activeGroup = currentTool?.group;
+  const homeActive = pathname === "/";
+  const guideActive = pathname === "/panduan";
+  const organizeActive = activeGroup === "atur";
+  const optimizeActive = activeGroup === "optimalkan";
+  const convertActive = activeGroup === "konversi";
+
   return (
     <div className="app-shell min-h-dvh bg-bg text-fg">
       <a
@@ -80,37 +91,44 @@ export function AppShell({ children }: AppShellProps) {
           <nav className="app-primary-nav hidden items-center gap-0.5 md:flex" aria-label="Navigasi utama">
             <Link
               to="/"
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
+              className={homeActive ? navLinkActiveClass : navLinkClass}
+              aria-current={homeActive ? "page" : undefined}
               activeOptions={{ exact: true }}
             >
               <NavIcon><Files /></NavIcon>
-              Semua alat
+              Semua
             </Link>
             <Link
               to="/alat/$slug"
               params={{ slug: "gabung" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
-              activeOptions={{ exact: true }}
+              className={organizeActive ? navLinkActiveClass : navLinkClass}
+              aria-current={organizeActive ? "page" : undefined}
             >
               <NavIcon><Layers2 /></NavIcon>
               Atur PDF
             </Link>
             <Link
               to="/alat/$slug"
+              params={{ slug: "kompres" }}
+              className={optimizeActive ? navLinkActiveClass : navLinkClass}
+              aria-current={optimizeActive ? "page" : undefined}
+            >
+              <NavIcon><Minimize2 /></NavIcon>
+              Optimalkan
+            </Link>
+            <Link
+              to="/alat/$slug"
               params={{ slug: "pdf-ke-word" }}
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
-              activeOptions={{ exact: true }}
+              className={convertActive ? navLinkActiveClass : navLinkClass}
+              aria-current={convertActive ? "page" : undefined}
             >
               <NavIcon><ArrowLeftRight /></NavIcon>
               Konversi
             </Link>
             <Link
               to="/panduan"
-              className={navLinkClass}
-              activeProps={{ className: navLinkActiveClass }}
+              className={guideActive ? navLinkActiveClass : navLinkClass}
+              aria-current={guideActive ? "page" : undefined}
               activeOptions={{ exact: true }}
             >
               <NavIcon><BookOpen /></NavIcon>
@@ -120,8 +138,8 @@ export function AppShell({ children }: AppShellProps) {
 
           <Link
             to="/panduan"
-            className={`${navLinkClass} md:hidden`}
-            activeProps={{ className: navLinkActiveClass }}
+            className={`${guideActive ? navLinkActiveClass : navLinkClass} md:hidden`}
+            aria-current={guideActive ? "page" : undefined}
             activeOptions={{ exact: true }}
           >
             <NavIcon><BookOpen /></NavIcon>
