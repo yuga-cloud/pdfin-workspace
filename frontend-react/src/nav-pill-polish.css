@@ -7,6 +7,11 @@
   border-radius: 0.95rem;
   background: color-mix(in oklch, var(--color-surface) 92%, var(--color-bg));
   box-shadow: 0 8px 24px -22px rgba(32, 33, 36, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  scrollbar-width: none;
+}
+
+.app-primary-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .app-primary-nav .app-nav-link {
@@ -35,10 +40,13 @@
 
 @media (max-width: 767px) {
   .app-primary-nav {
-    border: 0;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-primary-nav .app-nav-link {
+    padding-inline: 0.8rem;
   }
 }
 
