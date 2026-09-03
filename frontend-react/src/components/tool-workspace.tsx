@@ -218,7 +218,12 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
         case "pdf":
           return file.type === "application/pdf" || /\.pdf$/i.test(file.name);
         case "image":
-          return file.type.startsWith("image/") || /\.(png|jpe?g|webp)$/i.test(file.name);
+          return (
+            file.type === "image/jpeg" ||
+            file.type === "image/png" ||
+            file.type === "image/webp" ||
+            /\.(png|jpe?g|webp)$/i.test(file.name)
+          );
         case "word":
           return (
             file.type.includes("wordprocessingml") ||
@@ -399,7 +404,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
           </span>
           <span className="text-sm font-semibold text-fg">{dropLabel}</span>
           <span className="workspace-drop-meta text-xs text-muted">
-            {processingNote} · Maksimal nyaman sekitar 40 MB per file.
+            {processingNote}
           </span>
         </button>
 
