@@ -221,7 +221,7 @@ export function parsePageRange(
     }
 
     fail(
-      `Rentang tidak valid: "${part}". Contoh: 1-3, 5, 8-10`,
+      `Rentang tidak valid: \"${part}\". Contoh: 1-3, 5, 8-10`,
     );
   }
 
@@ -451,6 +451,7 @@ async function splitEachPage(
 
   return zip.generateAsync({
     type: "blob",
+    streamFiles: true,
   });
 }
 
@@ -783,83 +784,78 @@ async function renderPageJpeg(
       scale,
     });
 
-  const canvas =
-    document.createElement("canvas");
-
-  canvas.width = Math.max(
+  const width = Math.max(
     1,
     Math.floor(viewport.width),
   );
-
-  canvas.height = Math.max(
+  const height = Math.max(
     1,
     Math.floor(viewport.height),
   );
 
-  const context =
-    canvas.getContext("2d");
+  const canvas =
+    document.createElement("canvas");
 
-  if (!context) {
-    fail(
-      "Browser tidak mendukung canvas.",
+  canvas.width = width;
+  canvas.height = height;
+
+  try {
+    const context =
+      canvas.getContext("2d");
+
+    if (!context) {
+      fail(
+        "Browser tidak mendukung canvas.",
+      );
+    }
+
+    context.fillStyle =
+      "#ffffff";
+
+    context.fillRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height,
     );
+
+    await page.render({
+      canvas,
+      canvasContext: context,
+      viewport,
+    }).promise;
+
+    const blob =
+      await new Promise<Blob>(
+        (resolve, reject) => {
+          canvas.toBlob(
+            (value) => {
+              if (value) {
+                resolve(value);
+              } else {
+                reject(
+                  new Error(
+                    "Gagal membuat JPG.",
+                  ),
+                );
+              }
+            },
+            "image/jpeg",
+            quality,
+          );
+        },
+      );
+
+    return {
+      blob,
+      width,
+      height,
+    };
+  } finally {
+    page.cleanup();
+    canvas.width = 0;
+    canvas.height = 0;
   }
-
-  context.fillStyle =
-    "#ffffff";
-
-  context.fillRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height,
-  );
-
-  await page.render({
-    canvas,
-    canvasContext: context,
-    viewport,
-  }).promise;
-
-  const blob =
-    await new Promise<Blob>(
-      (resolve, reject) => {
-        canvas.toBlob(
-          (value) => {
-            if (value) {
-              resolve(value);
-            } else {
-              reject(
-                new Error(
-                  "Gagal membuat JPG.",
-                ),
-              );
-            }
-          },
-          "image/jpeg",
-          quality,
-        );
-      },
-    );
-
-  page.cleanup();
-
-  canvas.width = 0;
-  canvas.height = 0;
-
-  return {
-    blob,
-    width:
-      Math.max(
-        1,
-        Math.floor(viewport.width),
-      ),
-    height:
-      Math.max(
-        1,
-        Math.floor(viewport.height),
-      ),
-  };
 }
 
 async function pdfToImages(
@@ -883,12 +879,36 @@ async function pdfToImages(
   const base =
     stem(file.name);
 
-  const images: Array<{
-    name: string;
-    blob: Blob;
-  }> = [];
-
   try {
+    if (total === 1) {
+      onProgress?.(
+        0,
+        1,
+        "Mengubah halaman 1/1",
+      );
+
+      const image =
+        await renderPageJpeg(
+          source,
+          1,
+          1.6,
+          0.86,
+        );
+
+      return {
+        blob: image.blob,
+        filename:
+          `${base}-halaman-001.jpg`,
+        mime:
+          "image/jpeg",
+      };
+    }
+
+    const { default: JSZip } =
+      await import("jszip");
+    const zip =
+      new JSZip();
+
     for (
       let index = 1;
       index <= total;
@@ -908,60 +928,34 @@ async function pdfToImages(
           0.86,
         );
 
-      images.push({
-        name:
-          `${base}-halaman-${String(index).padStart(3, "0")}.jpg`,
-        blob: image.blob,
-      });
+      zip.file(
+        `${base}-halaman-${String(index).padStart(3, "0")}.jpg`,
+        image.blob,
+      );
 
       await yieldToUi();
     }
+
+    onProgress?.(
+      total,
+      total,
+      "Mengemas ZIP",
+    );
+
+    return {
+      blob:
+        await zip.generateAsync({
+          type: "blob",
+          streamFiles: true,
+        }),
+      filename:
+        `${base}-jpg.zip`,
+      mime:
+        "application/zip",
+    };
   } finally {
     await source.cleanup();
   }
-
-  if (images.length === 1) {
-    const image =
-      images[0];
-
-    return {
-      blob: image.blob,
-      filename:
-        image.name,
-      mime:
-        "image/jpeg",
-    };
-  }
-
-  const { default: JSZip } =
-    await import("jszip");
-
-  const zip =
-    new JSZip();
-
-  for (const image of images) {
-    zip.file(
-      image.name,
-      image.blob,
-    );
-  }
-
-  onProgress?.(
-    total,
-    total,
-    "Mengemas ZIP",
-  );
-
-  return {
-    blob:
-      await zip.generateAsync({
-        type: "blob",
-      }),
-    filename:
-      `${base}-jpg.zip`,
-    mime:
-      "application/zip",
-  };
 }
 
 export async function processTool(
@@ -1173,14 +1167,29 @@ export async function processTool(
     case "jpg-ke-pdf": {
       onProgress?.(
         0,
+        files.length,
+        "Menyiapkan gambar...",
+      );
+
+      const jpegFiles: Blob[] = [];
+
+      for (let index = 0; index < files.length; index += 1) {
+        jpegFiles.push(
+          await normalizeImageToJpeg(files[index]),
+        );
+        onProgress?.(
+          index + 1,
+          files.length,
+          `Menyiapkan gambar ${index + 1}/${files.length}`,
+        );
+        await yieldToUi();
+      }
+
+      onProgress?.(
+        0,
         1,
         "Mengubah JPG ke PDF di server Rust...",
       );
-
-      const jpegFiles =
-        await Promise.all(
-          files.map(normalizeImageToJpeg),
-        );
 
       const blob =
         await jpgToPdfApi(
