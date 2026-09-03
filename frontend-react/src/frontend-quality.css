@@ -2,12 +2,12 @@
 
 .workspace-page-grid {
   contain: layout paint style;
-  content-visibility: auto;
-  contain-intrinsic-size: 0 760px;
 }
 
 .workspace-page-card {
   contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 290px;
   overflow: clip;
   border: 1px solid color-mix(in oklch, var(--color-border) 78%, transparent);
   transition:
@@ -28,7 +28,6 @@
 .workspace-page-card img {
   display: block;
   contain: layout paint;
-  content-visibility: auto;
   background: var(--color-surface-2);
 }
 
@@ -71,11 +70,6 @@
 .workspace-field:focus-visible {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-primary) 14%, transparent);
-}
-
-.tool-card {
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .tool-card,
