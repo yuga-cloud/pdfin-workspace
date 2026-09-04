@@ -3,7 +3,6 @@
 @import "./home-modern.css";
 @import "./frontend-finish.css";
 @import "./design-system-2026.css";
-@import "./navigation-icons.css";
 @import "./workspace-heading-polish.css";
 @import "./tool-group-page.css";
 @import "./frontend-quality.css";
@@ -163,7 +162,7 @@
   html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
+    iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
 }
