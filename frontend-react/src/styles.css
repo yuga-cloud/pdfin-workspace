@@ -14,6 +14,7 @@
 @import "./workspace-heading-polish.css";
 @import "./tool-group-page.css";
 @import "./frontend-quality.css";
+@import "./guide-modern.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -52,6 +53,9 @@
   --ease-smooth-out: cubic-bezier(.22,1,.36,1);
   --motion-quick: 150ms;
   --motion-fast: 250ms;
+  --content-max: 72rem;
+  --text-measure: 68ch;
+  --border-subtle: color-mix(in oklch, var(--color-fg) 8%, transparent);
 }
 
 @layer base {
@@ -72,7 +76,10 @@
     min-height: 100dvh;
     margin: 0;
     overflow-x: clip;
-    background: radial-gradient(circle at 8% -4%, rgba(223,81,72,.065), transparent 28rem), radial-gradient(circle at 92% 2%, rgba(32,33,36,.03), transparent 24rem), var(--color-bg);
+    background:
+      radial-gradient(circle at 8% -4%, rgba(223,81,72,.055), transparent 28rem),
+      radial-gradient(circle at 92% 2%, rgba(32,33,36,.025), transparent 24rem),
+      var(--color-bg);
     color: var(--color-fg);
     font-family: var(--font-sans);
     line-height: 1.5;
@@ -125,35 +132,23 @@
   }
 
   input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button {
-    margin: 0;
-  }
+  input[type="number"]::-webkit-outer-spin-button { margin: 0; }
 }
 
 .shadow-\\[var\\(--shadow-card\\)\\] { box-shadow: var(--shadow-card); }
 .shadow-\\[var\\(--shadow-card-hover\\)\\] { box-shadow: var(--shadow-card-hover); }
 
-[data-sonner-toaster] [data-sonner-toast] { border: 1px solid var(--color-border); border-radius: .9rem; box-shadow: var(--shadow-floating); }
-
-@media (max-width: 639px) {
-  body { background: radial-gradient(circle at 5% -3%, rgba(223,81,72,.075), transparent 20rem), var(--color-bg); }
-  main { padding-top: 1.5rem; }
+[data-sonner-toaster] [data-sonner-toast] {
+  border: 1px solid var(--color-border);
+  border-radius: .9rem;
+  box-shadow: var(--shadow-floating);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-}
-
-/* Final UI semantics and empty-state polish. */
-.tool-missing::before {
-  background: radial-gradient(circle, color-mix(in oklch, var(--color-primary) 8%, transparent), transparent 68%);
-}
-
-.guide-hero-badge,
-.guide-callout,
-.processing-mode-card {
-  box-shadow: var(--shadow-card);
+/* Keep UI implementation details out of visual semantics. */
+.guide-page,
+.tool-workspace-page,
+.tool-group-page {
+  container-type: inline-size;
 }
 
 .guide-section-heading h2,
@@ -164,23 +159,23 @@
 
 .guide-list li,
 .guide-notes li {
-  max-width: 44rem;
+  max-width: var(--text-measure);
 }
 
 @media (max-width: 639px) {
-  .tool-missing {
-    margin-inline: .25rem;
+  body {
+    background: radial-gradient(circle at 5% -3%, rgba(223,81,72,.065), transparent 20rem), var(--color-bg);
   }
 
-  .guide-page {
-    padding-bottom: 2.75rem;
-  }
+  main { padding-top: 1.5rem; }
+
+  .tool-missing { margin-inline: .25rem; }
+  .guide-page { padding-bottom: 2.75rem; }
 }
 
 @media (forced-colors: active) {
   .tool-missing,
-  .guide-callout,
-  .processing-mode-card {
+  .guide-callout {
     forced-color-adjust: auto;
     border: 1px solid CanvasText;
     box-shadow: none;
@@ -192,5 +187,14 @@
   .app-nav-link,
   .app-tool-link {
     outline-color: Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
   }
 }
