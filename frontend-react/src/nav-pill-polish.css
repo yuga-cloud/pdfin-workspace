@@ -1,4 +1,4 @@
-/* Primary navigation polish: the shell owns the outer border; active state stays text-led. */
+/* Primary navigation: quiet surface, clear hierarchy, text-led active state. */
 .app-primary-nav {
   align-items: center;
   gap: 0.15rem;
@@ -11,6 +11,7 @@
 }
 
 .app-primary-nav .app-nav-link {
+  position: relative;
   min-height: 2.55rem;
   border: 1px solid transparent;
   border-radius: 0.72rem;
@@ -21,19 +22,45 @@
   background: var(--color-surface);
 }
 
-.app-primary-nav .app-nav-link-active {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-fg);
-  box-shadow: none;
-}
-
+.app-primary-nav .app-nav-link-active,
 .app-primary-nav .app-nav-link-active:hover,
 .app-primary-nav .app-nav-link-active:focus-visible {
   border-color: transparent;
   background: transparent;
   color: var(--color-fg);
   box-shadow: none;
+}
+
+.app-primary-nav .app-nav-link-active::after {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.12rem;
+  left: 0.8rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  content: "";
+  transform: scaleX(1);
+  transform-origin: center;
+}
+
+.app-primary-nav .app-nav-link:not(.app-nav-link-active)::after {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.12rem;
+  left: 0.8rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 180ms cubic-bezier(.23,1,.32,1);
+}
+
+.app-primary-nav .app-nav-link:not(.app-nav-link-active):hover::after,
+.app-primary-nav .app-nav-link:not(.app-nav-link-active):focus-visible::after {
+  transform: scaleX(0.72);
 }
 
 @media (max-width: 767px) {
@@ -49,8 +76,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-primary-nav .app-nav-link-active:hover,
-  .app-primary-nav .app-nav-link-active:focus-visible {
-    transform: none;
+  .app-primary-nav .app-nav-link::after {
+    transition: none;
   }
 }
