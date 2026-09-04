@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
-  CloudCog,
   FileImage,
   FileSpreadsheet,
   FileText,
@@ -10,7 +9,6 @@ import {
   ImagePlus,
   Layers2,
   Minimize2,
-  MonitorCheck,
   Presentation,
   RotateCw,
   Scissors,
@@ -98,7 +96,6 @@ export function ToolGroupPage({ group }: { group: ToolDef["group"] }) {
 
 function ToolGroupCard({ tool }: { tool: ToolDef }) {
   const Icon = ICONS[tool.slug];
-  const server = tool.processing === "server";
 
   return (
     <Link to="/alat/$slug" params={{ slug: tool.slug }} className="tool-group-card">
@@ -110,10 +107,6 @@ function ToolGroupCard({ tool }: { tool: ToolDef }) {
       </div>
       <div className="tool-group-card-title-row">
         <h3>{tool.title}</h3>
-        <span className={server ? "is-server" : "is-device"}>
-          {server ? <CloudCog className="size-3" aria-hidden="true" /> : <MonitorCheck className="size-3" aria-hidden="true" />}
-          {server ? "Server" : "Perangkat"}
-        </span>
       </div>
       <p>{tool.description}</p>
       <span className="tool-group-card-hint">{tool.hint}</span>
