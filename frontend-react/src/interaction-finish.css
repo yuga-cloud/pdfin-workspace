@@ -33,27 +33,18 @@
 .group:hover .brand-mark-icon,
 .group:focus-visible .brand-mark-icon { transform: scale(1.06); }
 
-.tool-card:hover .tool-processing-badge .lucide,
 .workspace-inline-actions button:not(:disabled):hover .lucide,
 .workspace-result button:not(:disabled):hover .lucide { transform: translateY(-1px) scale(1.05); }
-.tool-processing-badge .lucide,
 .workspace-inline-actions .lucide,
 .workspace-result .lucide,
 .pdfin-progress-bar,
 .product-window-drop-icon .lucide,
-.product-window-side-item svg,
-.processing-banner svg { transition: transform 180ms var(--ease-out), stroke-width 180ms ease, opacity 180ms ease, color 180ms ease; }
-.tool-card:hover .tool-processing-badge { border-color: color-mix(in oklch, currentColor 22%, var(--color-border)); }
+.product-window-side-item svg { transition: transform 180ms var(--ease-out), stroke-width 180ms ease, opacity 180ms ease, color 180ms ease; }
 .home-hero-action-primary:hover .lucide { transform: translateX(2px) rotate(-2deg); }
 .home-hero-action-secondary:hover .lucide { transform: translateX(3px); }
 .workspace-back-link:hover .lucide { transform: translateX(-2px); }
 .workspace-back-link .lucide,
 .home-hero-action .lucide { transition: transform 180ms var(--ease-out); }
-
-.processing-mode-card { transition: transform 180ms var(--ease-out), border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
-.processing-mode-card:hover { transform: translateY(-1px); border-color: color-mix(in oklch, var(--color-fg) 13%, var(--color-border)); box-shadow: var(--shadow-card); background: var(--color-surface); }
-.processing-mode-card.device:hover { border-color: color-mix(in oklch, var(--color-ok) 22%, var(--color-border)); }
-.processing-mode-card.server:hover { border-color: color-mix(in oklch, var(--color-fg) 16%, var(--color-border)); }
 
 .guide-step { transition: transform 180ms var(--ease-out), border-color 180ms ease, background-color 180ms ease; }
 .guide-section:hover .guide-step { transform: translateY(-1px); border-color: color-mix(in oklch, var(--color-primary) 22%, var(--color-border)); background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-2)); }
@@ -96,8 +87,6 @@
 
 .product-window-side-item:hover svg { transform: translateX(1px) scale(1.05); }
 .product-window-drop:hover .product-window-drop-icon .lucide { transform: translateY(-1px) scale(1.06); }
-.processing-banner span:hover > svg,
-.processing-banner span:hover .lucide { transform: scale(1.05); }
 
 @media (max-width: 760px) {
   .tool-filter button,
@@ -131,10 +120,8 @@
 }
 
 @media (hover: none) {
-  .tool-card:hover .tool-processing-badge .lucide,
   .workspace-inline-actions button:not(:disabled):hover .lucide,
   .workspace-result button:not(:disabled):hover .lucide,
-  .processing-mode-card:hover,
   .guide-section:hover .guide-step,
   .workspace-chip:hover,
   .workspace-file-row:hover { transform: none; }
@@ -144,13 +131,11 @@
   .brand-mark,
   .brand-mark::after,
   .brand-mark-icon,
-  .tool-card:hover .tool-processing-badge .lucide,
   .workspace-inline-actions button:not(:disabled):hover .lucide,
   .workspace-result button:not(:disabled):hover .lucide,
   .home-hero-action-primary:hover .lucide,
   .home-hero-action-secondary:hover .lucide,
   .workspace-back-link:hover .lucide,
-  .processing-mode-card:hover,
   .guide-section:hover .guide-step,
   .workspace-chip,
   .workspace-chip:hover,
@@ -158,8 +143,6 @@
   .workspace-file-row:hover,
   .product-window-side-item:hover svg,
   .product-window-drop:hover .product-window-drop-icon .lucide,
-  .processing-banner span:hover > svg,
-  .processing-banner span:hover .lucide,
   .workspace-process-button:not(:disabled)::after,
   .pdfin-progress-bar::after,
   .workspace-result { transform: none; animation: none; transition: none; }
