@@ -110,7 +110,6 @@
   align-items: center;
   overflow-x: auto;
   scrollbar-width: none;
-
   border: 1px solid color-mix(in oklch, var(--color-border) 82%, var(--color-fg));
   border-radius: 1rem;
   background: color-mix(in oklch, var(--color-surface) 94%, var(--color-bg));
@@ -166,28 +165,6 @@
 .app-nav-link-active:hover::after,
 .app-nav-link-active:focus-visible::after {
   transform: scaleX(1);
-}
-
-/* Processing implementation stays internal; clients only see a neutral workflow. */
-.workspace-processing-pill,
-.workspace-drop-meta {
-  display: none !important;
-}
-
-.workspace-process-button {
-  font-size: 0 !important;
-}
-
-.workspace-process-button .lucide {
-  width: 1.1rem;
-  height: 1.1rem;
-  flex: 0 0 auto;
-}
-
-.workspace-process-button::after {
-  content: "Proses";
-  font-size: 0.9375rem;
-  font-weight: 600;
 }
 
 @media (max-width: 639px) {
