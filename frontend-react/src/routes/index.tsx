@@ -176,17 +176,6 @@ function ProductPreview() {
                 <span className="product-demo-download">Unduh <ArrowRight /></span>
               </div>
             </div>
-
-            <div className="product-window-mini-row">
-              <div className="product-window-mini-card">
-                <span className="product-window-mini-label">FILES</span>
-                <strong className="product-window-mini-value">2 dokumen</strong>
-              </div>
-              <div className="product-window-mini-card">
-                <span className="product-window-mini-label">PROCESSING</span>
-                <strong className="product-window-mini-value">Di server</strong>
-              </div>
-            </div>
           </div>
         </div>
       </div>
