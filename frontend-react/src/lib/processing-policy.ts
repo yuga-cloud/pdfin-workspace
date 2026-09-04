@@ -33,7 +33,7 @@ export function validateDeviceProcessingSize(
   }
 
   throw new Error(
-    `File ${oversized.name} terlalu besar untuk pemrosesan di perangkat. ` +
-      `Gunakan file maksimal ${MAX_DEVICE_PROCESSING_BYTES / 1024 / 1024} MiB atau pilih mode server jika tersedia.`,
+    `File ${oversized.name} terlalu besar untuk diproses. ` +
+      `Gunakan file maksimal ${MAX_DEVICE_PROCESSING_BYTES / 1024 / 1024} MiB.`,
   );
 }
