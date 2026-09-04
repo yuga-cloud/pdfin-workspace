@@ -1,4 +1,1 @@
-/* Remove settings containers that expose no user-controllable options. */
-.workspace-options:has(> .workspace-panel-heading + .workspace-info-note) {
-  display: none;
-}
+/* Reserved for targeted UI pruning rules only. */
