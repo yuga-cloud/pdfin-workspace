@@ -168,6 +168,24 @@
   transform: scaleX(1);
 }
 
+/* Home trust row: informational content should float in the page, not sit inside a card. */
+.home-trust {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-trust .trust-item,
+.home-trust .trust-item + .trust-item {
+  border: 0 !important;
+}
+
+.home-trust .trust-item {
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
 @media (max-width: 639px) {
   .workspace-page-grid {
     gap: .625rem;
