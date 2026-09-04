@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import {
   ArrowRight,
   CheckCircle2,
-  CloudCog,
   FileCheck2,
   FileImage,
   FileSpreadsheet,
@@ -14,7 +13,6 @@ import {
   Layers2,
   LockKeyhole,
   Minimize2,
-  MonitorCheck,
   MousePointer2,
   Presentation,
   RotateCw,
@@ -54,7 +52,7 @@ function Home() {
           <div className="home-hero-badges">
             <span className="home-eyebrow">
               <ShieldCheck className="size-3.5" aria-hidden="true" />
-              PDF tools yang transparan
+              Alat PDF untuk sehari-hari
             </span>
             <span className="home-hero-plain-meta">
               <LockKeyhole className="size-3.5" aria-hidden="true" />
@@ -66,8 +64,8 @@ function Home() {
             <span> tanpa ribet.</span>
           </h1>
           <p className="home-description">
-            Gabung, pisah, kompres, dan ubah dokumen dengan alur yang sederhana. Setiap alat
-            menjelaskan apakah file diproses di perangkat atau dikirim ke server.
+            Gabung, pisah, kompres, dan ubah dokumen dengan alur yang sederhana. Pilih alat yang sesuai,
+            masukkan file, lalu lanjutkan ke hasilnya.
           </p>
           <div className="home-hero-actions">
             <a className="home-hero-action home-hero-action-primary" href="#tools-heading">
@@ -81,7 +79,7 @@ function Home() {
           </div>
           <div className="home-hero-trust">
             <span><LockKeyhole className="size-3.5" aria-hidden="true" /> Tidak ada akun wajib</span>
-            <span><MonitorCheck className="size-3.5" aria-hidden="true" /> Mode pemrosesan selalu ditampilkan</span>
+            <span><CheckCircle2 className="size-3.5" aria-hidden="true" /> Alur kerja tetap sederhana</span>
           </div>
         </div>
 
@@ -93,7 +91,7 @@ function Home() {
           <div>
             <p className="section-kicker">Katalog alat</p>
             <h2 id="tools-heading">Pilih yang kamu butuhkan</h2>
-            <p className="section-lede">Satu tempat untuk pekerjaan PDF harian, dengan lokasi pemrosesan yang jelas.</p>
+            <p className="section-lede">Satu tempat untuk pekerjaan PDF harian, dari merapikan halaman sampai mengubah format.</p>
           </div>
         </div>
 
@@ -104,10 +102,10 @@ function Home() {
         </div>
       </section>
 
-      <section className="home-trust" aria-label="Informasi privasi dan penggunaan">
-        <TrustItem icon={<MonitorCheck aria-hidden="true" />} title="Jelas soal pemrosesan" body="Setiap alat menyebutkan lokasi pemrosesannya sebelum kamu memilih file." />
-        <TrustItem icon={<ShieldCheck aria-hidden="true" />} title="Privasi dijelaskan apa adanya" body="Jangan menebak-nebak: baca mode pemrosesan yang tampil di alat yang kamu pilih." />
-        <TrustItem icon={<Upload aria-hidden="true" />} title="Mulai tanpa akun" body="Pilih alat, masukkan file, proses, lalu ambil hasilnya." />
+      <section className="home-trust" aria-label="Informasi penggunaan">
+        <TrustItem icon={<CheckCircle2 aria-hidden="true" />} title="Alur sederhana" body="Pilih alat, masukkan file, dan lanjutkan dalam beberapa langkah." />
+        <TrustItem icon={<ShieldCheck aria-hidden="true" />} title="Gunakan seperlunya" body="Masukkan hanya dokumen yang memang perlu kamu olah." />
+        <TrustItem icon={<Upload aria-hidden="true" />} title="Tanpa akun" body="Pilih alat, masukkan file, proses, lalu ambil hasilnya." />
       </section>
     </div>
   );
@@ -121,7 +119,6 @@ function ProductPreview() {
         <div className="product-window-bar">
           <div className="product-window-dots"><span /><span /><span /></div>
           <span className="product-window-label">pdfin · workspace</span>
-          <span className="product-window-bar-status"><MonitorCheck className="size-3" /> Ready</span>
         </div>
         <div className="product-window-body">
           <aside className="product-window-sidebar">
@@ -137,7 +134,6 @@ function ProductPreview() {
                 <span className="product-window-kicker">Atur PDF</span>
                 <div className="product-window-title">Gabung PDF</div>
               </div>
-              <span className="product-window-status"><CloudCog /> Server</span>
             </div>
 
             <div className="product-demo-stage">
@@ -189,7 +185,6 @@ function LoaderDot() {
 
 function ToolCard({ tool }: { tool: ToolDef }) {
   const Icon = ICONS[tool.slug];
-  const isServer = tool.processing === "server";
 
   return (
     <Link to="/alat/$slug" params={{ slug: tool.slug }} className="tool-card group">
@@ -199,10 +194,6 @@ function ToolCard({ tool }: { tool: ToolDef }) {
       </div>
       <div className="tool-card-title-row">
         <span className="tool-card-title">{tool.title}</span>
-        <span className={`tool-processing-badge ${isServer ? "is-server" : "is-device"}`}>
-          {isServer ? <CloudCog className="size-3" aria-hidden="true" /> : <MonitorCheck className="size-3" aria-hidden="true" />}
-          {isServer ? "Server" : "Perangkat"}
-        </span>
       </div>
       <span className="tool-card-description">{tool.description}</span>
       <span className="tool-card-hint">{tool.hint}</span>
