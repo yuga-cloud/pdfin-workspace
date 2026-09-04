@@ -16,7 +16,7 @@ interface AppShellProps {
 }
 
 const navLinkClass =
-  "app-nav-link inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[background-color,color,transform] duration-200 hover:-translate-y-px hover:bg-surface hover:text-fg";
+  "app-nav-link inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-[color,transform] duration-200 hover:-translate-y-px hover:text-fg";
 
 const navLinkActiveClass =
   "app-nav-link app-nav-link-active inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-fg";
@@ -59,7 +59,7 @@ export function AppShell({ children }: AppShellProps) {
         Loncat ke isi
       </a>
 
-      <header className="app-header sticky top-0 z-40 border-b border-border/70 bg-surface/90 shadow-[0_1px_0_rgba(32,33,36,0.02)] backdrop-blur-xl">
+      <header className="app-header sticky top-0 z-40 border-b border-border/70 bg-surface/95 shadow-[0_1px_0_rgba(32,33,36,0.02)]">
         <div className="app-header-inner mx-auto flex min-h-18 max-w-6xl items-center px-4 py-2 sm:px-6 md:py-0">
           <Logo className="app-header-logo shrink-0" />
 
