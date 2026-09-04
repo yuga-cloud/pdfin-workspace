@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CloudCog, MonitorCheck, ShieldCheck } from "lucide-react";
+import { FileCheck2, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TOOLS } from "@/lib/tools-catalog";
 
 export const Route = createFileRoute("/panduan")({
   component: Panduan,
@@ -9,9 +8,6 @@ export const Route = createFileRoute("/panduan")({
 });
 
 function Panduan() {
-  const deviceCount = TOOLS.filter((tool) => tool.processing === "device").length;
-  const serverCount = TOOLS.filter((tool) => tool.processing === "server").length;
-
   return (
     <article className="guide-page mx-auto max-w-3xl">
       <header className="guide-hero">
@@ -22,41 +18,36 @@ function Panduan() {
         <p className="guide-eyebrow">pdfin</p>
         <h1>Cara pakai pdfin</h1>
         <p className="guide-hero-lede">
-          Pilih alat, masukkan file, atur opsi yang tersedia, lalu proses. Setiap alat memberi tahu
-          di awal apakah file diproses di perangkat atau dikirim ke server.
+          Pilih alat, masukkan file, atur opsi yang tersedia, lalu proses. Alurnya dibuat sesingkat
+          mungkin supaya kamu bisa fokus ke dokumen, bukan ke cara kerja aplikasinya.
         </p>
       </header>
 
-      <section className="guide-section guide-processing-card">
+      <section className="guide-section guide-intro-card">
         <div className="guide-section-heading">
           <span className="guide-step">01</span>
           <div>
-            <h2>Kenali lokasi pemrosesan</h2>
-            <p>Ini berbeda menurut alat yang kamu pilih.</p>
+            <h2>Mulai dari alat yang tepat</h2>
+            <p>Semua alat utama bisa ditemukan dari beranda.</p>
           </div>
         </div>
 
-        <div className="processing-mode-grid">
-          <div className="processing-mode-card device">
-            <span className="processing-mode-icon"><MonitorCheck aria-hidden="true" /></span>
+        <div className="guide-feature-grid">
+          <div className="guide-feature-card">
+            <span className="guide-feature-icon"><Sparkles aria-hidden="true" /></span>
             <div>
-              <strong>Di perangkat</strong>
-              <span>{deviceCount} alat saat ini berjalan di browser kamu.</span>
+              <strong>Pilih alat</strong>
+              <span>Temukan fungsi untuk mengatur, mengoptimalkan, atau mengonversi dokumen.</span>
             </div>
           </div>
-          <div className="processing-mode-card server">
-            <span className="processing-mode-icon"><CloudCog aria-hidden="true" /></span>
+          <div className="guide-feature-card">
+            <span className="guide-feature-icon"><FileCheck2 aria-hidden="true" /></span>
             <div>
-              <strong>Di server</strong>
-              <span>{serverCount} alat saat ini mengirim file ke server untuk diproses.</span>
+              <strong>Periksa hasil</strong>
+              <span>Setelah proses selesai, buka atau unduh hasil dan cek sebelum dibagikan.</span>
             </div>
           </div>
         </div>
-
-        <p className="guide-callout-note">
-          Tidak ada janji privasi yang disembunyikan di balik satu kalimat umum. Buka alat yang akan
-          kamu gunakan dan baca label pemrosesannya sebelum memilih file.
-        </p>
       </section>
 
       <section className="guide-section">
@@ -70,9 +61,9 @@ function Panduan() {
         <ol className="guide-list">
           <li>Pilih alat dari beranda.</li>
           <li>Letakkan file ke area upload atau pilih file dari HP/laptop.</li>
-          <li>Baca label lokasi pemrosesan dan atur opsi yang tersedia.</li>
+          <li>Atur opsi yang tersedia sesuai kebutuhan.</li>
           <li>Tekan tombol proses dan ikuti status/progres yang ditampilkan.</li>
-          <li>Setelah selesai, unduh hasilnya atau proses file lain.</li>
+          <li>Setelah selesai, unduh hasilnya atau mulai lagi dengan file lain.</li>
         </ol>
         <Button asChild className="mt-6">
           <Link to="/">Lihat semua alat</Link>
@@ -99,19 +90,18 @@ function Panduan() {
         <div className="guide-section-heading">
           <span className="guide-step">04</span>
           <div>
-            <h2>Tidak perlu install apa pun untuk memakai situs</h2>
-            <p>Setup developer hanya diperlukan untuk mengembangkan aplikasinya.</p>
+            <h2>Tanpa instalasi untuk pengguna</h2>
+            <p>Cukup buka pdfin di browser dan mulai bekerja.</p>
           </div>
         </div>
         <div className="guide-copy">
           <p>
-            Untuk memakai pdfin, cukup buka situsnya di browser yang didukung. Kamu tidak perlu
-            memasang TypeScript, React, Vite, atau Node.js.
+            Kamu tidak perlu memasang TypeScript, React, Vite, atau Node.js untuk memakai situs ini.
+            Semua kebutuhan penggunaan tersedia langsung di browser yang didukung.
           </p>
           <p>
-            Untuk mengembangkan pdfin sendiri, proyek web sudah menyertakan kebutuhan TypeScript,
-            React, dan Vite sebagai dependensi. Jalankan setup developer yang tercantum di proyek;
-            jangan memasang tool satu per satu secara manual.
+            Detail teknis pengembangan merupakan urusan proyek, bukan sesuatu yang perlu kamu siapkan
+            saat menggunakan pdfin.
           </p>
         </div>
       </section>
@@ -119,11 +109,10 @@ function Panduan() {
       <section className="guide-callout">
         <div className="guide-callout-icon"><ShieldCheck aria-hidden="true" /></div>
         <div>
-          <h2>Prinsip pdfin</h2>
+          <h2>Kerja dengan dokumen, bukan dengan sistemnya</h2>
           <p>
-            Kami lebih memilih menjelaskan bagaimana sebuah alat bekerja daripada membuat klaim
-            privasi yang terdengar lebih aman dari kenyataannya. Lokasi pemrosesan selalu ditampilkan
-            sesuai konfigurasi alat saat ini.
+            pdfin dibuat supaya informasi yang kamu perlukan muncul saat memang dibutuhkan. Fokus utama
+            antarmukanya tetap pada file, pilihan yang relevan, progres, dan hasil akhir.
           </p>
         </div>
       </section>
