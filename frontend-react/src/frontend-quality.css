@@ -1,4 +1,4 @@
-/* Performance + visual quality pass. Keep effects cheap and layout predictable. */
+/* Performance + layout quality layer. Visual tokens and component styling live elsewhere. */
 
 .workspace-page-grid {
   contain: layout paint style;
@@ -9,26 +9,11 @@
   content-visibility: auto;
   contain-intrinsic-size: 0 290px;
   overflow: clip;
-  border: 1px solid color-mix(in oklch, var(--color-border) 78%, transparent);
-  transition:
-    border-color var(--motion-quick) ease,
-    box-shadow var(--motion-fast) var(--ease-out),
-    transform var(--motion-quick) var(--ease-out);
-}
-
-.workspace-page-card:hover {
-  border-color: color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
-  box-shadow: var(--shadow-card);
-}
-
-.workspace-page-card:focus-within {
-  border-color: color-mix(in oklch, var(--color-primary) 28%, var(--color-border));
 }
 
 .workspace-page-card img {
   display: block;
   contain: layout paint;
-  background: var(--color-surface-2);
 }
 
 .workspace-dropzone-shell,
@@ -36,15 +21,6 @@
 .workspace-pages,
 .workspace-result {
   contain: layout style;
-}
-
-.workspace-file-row,
-.workspace-check-row,
-.workspace-choice,
-.workspace-chip,
-.workspace-process-button,
-.workspace-download-button {
-  min-height: 44px;
 }
 
 .workspace-choice,
@@ -56,39 +32,7 @@
   touch-action: manipulation;
 }
 
-.workspace-field {
-  transition:
-    border-color var(--motion-quick) ease,
-    box-shadow var(--motion-quick) ease,
-    background-color var(--motion-quick) ease;
-}
-
-.workspace-field:hover {
-  border-color: color-mix(in oklch, var(--color-fg) 18%, var(--color-border));
-}
-
-.workspace-field:focus-visible {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-primary) 14%, transparent);
-}
-
-.tool-card,
-.home-hero-action,
-.workspace-back-link,
-.workspace-process-button {
-  transition-property: transform, box-shadow, border-color, background-color, color, opacity;
-  transition-duration: var(--motion-fast);
-  transition-timing-function: var(--ease-out);
-}
-
-@media (hover: hover) {
-  .tool-card:hover,
-  .home-hero-action:hover {
-    transform: translateY(-2px);
-  }
-}
-
-/* Compact centered primary navigation. The shell owns the border so it fits the menu width. */
+/* Compact centered navigation shell. */
 .app-header-inner {
   position: relative;
   justify-content: center;
@@ -114,8 +58,8 @@
   border-radius: 1rem;
   background: color-mix(in oklch, var(--color-surface) 94%, var(--color-bg));
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 8px 24px -22px rgba(32, 33, 36, 0.35);
+    0 1px 0 rgba(255, 255, 255, .7) inset,
+    0 8px 24px -22px rgba(32, 33, 36, .35);
 }
 
 .app-primary-nav-shell::-webkit-scrollbar {
@@ -128,11 +72,11 @@
   min-width: max-content !important;
   flex: 0 0 auto !important;
   align-items: center;
-  gap: 0.125rem;
-  padding: 0.2rem !important;
+  gap: .125rem;
+  padding: .2rem !important;
   overflow: visible !important;
   border: 0 !important;
-  border-radius: 0.75rem;
+  border-radius: .75rem;
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -150,14 +94,14 @@
 
 .app-nav-link-active::after {
   position: absolute;
-  right: 0.9rem;
-  bottom: 0.12rem;
-  left: 0.9rem;
+  right: .9rem;
+  bottom: .12rem;
+  left: .9rem;
   height: 2px;
   border-radius: 999px;
   background: var(--color-primary);
   content: "";
-  transform: scaleX(0.72);
+  transform: scaleX(.72);
   transform-origin: center;
   transition: transform var(--motion-quick) var(--ease-out);
 }
@@ -194,7 +138,7 @@
   }
 
   .app-header-logo {
-    left: 0.75rem;
+    left: .75rem;
   }
 
   .app-primary-nav-shell {
@@ -204,8 +148,8 @@
   }
 
   .app-nav-link-active::after {
-    right: 0.75rem;
-    left: 0.75rem;
+    right: .75rem;
+    left: .75rem;
   }
 }
 
@@ -216,12 +160,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace-page-card,
-  .workspace-field,
-  .tool-card,
-  .home-hero-action,
-  .workspace-back-link,
-  .workspace-process-button,
   .app-nav-link-active::after {
     transition: none;
   }
