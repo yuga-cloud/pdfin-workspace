@@ -3,11 +3,9 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   BookOpen,
-  CloudCog,
   Files,
   Layers2,
   Minimize2,
-  MonitorCheck,
 } from "lucide-react";
 
 import { Logo } from "@/components/logo";
@@ -114,26 +112,6 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
 
-      <div className="processing-banner border-b border-border/65 bg-surface/72">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-xs font-medium text-muted sm:px-6 sm:text-sm">
-          <span className="inline-flex items-center gap-2">
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-              <MonitorCheck className="size-3.5" aria-hidden="true" />
-            </span>
-            Pemrosesan berbeda menurut alat.
-          </span>
-          <span className="hidden text-border sm:inline" aria-hidden="true">·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <MonitorCheck className="size-3.5 text-ok" aria-hidden="true" />
-            Sebagian diproses di perangkat
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CloudCog className="size-3.5 text-muted" aria-hidden="true" />
-            Sebagian diproses di server
-          </span>
-        </div>
-      </div>
-
       <main id="isi" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         {children}
       </main>
@@ -142,9 +120,8 @@ export function AppShell({ children }: AppShellProps) {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
             <span className="font-semibold text-fg">pdf<span className="text-primary">in</span></span>{" "}
-            – alat PDF Indonesia dengan pemrosesan di perangkat atau server sesuai alat.
+            – alat PDF untuk pekerjaan dokumen sehari-hari.
           </p>
-          <p className="rounded-full bg-bg px-3 py-1.5 text-xs font-medium">Lokasi pemrosesan ditampilkan di setiap alat</p>
         </div>
       </footer>
     </div>
