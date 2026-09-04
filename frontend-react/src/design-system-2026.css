@@ -52,11 +52,10 @@
 
 .home-title, .guide-hero h1 { font-weight: 740; letter-spacing: -0.055em; }
 .home-description, .guide-hero-lede, .section-lede { color: var(--color-muted); }
-.tool-card-title, .tool-processing-badge, .workspace-processing-pill, .workspace-panel-count { font-weight: 700; }
+.tool-card-title, .workspace-panel-count { font-weight: 700; }
 
 .tool-icon .lucide { width: 1.18rem; height: 1.18rem; stroke-width: 1.9; }
 .home-hero-badges .lucide, .home-eyebrow .lucide { width: 0.9rem; height: 0.9rem; }
-.processing-banner .lucide { width: 0.95rem; height: 0.95rem; }
 .button .lucide, button .lucide, a .lucide { color: currentColor; }
 
 /* Navigation is intentionally text-led: the outer shell provides the border and the active item uses an underline. */
@@ -100,10 +99,6 @@
   color: var(--color-primary);
   border-color: color-mix(in oklch, var(--color-primary) 12%, var(--color-border));
 }
-
-.tool-processing-badge.is-device, .workspace-processing-pill, .workspace-processing-pill .lucide { color: var(--color-ok); }
-.tool-processing-badge.is-device { border-color: color-mix(in oklch, var(--color-ok) 18%, var(--color-border)); background: color-mix(in oklch, var(--color-ok) 5%, var(--color-surface)); }
-.tool-processing-badge.is-server { color: var(--color-muted); }
 
 .tool-filter button:hover, .workspace-chip:hover, .workspace-segmented button:hover, .workspace-choice:hover, .workspace-file-row:hover { border-color: color-mix(in oklch, var(--color-fg) 15%, var(--color-border)); }
 .tool-filter button.is-active, .workspace-segmented button.is-selected { background: var(--color-fg); border-color: var(--color-fg); color: #fff; }
