@@ -32,56 +32,6 @@
   touch-action: manipulation;
 }
 
-/* Compact centered navigation shell. */
-.app-header-inner {
-  position: relative;
-  justify-content: center;
-}
-
-.app-header-logo {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  z-index: 2;
-  transform: translateY(-50%);
-}
-
-.app-primary-nav-shell {
-  display: flex;
-  width: max-content;
-  max-width: min(100%, 42rem);
-  min-width: 0;
-  align-items: center;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: none;
-  border: 1px solid color-mix(in oklch, var(--color-border) 82%, var(--color-fg));
-  border-radius: 1rem;
-  background: color-mix(in oklch, var(--color-surface) 94%, var(--color-bg));
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, .7) inset,
-    0 8px 24px -22px rgba(32, 33, 36, .35);
-}
-
-.app-primary-nav-shell::-webkit-scrollbar {
-  display: none;
-}
-
-.app-primary-nav {
-  display: flex;
-  width: max-content;
-  min-width: max-content !important;
-  flex: 0 0 auto !important;
-  align-items: center;
-  gap: .125rem;
-  padding: .2rem !important;
-  overflow: visible !important;
-  border: 0 !important;
-  border-radius: .75rem;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
 @media (max-width: 639px) {
   .workspace-page-grid {
     gap: .625rem;
@@ -102,25 +52,5 @@
     background: color-mix(in oklch, var(--color-surface) 88%, transparent);
     backdrop-filter: blur(14px);
     box-shadow: var(--shadow-floating);
-  }
-
-  .app-header-inner {
-    justify-content: flex-start;
-  }
-
-  .app-header-logo {
-    left: .75rem;
-  }
-
-  .app-primary-nav-shell {
-    width: calc(100% - 3.5rem);
-    max-width: calc(100% - 3.5rem);
-    margin-left: 3.25rem;
-  }
-}
-
-@media (min-width: 640px) {
-  .app-header-logo {
-    left: 1.5rem;
   }
 }
