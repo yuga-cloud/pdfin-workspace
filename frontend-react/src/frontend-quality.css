@@ -43,7 +43,7 @@
 
   .workspace-process-row {
     position: sticky;
-    bottom: .75rem;
+    bottom: max(.75rem, env(safe-area-inset-bottom));
     z-index: 20;
     padding: .625rem;
     margin-inline: -.625rem;
