@@ -70,7 +70,6 @@
 .workspace-dropzone-shell:has(.workspace-file-list) .workspace-drop-meta { max-width: 30rem; }
 .workspace-dropzone-shell:has(.workspace-file-list) .workspace-file-list { margin-top: .65rem; }
 @media (max-width: 767px) {
-  .app-primary-nav { display: none; }
   .app-header > div:first-child { min-height: 4rem; }
   .app-footer > div { align-items: flex-start; }
   .app-footer p:last-child { align-self: flex-start; }
@@ -148,63 +147,61 @@
 
 .tool-card:hover .tool-icon,
 .tool-card:focus-visible .tool-icon {
-  transform: translateY(-2px) scale(1.04) rotate(-2deg);
-  border-color: color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
-  background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
-  box-shadow: 0 9px 20px -15px color-mix(in oklch, var(--color-primary) 42%, transparent);
+  transform: scale(1.04);
+  box-shadow: 0 8px 18px -14px color-mix(in oklch, var(--color-primary) 34%, transparent);
 }
 
 .tool-card:hover .tool-icon .lucide,
 .tool-card:focus-visible .tool-icon .lucide {
-  color: var(--color-primary);
-  stroke-width: 2;
-  transform: scale(1.08);
+  transform: scale(1.05);
 }
 
-.tool-card:active .tool-icon { transform: translateY(0) scale(.98); }
-
-.trust-item-icon {
-  transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, background-color 180ms ease;
+.workspace-upload-icon .lucide,
+.workspace-file-icon .lucide,
+.workspace-page-card .lucide,
+.workspace-result-check .lucide,
+.workspace-download-button .lucide {
+  transition: transform 180ms cubic-bezier(.23,1,.32,1), stroke-width 180ms ease, filter 180ms ease;
 }
 
-.trust-item:hover .trust-item-icon { transform: translateY(-1px) scale(1.03); background: color-mix(in oklch, var(--color-primary) 9%, var(--color-surface)); box-shadow: 0 8px 18px -15px color-mix(in oklch, var(--color-primary) 38%, transparent); }
+.workspace-dropzone:hover .workspace-upload-icon .lucide,
+.workspace-dropzone:focus-visible .workspace-upload-icon .lucide,
+.workspace-dropzone-shell.is-dragover .workspace-upload-icon .lucide {
+  transform: translateY(-2px) scale(1.08);
+}
 
-.workspace-dropzone-shell { transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, border-color 180ms ease; }
-.workspace-dropzone-shell:hover { transform: translateY(-1px); }
-.workspace-dropzone:hover .workspace-upload-icon,
-.workspace-dropzone:focus-visible .workspace-upload-icon,
-.workspace-dropzone.is-dragover .workspace-upload-icon { transform: translateY(-2px) scale(1.06) rotate(-2deg); box-shadow: 0 10px 22px -14px color-mix(in oklch, var(--color-primary) 45%, transparent); }
-.workspace-upload-icon { transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease; }
+.workspace-file-row:hover .workspace-file-icon .lucide {
+  transform: translateY(-1px) scale(1.04);
+}
 
-.workspace-file-row .lucide,
-.workspace-page-card button .lucide,
-.workspace-process-button .lucide,
-.workspace-result button .lucide { transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease, stroke-width 180ms ease; }
-.workspace-file-row button:hover .lucide,
-.workspace-file-row button:focus-visible .lucide,
-.workspace-page-card button:hover .lucide,
-.workspace-page-card button:focus-visible .lucide { transform: translateY(-1px) scale(1.08); stroke-width: 1.95; }
-.workspace-file-row .workspace-remove-button:hover .lucide,
-.workspace-file-row .workspace-remove-button:focus-visible .lucide { color: var(--color-danger); transform: rotate(5deg) scale(1.06); }
-.workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle),
-.workspace-process-button:focus-visible:not(:disabled) .lucide:not(.lucide-loader-circle) { transform: translateX(2px) scale(1.04); }
-.workspace-result button:hover .lucide,
-.workspace-result button:focus-visible .lucide { transform: translateY(-1px) scale(1.06); }
+.workspace-page-card:hover > .workspace-page-card-header .lucide,
+.workspace-page-card:focus-within > .workspace-page-card-header .lucide {
+  transform: scale(1.04);
+}
 
-.home-hero-action svg { transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease; }
-.home-hero-action:hover svg,
-.home-hero-action:focus-visible svg { transform: translateY(-1px) scale(1.05); }
-.home-hero-action-secondary:hover svg,
-.home-hero-action-secondary:focus-visible svg { transform: translateX(3px); }
+.workspace-result-check .lucide { transform: scale(1.02); }
+.workspace-download-button:hover .lucide,
+.workspace-download-button:focus-visible .lucide { transform: translateY(-1px) scale(1.05); }
 
-.app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon { color: color-mix(in oklch, currentColor 82%, transparent); }
+.home-hero-actions .button-primary .lucide,
+.home-hero-actions .button-secondary .lucide {
+  transition: transform 180ms cubic-bezier(.23,1,.32,1), filter 180ms ease;
+}
 
-@media (hover: none) {
-  .app-primary-nav .app-nav-link:hover .app-nav-icon,
-  .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
-  .tool-card:hover .tool-icon,
-  .tool-card:hover .tool-icon .lucide,
-  .workspace-dropzone-shell:hover { transform: none; filter: none; }
+.home-hero-actions .button-primary:hover .lucide,
+.home-hero-actions .button-primary:focus-visible .lucide {
+  transform: translateX(2px) scale(1.04);
+}
+
+.home-hero-actions .button-secondary:hover .lucide,
+.home-hero-actions .button-secondary:focus-visible .lucide {
+  transform: translateY(-1px) scale(1.04);
+}
+
+.home-hero-cta:active .lucide,
+.button:active .lucide,
+.workspace-process-button:active:not(:disabled) .lucide {
+  transform: scale(.94);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -212,56 +209,13 @@
   .app-nav-icon .lucide,
   .tool-card .tool-icon,
   .tool-card .tool-icon .lucide,
-  .trust-item-icon,
-  .workspace-dropzone-shell,
-  .workspace-upload-icon,
-  .workspace-file-row .lucide,
-  .workspace-page-card button .lucide,
-  .workspace-process-button .lucide,
-  .workspace-result button .lucide,
-  .home-hero-action svg,
-  .app-primary-nav .app-nav-link:hover .app-nav-icon,
-  .app-primary-nav .app-nav-link:focus-visible .app-nav-icon,
-  .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
-  .app-primary-nav .app-nav-link-active:focus-visible .app-nav-icon,
-  .app-primary-nav .app-nav-link:active .app-nav-icon,
-  .tool-card:hover .tool-icon,
-  .tool-card:focus-visible .tool-icon,
-  .tool-card:hover .tool-icon .lucide,
-  .tool-card:focus-visible .tool-icon .lucide,
-  .tool-card:active .tool-icon,
-  .trust-item:hover .trust-item-icon,
-  .workspace-dropzone:hover .workspace-upload-icon,
-  .workspace-dropzone:focus-visible .workspace-upload-icon,
-  .workspace-dropzone.is-dragover .workspace-upload-icon,
-  .workspace-dropzone-shell:hover,
-  .workspace-file-row button:hover .lucide,
-  .workspace-file-row button:focus-visible .lucide,
-  .workspace-page-card button:hover .lucide,
-  .workspace-page-card button:focus-visible .lucide,
-  .workspace-file-row .workspace-remove-button:hover .lucide,
-  .workspace-file-row .workspace-remove-button:focus-visible .lucide,
-  .workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle),
-  .workspace-process-button:focus-visible:not(:disabled) .lucide:not(.lucide-loader-circle),
-  .workspace-result button:hover .lucide,
-  .workspace-result button:focus-visible .lucide,
-  .home-hero-action:hover svg,
-  .home-hero-action:focus-visible svg {
-    transform: none;
-    filter: none;
+  .workspace-upload-icon .lucide,
+  .workspace-file-icon .lucide,
+  .workspace-page-card .lucide,
+  .workspace-result-check .lucide,
+  .workspace-download-button .lucide,
+  .home-hero-actions .button-primary .lucide,
+  .home-hero-actions .button-secondary .lucide {
+    transition: none;
   }
-}
-
-@media (forced-colors: active) {
-  .app-nav-link-active,
-  .tool-card:focus-visible,
-  .home-hero-action:focus-visible,
-  .workspace-back-link:focus-visible {
-    outline: 2px solid CanvasText;
-    outline-offset: 2px;
-  }
-
-  .app-nav-link-active { forced-color-adjust: none; background: Highlight; color: HighlightText !important; border-color: Highlight; }
-  .app-nav-link-active .lucide { color: HighlightText !important; }
-  .tool-card .tool-icon { border-color: CanvasText; }
 }
