@@ -11,6 +11,54 @@
 .app-footer { margin-top: auto; }
 .app-footer p { max-width: 42rem; }
 .app-footer p:last-child { border: 1px solid var(--color-border); background: color-mix(in oklch, var(--color-surface) 76%, var(--color-bg)); }
+
+/* Primary navigation shell: visual container + responsive placement. */
+.app-header-inner {
+  position: relative;
+  justify-content: center;
+}
+
+.app-header-logo {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+}
+
+.app-primary-nav-shell {
+  display: flex;
+  width: max-content;
+  max-width: min(100%, 42rem);
+  min-width: 0;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid color-mix(in oklch, var(--color-border) 82%, var(--color-fg));
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--color-surface) 94%, var(--color-bg));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .7) inset,
+    0 8px 24px -22px rgba(32, 33, 36, .35);
+}
+
+.app-primary-nav-shell::-webkit-scrollbar { display: none; }
+
+.app-primary-nav {
+  display: flex;
+  width: max-content;
+  min-width: max-content !important;
+  flex: 0 0 auto !important;
+  align-items: center;
+  gap: .125rem;
+  padding: .2rem !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: .75rem;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .workspace-tool-heading { padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
 .workspace-tool-heading-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .workspace-dropzone-shell { border: 1px solid var(--color-border); box-shadow: var(--shadow-card); }
@@ -147,61 +195,63 @@
 
 .tool-card:hover .tool-icon,
 .tool-card:focus-visible .tool-icon {
-  transform: scale(1.04);
-  box-shadow: 0 8px 18px -14px color-mix(in oklch, var(--color-primary) 34%, transparent);
+  transform: translateY(-2px) scale(1.04) rotate(-2deg);
+  border-color: color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
+  background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
+  box-shadow: 0 9px 20px -15px color-mix(in oklch, var(--color-primary) 42%, transparent);
 }
 
 .tool-card:hover .tool-icon .lucide,
 .tool-card:focus-visible .tool-icon .lucide {
-  transform: scale(1.05);
+  color: var(--color-primary);
+  stroke-width: 2;
+  transform: scale(1.08);
 }
 
-.workspace-upload-icon .lucide,
-.workspace-file-icon .lucide,
-.workspace-page-card .lucide,
-.workspace-result-check .lucide,
-.workspace-download-button .lucide {
-  transition: transform 180ms cubic-bezier(.23,1,.32,1), stroke-width 180ms ease, filter 180ms ease;
+.tool-card:active .tool-icon { transform: translateY(0) scale(.98); }
+
+.trust-item-icon {
+  transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, background-color 180ms ease;
 }
 
-.workspace-dropzone:hover .workspace-upload-icon .lucide,
-.workspace-dropzone:focus-visible .workspace-upload-icon .lucide,
-.workspace-dropzone-shell.is-dragover .workspace-upload-icon .lucide {
-  transform: translateY(-2px) scale(1.08);
-}
+.trust-item:hover .trust-item-icon { transform: translateY(-1px) scale(1.03); background: color-mix(in oklch, var(--color-primary) 9%, var(--color-surface)); box-shadow: 0 8px 18px -15px color-mix(in oklch, var(--color-primary) 38%, transparent); }
 
-.workspace-file-row:hover .workspace-file-icon .lucide {
-  transform: translateY(-1px) scale(1.04);
-}
+.workspace-dropzone-shell { transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease, border-color 180ms ease; }
+.workspace-dropzone-shell:hover { transform: translateY(-1px); }
+.workspace-dropzone:hover .workspace-upload-icon,
+.workspace-dropzone:focus-visible .workspace-upload-icon,
+.workspace-dropzone.is-dragover .workspace-upload-icon { transform: translateY(-2px) scale(1.06) rotate(-2deg); box-shadow: 0 10px 22px -14px color-mix(in oklch, var(--color-primary) 45%, transparent); }
+.workspace-upload-icon { transition: transform 180ms cubic-bezier(.23,1,.32,1), box-shadow 180ms ease; }
 
-.workspace-page-card:hover > .workspace-page-card-header .lucide,
-.workspace-page-card:focus-within > .workspace-page-card-header .lucide {
-  transform: scale(1.04);
-}
+.workspace-file-row .lucide,
+.workspace-page-card button .lucide,
+.workspace-process-button .lucide,
+.workspace-result button .lucide { transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease, stroke-width 180ms ease; }
+.workspace-file-row button:hover .lucide,
+.workspace-file-row button:focus-visible .lucide,
+.workspace-page-card button:hover .lucide,
+.workspace-page-card button:focus-visible .lucide { transform: translateY(-1px) scale(1.08); stroke-width: 1.95; }
+.workspace-file-row .workspace-remove-button:hover .lucide,
+.workspace-file-row .workspace-remove-button:focus-visible .lucide { color: var(--color-danger); transform: rotate(5deg) scale(1.06); }
+.workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle),
+.workspace-process-button:focus-visible:not(:disabled) .lucide:not(.lucide-loader-circle) { transform: translateX(2px) scale(1.04); }
+.workspace-result button:hover .lucide,
+.workspace-result button:focus-visible .lucide { transform: translateY(-1px) scale(1.06); }
 
-.workspace-result-check .lucide { transform: scale(1.02); }
-.workspace-download-button:hover .lucide,
-.workspace-download-button:focus-visible .lucide { transform: translateY(-1px) scale(1.05); }
+.home-hero-action svg { transition: transform 180ms cubic-bezier(.23,1,.32,1), color 180ms ease; }
+.home-hero-action:hover svg,
+.home-hero-action:focus-visible svg { transform: translateY(-1px) scale(1.05); }
+.home-hero-action-secondary:hover svg,
+.home-hero-action-secondary:focus-visible svg { transform: translateX(3px); }
 
-.home-hero-actions .button-primary .lucide,
-.home-hero-actions .button-secondary .lucide {
-  transition: transform 180ms cubic-bezier(.23,1,.32,1), filter 180ms ease;
-}
+.app-primary-nav .app-nav-link:not(.app-nav-link-active) .app-nav-icon { color: color-mix(in oklch, currentColor 82%, transparent); }
 
-.home-hero-actions .button-primary:hover .lucide,
-.home-hero-actions .button-primary:focus-visible .lucide {
-  transform: translateX(2px) scale(1.04);
-}
-
-.home-hero-actions .button-secondary:hover .lucide,
-.home-hero-actions .button-secondary:focus-visible .lucide {
-  transform: translateY(-1px) scale(1.04);
-}
-
-.home-hero-cta:active .lucide,
-.button:active .lucide,
-.workspace-process-button:active:not(:disabled) .lucide {
-  transform: scale(.94);
+@media (hover: none) {
+  .app-primary-nav .app-nav-link:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
+  .tool-card:hover .tool-icon,
+  .tool-card:hover .tool-icon .lucide,
+  .workspace-dropzone-shell:hover { transform: none; filter: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -209,13 +259,56 @@
   .app-nav-icon .lucide,
   .tool-card .tool-icon,
   .tool-card .tool-icon .lucide,
-  .workspace-upload-icon .lucide,
-  .workspace-file-icon .lucide,
-  .workspace-page-card .lucide,
-  .workspace-result-check .lucide,
-  .workspace-download-button .lucide,
-  .home-hero-actions .button-primary .lucide,
-  .home-hero-actions .button-secondary .lucide {
-    transition: none;
+  .trust-item-icon,
+  .workspace-dropzone-shell,
+  .workspace-upload-icon,
+  .workspace-file-row .lucide,
+  .workspace-page-card button .lucide,
+  .workspace-process-button .lucide,
+  .workspace-result button .lucide,
+  .home-hero-action svg,
+  .app-primary-nav .app-nav-link:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link:focus-visible .app-nav-icon,
+  .app-primary-nav .app-nav-link-active:hover .app-nav-icon,
+  .app-primary-nav .app-nav-link-active:focus-visible .app-nav-icon,
+  .app-primary-nav .app-nav-link:active .app-nav-icon,
+  .tool-card:hover .tool-icon,
+  .tool-card:focus-visible .tool-icon,
+  .tool-card:hover .tool-icon .lucide,
+  .tool-card:focus-visible .tool-icon .lucide,
+  .tool-card:active .tool-icon,
+  .trust-item:hover .trust-item-icon,
+  .workspace-dropzone:hover .workspace-upload-icon,
+  .workspace-dropzone:focus-visible .workspace-upload-icon,
+  .workspace-dropzone.is-dragover .workspace-upload-icon,
+  .workspace-dropzone-shell:hover,
+  .workspace-file-row button:hover .lucide,
+  .workspace-file-row button:focus-visible .lucide,
+  .workspace-page-card button:hover .lucide,
+  .workspace-page-card button:focus-visible .lucide,
+  .workspace-file-row .workspace-remove-button:hover .lucide,
+  .workspace-file-row .workspace-remove-button:focus-visible .lucide,
+  .workspace-process-button:hover:not(:disabled) .lucide:not(.lucide-loader-circle),
+  .workspace-process-button:focus-visible:not(:disabled) .lucide:not(.lucide-loader-circle),
+  .workspace-result button:hover .lucide,
+  .workspace-result button:focus-visible .lucide,
+  .home-hero-action:hover svg,
+  .home-hero-action:focus-visible svg {
+    transform: none;
+    filter: none;
   }
+}
+
+@media (forced-colors: active) {
+  .app-nav-link-active,
+  .tool-card:focus-visible,
+  .home-hero-action:focus-visible,
+  .workspace-back-link:focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+
+  .app-nav-link-active { forced-color-adjust: none; background: Highlight; color: HighlightText !important; border-color: Highlight; }
+  .app-nav-link-active .lucide { color: HighlightText !important; }
+  .tool-card .tool-icon { border-color: CanvasText; }
 }
