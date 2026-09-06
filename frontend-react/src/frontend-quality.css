@@ -54,3 +54,9 @@
     box-shadow: var(--shadow-floating);
   }
 }
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
