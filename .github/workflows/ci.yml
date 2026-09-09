@@ -30,11 +30,35 @@ jobs:
         id: filter
         shell: bash
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          changed_files="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+
+          case "$EVENT_NAME" in
+            pull_request)
+              base_sha="$BASE_SHA"
+              head_sha="$HEAD_SHA"
+              ;;
+            push)
+              base_sha="$BEFORE_SHA"
+              head_sha="$SHA"
+              ;;
+            *)
+              base_sha=""
+              head_sha="$SHA"
+              ;;
+          esac
+
+          if [[ -n "$base_sha" ]] && git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+            changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
+          else
+            changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
+          fi
+
           if grep -Eq '^(backend/src/engines/office/|backend/src/engines/optimize/|backend/src/engines/rendering/|backend/Cargo.toml|Cargo.toml|Cargo.lock)' <<<"$changed_files"; then
             echo "system-deps=true" >> "$GITHUB_OUTPUT"
           else
