@@ -21,7 +21,7 @@ jobs:
       system-deps: ${{ steps.filter.outputs.system-deps }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6.1.0
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6.1.0
         with:
           persist-credentials: false
 
@@ -93,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6.1.0
         with:
           persist-credentials: false
 
@@ -141,7 +141,7 @@ jobs:
         working-directory: frontend-react
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6.1.0
         with:
           persist-credentials: false
 
@@ -149,10 +149,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          # No package-lock.json is committed yet, so npm dependency caching
-          # would not have a lockfile-based cache key and could reuse a stale
-          # dependency cache. Re-enable cache together with npm ci once the
-          # lockfile is committed to the repository.
           package-manager-cache: false
 
       - name: Install dependencies
