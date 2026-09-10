@@ -440,3 +440,105 @@
   .app-nav-icon,
   .app-nav-icon .lucide { transition: none; }
 }
+
+/* Navigation refinement: preserve logo space and make the rail feel deliberate on narrow screens. */
+.app-primary-nav-shell {
+  scroll-padding-inline: .3rem;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-primary-nav .app-nav-link {
+  white-space: nowrap;
+  user-select: none;
+}
+
+.app-primary-nav .app-nav-link:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 767px) {
+  .app-header-inner {
+    justify-content: flex-end;
+    padding-inline: .75rem;
+  }
+
+  .app-header-logo {
+    left: .75rem;
+  }
+
+  .app-primary-nav-shell {
+    width: calc(100% - 4.35rem);
+    max-width: none;
+    margin-left: 4.35rem;
+    justify-content: flex-start;
+    border-radius: .9rem;
+  }
+
+  .app-primary-nav {
+    gap: .08rem;
+  }
+
+  .app-primary-nav .app-nav-link {
+    min-height: 2.65rem;
+    padding-inline: .72rem;
+    border-radius: .68rem;
+    font-size: .72rem;
+  }
+
+  .app-primary-nav .app-nav-link-active::after,
+  .app-primary-nav .app-nav-link:not(.app-nav-link-active)::after {
+    right: .7rem;
+    left: .7rem;
+    bottom: .1rem;
+  }
+
+  .app-nav-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .app-nav-icon .lucide {
+    width: .9rem;
+    height: .9rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-header-inner {
+    min-height: 3.75rem !important;
+    padding-inline: .65rem;
+  }
+
+  .app-header-logo {
+    left: .65rem;
+  }
+
+  .app-primary-nav-shell {
+    width: calc(100% - 4rem);
+    margin-left: 4rem;
+    border-color: color-mix(in oklch, var(--color-border) 90%, var(--color-fg));
+    background: color-mix(in oklch, var(--color-surface) 97%, var(--color-bg));
+    box-shadow: none;
+  }
+
+  .app-primary-nav .app-nav-link {
+    min-height: 2.5rem;
+    padding-inline: .62rem;
+    font-size: .68rem;
+  }
+
+  .app-primary-nav .app-nav-link .app-nav-icon {
+    display: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .app-primary-nav-shell {
+    max-width: 44rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-primary-nav .app-nav-link:active { transform: none; }
+}
