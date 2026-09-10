@@ -7,21 +7,31 @@ on:
   schedule:
     - cron: "17 3 * * 1"
 
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   cargo-audit:
     name: Cargo audit
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Verify Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v cargo >/dev/null
+          command -v rustc >/dev/null
+          cargo --version
+          rustc --version
 
       - name: Generate lockfile
         run: cargo generate-lockfile
