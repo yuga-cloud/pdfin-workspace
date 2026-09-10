@@ -1,7 +1,28 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { ArrowLeft, TriangleAlert } from "lucide-react";
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "string" && error) {
+    return error;
+  }
+
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = error.message;
+    if (typeof message === "string" && message) {
+      return message;
+    }
+  }
+
+  return "Terjadi kesalahan yang tidak terduga. Coba muat ulang halaman atau kembali ke beranda.";
+}
+
 export function AppErrorComponent({ error }: ErrorComponentProps) {
+  const errorMessage = getErrorMessage(error);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-bg px-6 py-12 text-center text-fg">
       <div className="w-full max-w-lg rounded-3xl border border-border bg-surface p-8 shadow-[var(--shadow-card)] sm:p-10">
@@ -11,7 +32,7 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
         <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-primary">Terjadi kesalahan</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Halaman tidak dapat dimuat</h1>
         <p className="mt-3 break-words text-sm leading-relaxed text-muted">
-          {error.message || "Terjadi kesalahan yang tidak terduga. Coba muat ulang halaman atau kembali ke beranda."}
+          {errorMessage}
         </p>
         <a
           href="/"
