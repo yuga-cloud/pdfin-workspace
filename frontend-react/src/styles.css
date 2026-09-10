@@ -9,6 +9,7 @@
 @import "./frontend-quality.css";
 @import "./guide-modern.css";
 @import "./guide-polish.css";
+@import "./workspace-detail-polish.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
