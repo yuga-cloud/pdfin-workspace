@@ -10,7 +10,7 @@
 .app-tool-rail::-webkit-scrollbar { display: none; }
 .app-footer { margin-top: auto; }
 .app-footer p { max-width: 42rem; }
-.app-footer p:last-child { border: 1px solid var(--color-border); background: color-mix(in oklch, var(--color-surface) 76%, var(--color-bg)); }
+.app-footer p:last-child { background: transparent; }
 
 /* Primary navigation shell: visual container + responsive placement. */
 .app-header-inner {
@@ -411,7 +411,6 @@
   .workspace-choice:has(input:focus-visible), .workspace-segmented button:focus-visible, .workspace-chip:focus-visible, .workspace-check-row:has(input:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; box-shadow: none; }
   .workspace-segmented button.is-selected { background: Highlight; color: HighlightText; border-color: Highlight; }
   .workspace-error::before { background: Highlight; box-shadow: 0 0 0 2px Canvas; }
-  .app-footer p:last-child { border-color: CanvasText; }
 }
 
 /* Shared interaction/icon language consolidated from navigation-icons.css. */
