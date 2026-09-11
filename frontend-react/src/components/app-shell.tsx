@@ -118,9 +118,10 @@ export function AppShell({ children }: AppShellProps) {
 
       <footer className="app-footer border-t border-border/80 bg-surface/45">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
-            <span className="font-semibold text-fg">pdf<span className="text-primary">in</span></span>{" "}
-            – alat PDF untuk pekerjaan dokumen sehari-hari.
+          <p className="app-footer-tagline">
+            <span className="app-footer-brand">pdf<span>in</span></span>
+            <span className="app-footer-separator" aria-hidden="true">–</span>
+            <span className="app-footer-copy">alat PDF untuk pekerjaan dokumen sehari-hari.</span>
           </p>
         </div>
       </footer>
