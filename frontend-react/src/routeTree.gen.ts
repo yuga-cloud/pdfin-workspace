@@ -11,10 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PanduanRouteImport } from './routes/panduan'
-import { Route as AlatAturRouteImport } from './routes/alat.atur'
-import { Route as AlatOptimalkanRouteImport } from './routes/alat.optimalkan'
-import { Route as AlatKonversiRouteImport } from './routes/alat.konversi'
 import { Route as AlatSlugRouteImport } from './routes/alat.$slug'
+import { Route as AlatAturRouteImport } from './routes/alat.atur'
+import { Route as AlatKonversiRouteImport } from './routes/alat.konversi'
+import { Route as AlatOptimalkanRouteImport } from './routes/alat.optimalkan'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -26,14 +26,14 @@ const PanduanRoute = PanduanRouteImport.update({
   path: '/panduan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AlatSlugRoute = AlatSlugRouteImport.update({
+  id: '/alat/$slug',
+  path: '/alat/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlatAturRoute = AlatAturRouteImport.update({
   id: '/alat/atur',
   path: '/alat/atur',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AlatOptimalkanRoute = AlatOptimalkanRouteImport.update({
-  id: '/alat/optimalkan',
-  path: '/alat/optimalkan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlatKonversiRoute = AlatKonversiRouteImport.update({
@@ -41,52 +41,71 @@ const AlatKonversiRoute = AlatKonversiRouteImport.update({
   path: '/alat/konversi',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AlatSlugRoute = AlatSlugRouteImport.update({
-  id: '/alat/$slug',
-  path: '/alat/$slug',
+const AlatOptimalkanRoute = AlatOptimalkanRouteImport.update({
+  id: '/alat/optimalkan',
+  path: '/alat/optimalkan',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/panduan': typeof PanduanRoute
-  '/alat/atur': typeof AlatAturRoute
-  '/alat/optimalkan': typeof AlatOptimalkanRoute
-  '/alat/konversi': typeof AlatKonversiRoute
   '/alat/$slug': typeof AlatSlugRoute
+  '/alat/atur': typeof AlatAturRoute
+  '/alat/konversi': typeof AlatKonversiRoute
+  '/alat/optimalkan': typeof AlatOptimalkanRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/panduan': typeof PanduanRoute
-  '/alat/atur': typeof AlatAturRoute
-  '/alat/optimalkan': typeof AlatOptimalkanRoute
-  '/alat/konversi': typeof AlatKonversiRoute
   '/alat/$slug': typeof AlatSlugRoute
+  '/alat/atur': typeof AlatAturRoute
+  '/alat/konversi': typeof AlatKonversiRoute
+  '/alat/optimalkan': typeof AlatOptimalkanRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/panduan': typeof PanduanRoute
-  '/alat/atur': typeof AlatAturRoute
-  '/alat/optimalkan': typeof AlatOptimalkanRoute
-  '/alat/konversi': typeof AlatKonversiRoute
   '/alat/$slug': typeof AlatSlugRoute
+  '/alat/atur': typeof AlatAturRoute
+  '/alat/konversi': typeof AlatKonversiRoute
+  '/alat/optimalkan': typeof AlatOptimalkanRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/panduan' | '/alat/atur' | '/alat/optimalkan' | '/alat/konversi' | '/alat/$slug'
+  fullPaths:
+    | '/'
+    | '/panduan'
+    | '/alat/$slug'
+    | '/alat/atur'
+    | '/alat/konversi'
+    | '/alat/optimalkan'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/panduan' | '/alat/atur' | '/alat/optimalkan' | '/alat/konversi' | '/alat/$slug'
-  id: '__root__' | '/' | '/panduan' | '/alat/atur' | '/alat/optimalkan' | '/alat/konversi' | '/alat/$slug'
+  to:
+    | '/'
+    | '/panduan'
+    | '/alat/$slug'
+    | '/alat/atur'
+    | '/alat/konversi'
+    | '/alat/optimalkan'
+  id:
+    | '__root__'
+    | '/'
+    | '/panduan'
+    | '/alat/$slug'
+    | '/alat/atur'
+    | '/alat/konversi'
+    | '/alat/optimalkan'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PanduanRoute: typeof PanduanRoute
-  AlatAturRoute: typeof AlatAturRoute
-  AlatOptimalkanRoute: typeof AlatOptimalkanRoute
-  AlatKonversiRoute: typeof AlatKonversiRoute
   AlatSlugRoute: typeof AlatSlugRoute
+  AlatAturRoute: typeof AlatAturRoute
+  AlatKonversiRoute: typeof AlatKonversiRoute
+  AlatOptimalkanRoute: typeof AlatOptimalkanRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -105,18 +124,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanduanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/alat/$slug': {
+      id: '/alat/$slug'
+      path: '/alat/$slug'
+      fullPath: '/alat/$slug'
+      preLoaderRoute: typeof AlatSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alat/atur': {
       id: '/alat/atur'
       path: '/alat/atur'
       fullPath: '/alat/atur'
       preLoaderRoute: typeof AlatAturRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/alat/optimalkan': {
-      id: '/alat/optimalkan'
-      path: '/alat/optimalkan'
-      fullPath: '/alat/optimalkan'
-      preLoaderRoute: typeof AlatOptimalkanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alat/konversi': {
@@ -126,11 +145,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlatKonversiRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/alat/$slug': {
-      id: '/alat/$slug'
-      path: '/alat/$slug'
-      fullPath: '/alat/$slug'
-      preLoaderRoute: typeof AlatSlugRouteImport
+    '/alat/optimalkan': {
+      id: '/alat/optimalkan'
+      path: '/alat/optimalkan'
+      fullPath: '/alat/optimalkan'
+      preLoaderRoute: typeof AlatOptimalkanRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -139,10 +158,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PanduanRoute: PanduanRoute,
-  AlatAturRoute: AlatAturRoute,
-  AlatOptimalkanRoute: AlatOptimalkanRoute,
-  AlatKonversiRoute: AlatKonversiRoute,
   AlatSlugRoute: AlatSlugRoute,
+  AlatAturRoute: AlatAturRoute,
+  AlatKonversiRoute: AlatKonversiRoute,
+  AlatOptimalkanRoute: AlatOptimalkanRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
