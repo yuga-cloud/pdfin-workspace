@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { Logo } from "@/shared/brand/logo";
-import { getTool, type ToolDef } from "@/features/tools/catalog";
+import { getTool, type ToolDef } from "@/shared/tools/catalog";
 
 interface AppShellProps {
   children: ReactNode;
