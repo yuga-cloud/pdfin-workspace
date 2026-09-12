@@ -22,7 +22,7 @@ import { Button } from "@/shared/ui/button";
 import { Progress } from "@/shared/ui/progress";
 import { PdfPageThumbnail } from "@/features/workspace/pdf-page-thumbnail";
 import { acceptFor, type ToolDef } from "@/features/tools/catalog";
-import { validateDeviceProcessingSize } from "@/lib/processing-policy";
+import { validateDeviceProcessingSize } from "@/features/workspace/processing-policy";
 import { processTool, type ToolOptions } from "@/lib/pdf/engine";
 import { PdfThumbnailCache } from "@/lib/pdf/thumbnail-cache";
 import { cn, formatBytes, uid } from "@/lib/utils";
