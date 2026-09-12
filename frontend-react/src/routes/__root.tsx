@@ -1,6 +1,6 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
-import { PreviewHostBridge } from "@/components/preview-host-bridge";
-import { AppShell } from "@/components/app-shell";
+import { PreviewHostBridge } from "@/shared/preview/preview-host-bridge";
+import { AppShell } from "@/app/app-shell";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
