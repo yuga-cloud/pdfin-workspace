@@ -15,3 +15,36 @@
   --shadow-card-hover: 0 0 0 1px color-mix(in oklch, var(--color-primary) 14%, transparent), 0 10px 24px -18px color-mix(in oklch, var(--color-fg) 18%, transparent), 0 18px 40px -26px color-mix(in oklch, var(--color-primary) 22%, transparent);
   --shadow-floating: 0 18px 48px -30px color-mix(in oklch, var(--color-fg) 34%, transparent), 0 6px 18px -12px color-mix(in oklch, var(--color-fg) 16%, transparent);
 }
+
+
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-bg: #f7f7f5;
+  --color-fg: #202124;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f2ef;
+  --color-muted: #6b6f76;
+  --color-primary: #df5148;
+  --color-primary-fg: #ffffff;
+  --color-border: #e3e4e1;
+  --color-danger: #b42318;
+  --color-ok: #2f6f45;
+  --color-ring: #df5148;
+  --color-stamp: #9b2c2c;
+  --color-background: #f7f7f5;
+  --color-foreground: #202124;
+  --color-card: #ffffff;
+  --color-card-foreground: #202124;
+  --color-muted-foreground: #6b6f76;
+  --color-accent: #df5148;
+  --color-accent-foreground: #ffffff;
+  --radius-sm: .625rem;
+  --radius-md: .8rem;
+  --radius-lg: 1rem;
+}
+
+:root {
+  --motion-fast: 140ms;
+  --motion-quick: 180ms;
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
+}
