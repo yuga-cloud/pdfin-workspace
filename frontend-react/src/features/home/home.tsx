@@ -21,7 +21,7 @@ import {
   Stamp,
   Upload,
 } from "lucide-react";
-import { TOOLS, type ToolDef } from "@/lib/tools-catalog";
+import { TOOLS, type ToolDef } from "@/features/tools/catalog";
 
 const ICONS: Record<ToolDef["slug"], typeof Files> = {
   gabung: Files,
