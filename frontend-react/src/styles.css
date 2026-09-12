@@ -1,16 +1,13 @@
 @import "@fontsource-variable/plus-jakarta-sans/wght.css";
 @import "tailwindcss";
-@import "./home-modern.css";
-@import "./frontend-finish.css";
-@import "./design-system-2026.css";
-@import "./workspace-heading-polish.css";
-@import "./tool-group-page.css";
-@import "./tool-card-polish.css";
-@import "./frontend-quality.css";
-@import "./guide-modern.css";
-@import "./guide-polish.css";
-@import "./workspace-detail-polish.css";
-@import "./responsive-polish.css";
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/layout.css";
+@import "./features/home/home.css";
+@import "./features/guide/guide.css";
+@import "./features/tools/tools.css";
+@import "./features/workspace/workspace.css";
+@import "./styles/utilities/responsive.css";
 
 @theme {
   --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -36,45 +33,15 @@
   --radius-sm: .625rem;
   --radius-md: .8rem;
   --radius-lg: 1rem;
-  --radius-xl: 1.35rem;
-  --radius-2xl: 1.75rem;
-  --radius-3xl: 2rem;
 }
 
 :root {
-  --ease-out: cubic-bezier(.23,1,.32,1);
-  --ease-smooth-out: cubic-bezier(.22,1,.36,1);
-  --motion-quick: 150ms;
-  --motion-fast: 250ms;
-  --content-max: 72rem;
-  --text-measure: 68ch;
-  --border-subtle: color-mix(in oklch, var(--color-fg) 8%, transparent);
+  --motion-fast: 140ms;
+  --motion-quick: 180ms;
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
 }
 
-@layer base {
-  *, *::before, *::after { box-sizing: border-box; }
-
-  html { min-width: 320px; overflow-x: clip; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
-  body { min-height: 100dvh; margin: 0; overflow-x: clip; font-family: var(--font-sans); line-height: 1.5; }
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 999px; background: color-mix(in oklch, var(--color-fg) 17%, transparent); background-clip: padding-box; }
-  ::-webkit-scrollbar-thumb:hover { background: color-mix(in oklch, var(--color-fg) 28%, transparent); background-clip: padding-box; }
-  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
-  a { color: inherit; text-decoration: none; }
-  img, svg { max-width: 100%; }
-  main { isolation: isolate; }
-  input, select, textarea { color-scheme: light; accent-color: var(--color-primary); font: inherit; }
-  input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, textarea:-webkit-autofill, textarea:-webkit-autofill:hover, textarea:-webkit-autofill:focus, select:-webkit-autofill { -webkit-text-fill-color: var(--color-fg); -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset; box-shadow: 0 0 0 1000px var(--color-surface) inset; transition: background-color 9999s ease-out 0s; }
-  input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { margin: 0; }
+button,
+[role="button"] {
+  cursor: pointer;
 }
-
-.shadow-\[var\(--shadow-card\)\] { box-shadow: var(--shadow-card); }
-.shadow-\[var\(--shadow-card-hover\)\] { box-shadow: var(--shadow-card-hover); }
-[data-sonner-toaster] [data-sonner-toast] { border: 1px solid var(--color-border); border-radius: .9rem; box-shadow: var(--shadow-floating); }
-.guide-page, .tool-workspace-page, .tool-group-page { container-type: inline-size; }
-.guide-section-heading h2, .guide-callout h2, .tool-missing h1 { text-wrap: balance; }
-.guide-list li, .guide-notes li { max-width: var(--text-measure); }
-@media (max-width: 639px) { main { padding-top: 1.5rem; } .tool-missing { margin-inline: .25rem; } .guide-page { padding-bottom: 2.75rem; } }
-@media (forced-colors: active) { .tool-missing, .guide-callout { forced-color-adjust: auto; border: 1px solid CanvasText; box-shadow: none; } .tool-missing a, .home-hero-action, .tool-card, .app-nav-link, .app-tool-link { outline-color: Highlight; } }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
