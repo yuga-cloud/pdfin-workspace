@@ -1,5 +1,5 @@
 import type { ToolOptions } from "@/lib/pdf/engine";
-import type { ProcessingLocation, ToolDef } from "@/features/tools/catalog";
+import type { ProcessingLocation, ToolDef } from "@/shared/tools/catalog";
 
 /**
  * Browser-side processing is deliberately bounded to avoid turning large PDF
