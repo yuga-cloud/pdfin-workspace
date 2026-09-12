@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
@@ -40,7 +40,7 @@ const ICONS: Record<ToolDef["slug"], typeof Files> = {
   "pdf-ke-powerpoint": Presentation,
 };
 
-function Home() {
+export function Home() {
   return (
     <div className="home-page">
       <section className="home-hero home-hero-wrap" aria-labelledby="home-title">
