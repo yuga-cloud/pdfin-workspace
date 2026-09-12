@@ -18,8 +18,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/shared/ui/button";
+import { Progress } from "@/shared/ui/progress";
 import { PdfPageThumbnail } from "@/features/workspace/pdf-page-thumbnail";
 import { acceptFor, type ToolDef } from "@/features/tools/catalog";
 import { validateDeviceProcessingSize } from "@/lib/processing-policy";
