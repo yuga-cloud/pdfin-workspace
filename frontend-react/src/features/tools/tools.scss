@@ -1,0 +1,465 @@
+@use "../../styles/tokens";
+
+/* Tool-group landing pages: category-first discovery before opening an individual tool. */
+.tool-group-page {
+  width: min(100%, 75rem);
+  margin-inline: auto;
+}
+
+.tool-group-hero {
+  position: relative;
+  max-width: 58rem;
+  padding-block: clamp(1.25rem, 4vw, 3rem) clamp(2.25rem, 5vw, 4rem);
+  isolation: isolate;
+}
+
+.tool-group-hero::after {
+  position: absolute;
+  z-index: -1;
+  top: 0.5rem;
+  left: clamp(9rem, 26vw, 20rem);
+  width: clamp(9rem, 26vw, 19rem);
+  height: clamp(9rem, 26vw, 19rem);
+  content: "";
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in oklch, var(--color-primary) 10%, transparent), transparent 68%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.tool-group-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.8rem;
+  margin: 0;
+  padding: 0 0.65rem;
+  border: 1px solid color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface));
+  color: var(--color-primary);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.tool-group-hero h1 {
+  max-width: 15ch;
+  margin: 0.8rem 0 0;
+  font-size: clamp(2.5rem, 6vw, 4.75rem);
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+  text-wrap: balance;
+}
+
+.tool-group-description {
+  max-width: 43rem;
+  margin: 1.1rem 0 0;
+  color: var(--color-muted);
+  font-size: clamp(1rem, 1.55vw, 1.12rem);
+  line-height: 1.72;
+  text-wrap: balance;
+}
+
+.tool-group-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tool-group-section-heading h2 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  letter-spacing: -0.04em;
+}
+
+.tool-group-count {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.68rem;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  font-size: 0.68rem;
+  font-weight: 750;
+  box-shadow: 0 1px 1px color-mix(in oklch, var(--color-fg) 3%, transparent);
+}
+
+.tool-group-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1.1rem;
+}
+
+.tool-group-card {
+  position: relative;
+  display: flex;
+  min-height: 13.75rem;
+  flex-direction: column;
+  overflow: clip;
+  padding: 1.15rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.1rem;
+  background: linear-gradient(180deg, var(--color-surface), color-mix(in oklch, var(--color-surface) 96%, var(--color-bg)));
+  box-shadow: 0 1px 0 color-mix(in oklch, var(--color-fg) 4%, transparent), var(--shadow-card);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
+
+.tool-group-card::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  border-radius: inherit;
+  background: linear-gradient(135deg, color-mix(in oklch, var(--color-primary) 5%, transparent), transparent 35%);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.tool-group-card:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
+  background: linear-gradient(180deg, var(--color-surface), color-mix(in oklch, var(--color-primary) 2.5%, var(--color-surface)));
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+}
+
+.tool-group-card:hover::before,
+.tool-group-card:focus-visible::before { opacity: 1; }
+
+.tool-group-card:focus-visible {
+  border-color: color-mix(in oklch, var(--color-ring) 42%, var(--color-border));
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-ring) 10%, transparent), var(--shadow-card-hover);
+}
+
+.tool-group-card-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tool-group-card-icon {
+  display: grid;
+  width: 2.85rem;
+  height: 2.85rem;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--color-primary) 14%, var(--color-border));
+  border-radius: 0.88rem;
+  background: color-mix(in oklch, var(--color-primary) 7%, var(--color-surface));
+  color: var(--color-primary);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, #fff 65%, transparent);
+  transition:
+    transform var(--motion-quick) var(--ease-out),
+    background var(--motion-quick) var(--ease-out);
+}
+
+.tool-group-card:hover .tool-group-card-icon,
+.tool-group-card:focus-visible .tool-group-card-icon {
+  background: color-mix(in oklch, var(--color-primary) 11%, var(--color-surface));
+  transform: translateY(-1px);
+}
+
+.tool-group-card-arrow {
+  color: var(--color-muted);
+  transition:
+    transform var(--motion-quick) var(--ease-out),
+    color var(--motion-quick) var(--ease-out);
+}
+
+.tool-group-card:hover .tool-group-card-arrow,
+.tool-group-card:focus-visible .tool-group-card-arrow {
+  color: var(--color-primary);
+  transform: translateX(3px);
+}
+
+.tool-group-card-title-row {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 1rem;
+}
+
+.tool-group-card-title-row h3 {
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.tool-group-card > p {
+  position: relative;
+  z-index: 1;
+  margin: 0.58rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.79rem;
+  line-height: 1.65;
+}
+
+.tool-group-card-hint {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  padding-top: 0.9rem;
+  color: color-mix(in oklch, var(--color-muted) 88%, var(--color-fg));
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+
+.tool-group-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 2rem;
+  padding-top: 1.05rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.tool-group-switcher a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0.52rem 0.15rem;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition: color var(--motion-quick) var(--ease-out), transform var(--motion-quick) var(--ease-out);
+}
+
+.tool-group-switcher a::after {
+  position: absolute;
+  inset-inline: 0.15rem;
+  bottom: 0.15rem;
+  height: 2px;
+  content: "";
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transform: scaleX(0.65);
+  transition:
+    opacity var(--motion-quick) var(--ease-out),
+    transform var(--motion-quick) var(--ease-out);
+}
+
+.tool-group-switcher a:hover {
+  color: var(--color-fg);
+  transform: translateY(-1px);
+}
+
+.tool-group-switcher a.is-active {
+  color: var(--color-fg);
+}
+
+.tool-group-switcher a.is-active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+@media (max-width: 1023px) {
+  .tool-group-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .tool-group-hero {
+    padding-top: 0.75rem;
+  }
+
+  .tool-group-hero::after {
+    left: 5rem;
+    width: 11rem;
+    height: 11rem;
+  }
+
+  .tool-group-hero h1 {
+    max-width: 12ch;
+    font-size: clamp(2.25rem, 13vw, 3.4rem);
+  }
+
+  .tool-group-section-heading {
+    align-items: flex-start;
+  }
+
+  .tool-group-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-group-card {
+    min-height: 11.75rem;
+    padding: 1rem;
+  }
+
+  .tool-group-switcher {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.15rem;
+    scrollbar-width: none;
+  }
+
+  .tool-group-switcher::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-group-card,
+  .tool-group-card:hover,
+  .tool-group-card:hover .tool-group-card-icon,
+  .tool-group-card:hover .tool-group-card-arrow,
+  .tool-group-card:focus-visible .tool-group-card-icon,
+  .tool-group-card:focus-visible .tool-group-card-arrow,
+  .tool-group-switcher a,
+  .tool-group-switcher a:hover,
+  .tool-group-switcher a::after {
+    transform: none;
+  }
+}
+
+/* Shared tool-card refinement layer. Presentation only; no application behavior. */
+.tool-card,
+.tool-group-card {
+  --tool-card-radius: 1.05rem;
+  --tool-icon-size: 2.75rem;
+  --tool-icon-radius: 0.84rem;
+}
+
+.tool-card,
+.tool-group-card {
+  border-radius: var(--tool-card-radius);
+  isolation: isolate;
+}
+
+.tool-icon,
+.tool-group-card-icon {
+  width: var(--tool-icon-size);
+  height: var(--tool-icon-size);
+  border-radius: var(--tool-icon-radius);
+}
+
+.tool-card-arrow,
+.tool-group-card-arrow {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  color: var(--color-muted);
+  transition:
+    transform var(--motion-quick) var(--ease-out),
+    color var(--motion-quick) var(--ease-out),
+    background-color var(--motion-quick) var(--ease-out),
+    border-color var(--motion-quick) var(--ease-out);
+}
+
+.tool-card:hover .tool-card-arrow,
+.tool-card:focus-visible .tool-card-arrow,
+.tool-group-card:hover .tool-group-card-arrow,
+.tool-group-card:focus-visible .tool-group-card-arrow {
+  border-color: color-mix(in oklch, var(--color-primary) 10%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface));
+  color: var(--color-primary);
+  transform: translateX(3px);
+}
+
+.tool-card-title,
+.tool-group-card-title-row h3 {
+  font-size: 0.99rem;
+  font-weight: 720;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.tool-card-description,
+.tool-group-card > p {
+  font-size: 0.77rem;
+  line-height: 1.64;
+}
+
+.tool-card-hint,
+.tool-group-card-hint {
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+.tool-card::after,
+.tool-group-card::after {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.8rem;
+  left: 1rem;
+  height: 1px;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--color-border) 80%, transparent),
+    transparent
+  );
+  opacity: 0;
+  transform: scaleX(0.82);
+  transition:
+    opacity var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.tool-card:hover::after,
+.tool-card:focus-visible::after,
+.tool-group-card:hover::after,
+.tool-group-card:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+@media (max-width: 639px) {
+  .tool-card,
+  .tool-group-card {
+    --tool-icon-size: 2.7rem;
+  }
+
+  .tool-card::after,
+  .tool-group-card::after {
+    right: 0.85rem;
+    bottom: 0.7rem;
+    left: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-card,
+  .tool-card:hover,
+  .tool-group-card,
+  .tool-group-card:hover,
+  .tool-card::after,
+  .tool-group-card::after,
+  .tool-card:hover::after,
+  .tool-card:focus-visible::after,
+  .tool-group-card:hover::after,
+  .tool-group-card:focus-visible::after,
+  .tool-card:hover .tool-icon,
+  .tool-card:focus-visible .tool-icon,
+  .tool-group-card:hover .tool-group-card-icon,
+  .tool-group-card:focus-visible .tool-group-card-icon,
+  .tool-card:hover .tool-card-arrow,
+  .tool-card:focus-visible .tool-card-arrow,
+  .tool-group-card:hover .tool-group-card-arrow,
+  .tool-group-card:focus-visible .tool-group-card-arrow {
+    transform: none;
+  }
+}
