@@ -89,6 +89,7 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.2.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "sass-embedded": "1.104.1"
   }
 }
