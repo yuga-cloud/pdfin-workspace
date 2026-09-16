@@ -1,0 +1,66 @@
+@use "./tokens";
+
+/* Final frontend polish layer. Visual only; no application behavior. */
+.app-shell { min-height: 100dvh; }
+.app-shell main { min-height: calc(100dvh - 9rem); }
+.app-header { box-shadow: 0 1px 0 rgba(32,33,36,.035), 0 12px 34px -30px rgba(32,33,36,.26); }
+.app-header > div:first-child { min-height: 4.5rem; }
+.app-primary-nav { box-shadow: 0 6px 18px -17px rgba(32,33,36,.28); }
+.app-primary-nav .app-nav-link { min-height: 2.7rem; }
+.app-primary-nav .app-nav-link:not(.app-nav-link-active):hover { box-shadow: 0 5px 14px -14px rgba(32,33,36,.4); }
+.app-tool-rail { scrollbar-width: none; overscroll-behavior-inline: contain; }
+.app-tool-rail::-webkit-scrollbar { display: none; }
+.app-footer { margin-top: auto; }
+.app-footer p { max-width: 42rem; }
+.app-footer-tagline { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .32rem .48rem; margin: 0; color: var(--color-muted); font-size: .78rem; line-height: 1.5; letter-spacing: -.005em; }
+.app-footer-brand { color: var(--color-fg); font-size: .86rem; font-weight: 800; letter-spacing: -.025em; }
+.app-footer-brand span { color: var(--color-primary); }
+.app-footer-separator { color: color-mix(in oklch, var(--color-muted) 72%, transparent); }
+.app-footer-copy { color: var(--color-muted); }
+
+/* Primary navigation shell: visual container + responsive placement. */
+.app-header-inner {
+  position: relative;
+  justify-content: center;
+}
+
+.app-header-logo {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+}
+
+.app-primary-nav-shell {
+  display: flex;
+  width: max-content;
+  max-width: min(100%, 42rem);
+  min-width: 0;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid color-mix(in oklch, var(--color-border) 82%, var(--color-fg));
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--color-surface) 94%, var(--color-bg));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .7) inset,
+    0 8px 24px -22px rgba(32, 33, 36, .35);
+}
+
+.app-primary-nav-shell::-webkit-scrollbar { display: none; }
+
+.app-primary-nav {
+  display: flex;
+  width: max-content;
+  min-width: max-content !important;
+  flex: 0 0 auto !important;
+  align-items: center;
+  gap: .125rem;
+  padding: .2rem !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: .75rem;
+  background: transparent !important;
+  box-shadow: none !important;
+}
