@@ -1,0 +1,12 @@
+@use "sass:color";
+
+@mixin focus-ring($color: var(--color-ring)) {
+  outline: 3px solid color-mix(in oklch, #{$color} 24%, transparent);
+  outline-offset: 2px;
+}
+
+@mixin interactive-transition($properties...) {
+  transition-property: $properties;
+  transition-duration: var(--motion-quick);
+  transition-timing-function: var(--ease-out);
+}
