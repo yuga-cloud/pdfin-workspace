@@ -1,4 +1,4 @@
-import type { ToolSlug } from "@/lib/tools-catalog";
+import type { ToolSlug } from "@/shared/tools/catalog";
 
 import {
   jpgToPdf as jpgToPdfApi,
