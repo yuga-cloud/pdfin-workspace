@@ -3,7 +3,7 @@ import {
   effectiveProcessingLocation,
   validateDeviceProcessingSize,
 } from "@/features/workspace/processing-policy";
-import type { ToolDef } from "@/lib/tools-catalog";
+import type { ToolDef } from "@/shared/tools/catalog";
 
 const baseTool = (overrides: Partial<ToolDef> = {}): ToolDef => ({
   slug: "watermark",
