@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ToolWorkspace } from "@/features/workspace/tool-workspace";
-import { getTool } from "@/features/tools/catalog";
+import { getTool } from "@/shared/tools/catalog";
 
 export const Route = createFileRoute("/alat/$slug")({
   component: ToolPage,
