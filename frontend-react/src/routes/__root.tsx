@@ -2,7 +2,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { PreviewHostBridge } from "@/shared/preview/preview-host-bridge";
 import { AppShell } from "@/app/app-shell";
 import { Toaster } from "sonner";
-import appCss from "../styles.scss?url";
+import appCss from "../styles.css?url";
 
 const APP_NAME = "pdfin";
 
