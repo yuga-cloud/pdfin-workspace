@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import process from "node:process";
 
 const QUICK_TUNNEL_URL = /https:\/\/([a-z0-9-]+\.trycloudflare\.com)/i;
-const tunnelArgs = ["tunnel", "--protocol", "http2", "--url", "http://localhost:8080"];
+const tunnelArgs = ["tunnel", "--protocol", "http2", "--url", "http://127.0.0.1:8080"];
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 let tunnel: ChildProcess | undefined;
@@ -32,7 +32,7 @@ function logTunnelOutput(chunk: Buffer | string): void {
 
   const publicHost = match[1];
   console.log(`\n[pdfin] Public URL: ${match[0]}`);
-  console.log("[pdfin] Starting Vite with an exact Host allowlist entry.\n");
+  console.log("[pdfin] Starting Vite on loopback with an exact Host allowlist entry.\n");
 
   vite = spawn(npmCommand, ["run", "dev"], {
     cwd: process.cwd(),
