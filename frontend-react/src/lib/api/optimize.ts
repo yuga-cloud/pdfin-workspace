@@ -1,6 +1,7 @@
 import {
   postFile,
   postFileWithText,
+  type UploadProgressHandlers,
 } from "./client";
 
 export type CompressionQuality =
@@ -14,12 +15,15 @@ export type CompressionQuality =
 export function compressPdf(
   file: File,
   quality: CompressionQuality,
+  progress?: UploadProgressHandlers,
 ): Promise<Blob> {
   return postFileWithText(
     "/rust-api/kompres",
     file,
     "quality",
     quality,
+    undefined,
+    progress,
   );
 }
 
