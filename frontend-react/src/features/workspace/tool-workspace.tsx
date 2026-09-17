@@ -30,6 +30,13 @@ import { cn, formatBytes, uid } from "@/lib/utils";
 type Item = { id: string; file: File };
 type ResultData = { url: string; filename: string; size: number; mime: string };
 
+type ProgressState = {
+  done: number;
+  total: number;
+  label: string;
+  indeterminate: boolean;
+};
+
 const defaultOptions = (): ToolOptions => ({
   rangeText: "",
   splitEach: false,
@@ -83,7 +90,12 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
   const [thumbBusy, setThumbBusy] = useState(false);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 1, label: "" });
+  const [progress, setProgress] = useState<ProgressState>({
+    done: 0,
+    total: 1,
+    label: "",
+    indeterminate: false,
+  });
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ResultData | null>(null);
 
@@ -224,11 +236,16 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
 
     setBusy(true);
     setError(null);
-    setProgress({ done: 0, total: 1, label: "Menyiapkan…" });
+    setProgress({
+      done: 0,
+      total: 1,
+      label: "Menyiapkan…",
+      indeterminate: false,
+    });
 
     try {
-      const output = await processTool(tool.slug, files, options, (done, total, label) => {
-        setProgress({ done, total, label });
+      const output = await processTool(tool.slug, files, options, (done, total, label, indeterminate = false) => {
+        setProgress({ done, total, label, indeterminate });
       });
       replaceResult({
         url: URL.createObjectURL(output.blob),
@@ -248,6 +265,8 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
 
   const ready = items.length >= tool.minFiles && !busy;
   const pct = progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
+  const progressIndeterminate = progress.indeterminate || (tool.processing === "server" && busy && progress.done < progress.total);
+  const progressLabel = progressIndeterminate ? "Memproses di server Rust…" : progress.label;
   const dropLabel = getDropLabel(tool);
   const backLabel = `Kembali ke ${GROUP_LABELS[tool.group]}`;
 
@@ -386,10 +405,10 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
       {busy ? (
         <div className="workspace-progress mt-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted">
-            <span>{progress.label}</span>
-            <span className="tabular-nums">{Math.round(pct)}%</span>
+            <span>{progressLabel}</span>
+            <span className="tabular-nums">{progressIndeterminate ? "—" : `${Math.round(pct)}%`}</span>
           </div>
-          <Progress value={pct} />
+          <Progress value={pct} indeterminate={progressIndeterminate} />
         </div>
       ) : null}
 
@@ -449,7 +468,12 @@ function OptionsPanel({
   setOptions: Dispatch<SetStateAction<ToolOptions>>;
   pageCount: number | null;
 }) {
-  if (tool.slug === "gabung" || tool.slug === "jpg-ke-pdf" || tool.slug === "halaman") return null;
+  const hasOptions = tool.slug === "pisah"
+    || tool.slug === "kompres"
+    || tool.slug === "putar"
+    || tool.slug === "watermark";
+
+  if (!hasOptions) return null;
 
   return (
     <section className="workspace-options mt-6 rounded-2xl bg-surface p-4 sm:p-5">
@@ -520,12 +544,6 @@ function OptionsPanel({
             <input type="checkbox" className="size-4 accent-primary" checked={options.addPageNumbers} onChange={(event) => setOptions((current) => ({ ...current, addPageNumbers: event.target.checked }))} />
             Tambahkan nomor halaman
           </label>
-        </div>
-      ) : null}
-
-      {(tool.slug === "pdf-ke-jpg" || tool.slug === "word-ke-pdf" || tool.slug === "powerpoint-ke-pdf" || tool.slug === "pdf-ke-word" || tool.slug === "pdf-ke-excel" || tool.slug === "pdf-ke-powerpoint" || tool.slug === "excel-ke-pdf") ? (
-        <div className="workspace-info-note mt-4 rounded-xl bg-bg px-3 py-3 text-xs leading-relaxed text-muted">
-          Detail dan batasan hasil mengikuti alat dan format file yang kamu pilih.
         </div>
       ) : null}
     </section>
