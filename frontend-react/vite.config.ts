@@ -10,7 +10,7 @@ const devPublicHost = process.env.PDFIN_DEV_PUBLIC_HOST?.trim();
 
 export default defineConfig(({ command, isPreview }) => ({
   server: {
-    host: "0.0.0.0",
+    host: "127.0.0.1",
     port: 8080,
     strictPort: true,
     ...(devPublicHost ? { allowedHosts: [devPublicHost] } : {}),
@@ -44,6 +44,6 @@ export default defineConfig(({ command, isPreview }) => ({
   ],
   test: {
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["scripts/**/*.test.{mjs,ts,tsx}"],
+    exclude: ["scripts/**/*.test.{mjs,ts}"],
   },
 }));
