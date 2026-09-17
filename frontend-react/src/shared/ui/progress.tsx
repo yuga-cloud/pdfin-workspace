@@ -2,12 +2,15 @@ import { cn } from "@/lib/utils";
 
 export function Progress({
   value,
+  indeterminate = false,
   className,
 }: {
   value: number;
+  indeterminate?: boolean;
   className?: string;
 }) {
   const pct = Math.max(0, Math.min(100, value));
+
   return (
     <div
       className={cn(
@@ -15,13 +18,17 @@ export function Progress({
         className,
       )}
       role="progressbar"
-      aria-valuenow={Math.round(pct)}
+      aria-valuenow={indeterminate ? undefined : Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
+      aria-valuetext={indeterminate ? "Sedang diproses" : `${Math.round(pct)}%`}
     >
       <div
-        className="pdfin-progress-bar h-full min-w-0 rounded-full bg-primary shadow-[0_0_14px_rgba(223,81,72,0.22)] transition-[width] duration-200 ease-out"
-        style={{ width: `${pct}%` }}
+        className={cn(
+          "pdfin-progress-bar h-full min-w-0 rounded-full bg-primary shadow-[0_0_14px_rgba(223,81,72,0.22)] transition-[width] duration-200 ease-out",
+          indeterminate && "pdfin-progress-bar-indeterminate",
+        )}
+        style={indeterminate ? undefined : { width: `${pct}%` }}
       />
     </div>
   );
