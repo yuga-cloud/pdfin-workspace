@@ -1,7 +1,6 @@
 import {
   postFile,
   postMultipart,
-  type UploadProgressHandlers,
 } from "./client";
 
 /**
@@ -9,7 +8,6 @@ import {
  */
 export function jpgToPdf(
   files: File | Blob | Array<File | Blob>,
-  progress?: UploadProgressHandlers,
 ): Promise<Blob> {
   const values = Array.isArray(files) ? files : [files];
   const formData = new FormData();
@@ -18,7 +16,7 @@ export function jpgToPdf(
     formData.append("file", file);
   }
 
-  return postMultipart("/rust-api/jpg-to-pdf", formData, undefined, progress);
+  return postMultipart("/rust-api/jpg-to-pdf", formData);
 }
 
 /**
@@ -50,13 +48,10 @@ export function wordToPdf(
  */
 export function excelToPdf(
   file: File,
-  progress?: UploadProgressHandlers,
 ): Promise<Blob> {
   return postFile(
     "/rust-api/excel-to-pdf",
     file,
-    undefined,
-    progress,
   );
 }
 
@@ -89,13 +84,10 @@ export function pdfToWord(
  */
 export function pdfToExcel(
   file: File,
-  progress?: UploadProgressHandlers,
 ): Promise<Blob> {
   return postFile(
     "/rust-api/pdf-to-excel",
     file,
-    undefined,
-    progress,
   );
 }
 
