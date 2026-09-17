@@ -1,7 +1,6 @@
 import {
   postFileWithText,
   postMultipart,
-  type UploadProgressHandlers,
 } from "./client";
 
 export const PDF_MIME =
@@ -14,8 +13,7 @@ export const EXCEL_MIME =
  * Menggabungkan beberapa file PDF.
  */
 export function mergePdfs(
-  files: File[],
-  progress?: UploadProgressHandlers,
+  files: File[]
 ): Promise<Blob> {
   const formData =
     new FormData();
@@ -30,8 +28,6 @@ export function mergePdfs(
   return postMultipart(
     "/rust-api/gabung",
     formData,
-    undefined,
-    progress,
   );
 }
 
@@ -41,15 +37,12 @@ export function mergePdfs(
 export function splitPdf(
   file: File,
   rangeText: string,
-  progress?: UploadProgressHandlers,
 ): Promise<Blob> {
   return postFileWithText(
     "/rust-api/pisah",
     file,
     "ranges",
     rangeText,
-    undefined,
-    progress,
   );
 }
 
@@ -59,15 +52,12 @@ export function splitPdf(
 export function managePages(
   file: File,
   pageOrder: number[],
-  progress?: UploadProgressHandlers,
 ): Promise<Blob> {
   return postFileWithText(
     "/rust-api/atur-halaman",
     file,
     "pages",
     pageOrder.join(","),
-    undefined,
-    progress,
   );
 }
 
@@ -77,14 +67,11 @@ export function managePages(
 export function rotatePdf(
   file: File,
   degrees: 90 | 180 | 270,
-  progress?: UploadProgressHandlers,
 ): Promise<Blob> {
   return postFileWithText(
     "/rust-api/putar",
     file,
     "degrees",
     String(degrees),
-    undefined,
-    progress,
   );
 }
