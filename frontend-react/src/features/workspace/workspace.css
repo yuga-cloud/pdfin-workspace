@@ -719,73 +719,80 @@
 .workspace-process-button:not(:disabled) {
   min-height: 3.1rem;
   border-radius: 0.82rem;
-}
-
-.workspace-progress {
-  margin-top: 1rem;
-  background: color-mix(in oklch, var(--color-surface) 96%, var(--color-bg));
+  box-shadow: 0 12px 26px -18px color-mix(in oklch, var(--color-primary) 65%, transparent);
 }
 
 .workspace-result {
-  border: 1px solid color-mix(in oklch, #fff 11%, transparent);
-  box-shadow:
-    0 18px 42px -30px color-mix(in oklch, var(--color-fg) 58%, transparent),
-    var(--shadow-floating);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.15rem;
+  isolation: isolate;
 }
 
-.workspace-result-check {
-  font-size: 0.95rem;
+.workspace-result::after {
+  position: absolute;
+  top: -5rem;
+  right: -4rem;
+  width: 15rem;
+  height: 15rem;
+  content: "";
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in oklch, var(--color-primary) 18%, transparent), transparent 68%);
+  pointer-events: none;
 }
 
-.workspace-download-button {
-  min-height: 2.9rem;
-  font-weight: 750;
+.workspace-result > * { position: relative; z-index: 1; }
+.workspace-result-heading p:last-child { max-width: 34rem; line-height: 1.55; }
+.workspace-download-button { min-height: 2.8rem; border-radius: .85rem; }
+
+@media (min-width: 768px) {
+  .tool-workspace-page { padding-inline: .5rem; }
+  .workspace-tool-heading { padding-bottom: 1.5rem; }
+  .workspace-dropzone-shell { margin-top: 1.75rem; }
+}
+
+@media (max-width: 767px) {
+  .app-header > div:first-child { min-height: 4rem; }
+  .app-footer > div { align-items: flex-start; }
+  .app-footer p:last-child { align-self: flex-start; }
+  .workspace-tool-title { max-width: 13ch; }
 }
 
 @media (max-width: 639px) {
-  .tool-workspace-page {
-    padding-bottom: 3rem;
-  }
-
-  .workspace-back-link {
-    margin-bottom: 1.2rem !important;
-  }
-
-  .workspace-tool-heading {
-    margin-bottom: 0;
-  }
-
-  .workspace-file-row {
-    min-height: 4.3rem;
-  }
-
-  .workspace-process-row {
-    position: sticky;
-    bottom: 0.75rem;
-    z-index: 8;
-    margin-inline: -0.1rem;
-    padding: 0.55rem;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-  }
-
-  .workspace-process-row > p {
-    text-align: center;
-  }
+  .workspace-tool-heading-top { align-items: flex-start; flex-direction: column; }
+  .workspace-tool-heading { padding-bottom: 1rem; }
+  .workspace-dropzone-shell { margin-top: 1.15rem; padding: .5rem; border-radius: 1.15rem; }
+  .workspace-dropzone { min-height: 13.5rem; padding-block: 2.4rem; border-radius: .9rem; }
+  .workspace-dropzone::before { inset: .4rem; }
+  .workspace-dropzone-shell:has(.workspace-file-list) .workspace-dropzone { min-height: 9rem; padding-block: 1.75rem; }
+  .workspace-file-row { align-items: flex-start; padding-block: .7rem; }
+  .workspace-inline-actions { margin-left: auto; }
+  .workspace-result-heading { align-items: flex-start; }
+  .workspace-process-button:not(:disabled) { width: 100%; min-width: 0; }
+  .workspace-panel-heading { align-items: center; }
+  .workspace-option-grid { grid-template-columns: 1fr; }
+  .workspace-segmented { width: 100%; }
+  .workspace-segmented button { flex: 1 1 0; }
+  .workspace-progress { padding: .75rem .8rem .9rem; }
+  .workspace-result { margin-top: 1.5rem; padding-inline: 1rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace-dropzone::before {
-    transition: none;
-  }
+  .workspace-back-link,
+  .workspace-dropzone,
+  .workspace-upload-icon,
+  .workspace-file-row:hover,
+  .workspace-page-card:hover,
+  .workspace-choice:hover,
+  .workspace-segmented button:hover,
+  .workspace-chip:hover { transform: none; }
 }
 
 @media (forced-colors: active) {
-  .workspace-dropzone::before,
-  .workspace-process-row,
-  .workspace-file-row:focus-within {
-    border-color: CanvasText;
-  }
+  .workspace-choice.is-selected::after { background: ButtonText; box-shadow: 0 0 0 2px Canvas; }
+  .workspace-choice:has(input:focus-visible), .workspace-segmented button:focus-visible, .workspace-chip:focus-visible, .workspace-check-row:has(input:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; box-shadow: none; }
+  .workspace-segmented button.is-selected { background: Highlight; color: HighlightText; border-color: Highlight; }
+  .workspace-error::before { background: Highlight; box-shadow: 0 0 0 2px Canvas; }
 }
 
 /* Performance + layout quality layer. Visual tokens and component styling live elsewhere. */
@@ -848,5 +855,26 @@
 @supports (padding-top: env(safe-area-inset-top)) {
   .app-header {
     padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Server-side jobs cannot expose internal processing progress yet. Keep the UI truthful instead of faking a percentage. */
+.pdfin-progress-bar-indeterminate {
+  width: 36%;
+  animation: pdfin-progress-indeterminate 1.25s cubic-bezier(.4, 0, .2, 1) infinite;
+  will-change: transform;
+}
+
+@keyframes pdfin-progress-indeterminate {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(185%); }
+  100% { transform: translateX(310%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdfin-progress-bar-indeterminate {
+    animation: none;
+    transform: translateX(0);
+    opacity: .65;
   }
 }
