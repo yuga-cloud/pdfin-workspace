@@ -20,9 +20,9 @@ const MAX_OUTPUT_BYTES: usize = 1024 * 1024 * 1024;
 const MAX_INPUT_PAGES: usize = 10_000;
 const MAX_STDERR_BYTES: usize = 16 * 1024;
 const MIN_PRIMARY_REDUCTION_PERCENT: usize = 5;
-const PYMUPDF_TIMEOUT: Duration = Duration::from_secs(120);
-const QPDF_TIMEOUT: Duration = Duration::from_secs(180);
-const GHOSTSCRIPT_TIMEOUT: Duration = Duration::from_secs(300);
+const PYMUPDF_TIMEOUT: Duration = Duration::from_secs(90);
+const QPDF_TIMEOUT: Duration = Duration::from_secs(100);
+const GHOSTSCRIPT_TIMEOUT: Duration = Duration::from_secs(110);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 static PYTHON_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
