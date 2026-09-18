@@ -50,8 +50,7 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
 
     for (index, image_bytes) in images.iter().enumerate() {
         validate_input(image_bytes, "JPG")?;
-        let (validated_width, validated_height) =
-            validate_jpeg_dimensions(image_bytes, index + 1)?;
+        let (validated_width, validated_height) = validate_jpeg_dimensions(image_bytes, index + 1)?;
         let pixels = u64::from(validated_width)
             .checked_mul(u64::from(validated_height))
             .ok_or_else(|| format!("Dimensi JPEG {} terlalu besar", index + 1))?;
@@ -175,10 +174,7 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
     Ok(output)
 }
 
-fn validate_jpeg_dimensions(
-    bytes: &[u8],
-    image_number: usize,
-) -> Result<(u32, u32), String> {
+fn validate_jpeg_dimensions(bytes: &[u8], image_number: usize) -> Result<(u32, u32), String> {
     if bytes.len() < 4 || bytes[..2] != [0xFF, 0xD8] {
         return Err(format!("File JPEG {} tidak valid", image_number));
     }
@@ -292,8 +288,8 @@ mod tests {
     #[test]
     fn validates_large_jpeg_dimensions_before_decode() {
         let jpeg = [
-            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x30, 0x39, 0x30, 0x39, 0x03, 0x00,
-            0x11, 0x00, 0x22, 0x00, 0x33,
+            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x30, 0x39, 0x30, 0x39, 0x03, 0x00, 0x11,
+            0x00, 0x22, 0x00, 0x33,
         ];
 
         assert_eq!(validate_jpeg_dimensions(&jpeg, 1).unwrap(), (12345, 12345));
