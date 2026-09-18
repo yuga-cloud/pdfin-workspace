@@ -13,7 +13,7 @@ use crate::{
 const MAX_MULTIPART_FILES: usize = 50;
 const MAX_MULTIPART_FIELDS: usize = 64;
 const MAX_CONVERSION_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
-const MAX_MULTIPART_TOTAL_BYTES: usize = 1024 * 1024 * 1024;
+const MAX_MULTIPART_TOTAL_BYTES: usize = 500 * 1024 * 1024;
 
 pub struct TempUpload {
     file: NamedTempFile,
