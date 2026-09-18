@@ -9,6 +9,8 @@ export const MAX_DEVICE_PROCESSING_BYTES = 100 * 1024 * 1024;
 export const MAX_REORDER_UI_PAGES = 500;
 export const MAX_SUBMISSION_FILES = 50;
 export const MAX_SUBMISSION_BYTES = 500 * 1024 * 1024;
+export const MAX_SERVER_CONVERSION_FILE_BYTES = 100 * 1024 * 1024;
+export const MAX_SERVER_JPG_TOTAL_BYTES = 256 * 1024 * 1024;
 
 export function effectiveProcessingLocation(
   tool: ToolDef,
@@ -42,6 +44,7 @@ export function validateDeviceProcessingSize(
 }
 
 export function validateSubmissionLimits(
+  tool: ToolDef,
   files: readonly File[],
 ): void {
   if (files.length > MAX_SUBMISSION_FILES) {
@@ -62,6 +65,25 @@ export function validateSubmissionLimits(
       "Total ukuran file dalam satu proses dibatasi " +
         MAX_SUBMISSION_BYTES / 1024 / 1024 +
         " MiB.",
+    );
+  }
+
+  if (tool.processing !== "server" || tool.group !== "konversi") {
+    return;
+  }
+
+  const oversized = files.find(
+    (file) => file.size > MAX_SERVER_CONVERSION_FILE_BYTES,
+  );
+  if (oversized) {
+    throw new Error(
+      `File ${oversized.name} terlalu besar untuk konversi server-side. Gunakan file maksimal 100 MiB.`,
+    );
+  }
+
+  if (tool.slug === "jpg-ke-pdf" && totalBytes > MAX_SERVER_JPG_TOTAL_BYTES) {
+    throw new Error(
+      "Total gambar untuk JPG ke PDF dibatasi 256 MiB.",
     );
   }
 }
