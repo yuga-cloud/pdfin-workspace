@@ -66,6 +66,7 @@ describe("processing policy", () => {
   it("rejects too many submitted files", () => {
     expect(() =>
       validateSubmissionLimits(
+        baseTool({ processing: "server", group: "atur" }),
         Array.from({ length: 51 }, () => makeFile(1)),
       ),
     ).toThrow("50");
@@ -73,9 +74,38 @@ describe("processing policy", () => {
 
   it("rejects a submission above the backend request limit", () => {
     expect(() =>
-      validateSubmissionLimits([
-        makeFile(500 * 1024 * 1024 + 1),
-      ]),
+      validateSubmissionLimits(
+        baseTool({ processing: "server", group: "atur" }),
+        [makeFile(500 * 1024 * 1024 + 1)],
+      ),
     ).toThrow("500 MiB");
   });
 });
+
+  it("rejects an oversized server-side conversion file before upload", () => {
+    expect(() =>
+      validateSubmissionLimits(
+        baseTool({
+          slug: "excel-ke-pdf",
+          processing: "server",
+          group: "konversi",
+        }),
+        [makeFile(100 * 1024 * 1024 + 1)],
+      ),
+    ).toThrow("100 MiB");
+  });
+
+  it("limits the total JPG-to-PDF conversion payload", () => {
+    expect(() =>
+      validateSubmissionLimits(
+        baseTool({
+          slug: "jpg-ke-pdf",
+          accept: "image",
+          multiple: true,
+          processing: "server",
+          group: "konversi",
+        }),
+        [makeFile(200 * 1024 * 1024), makeFile(56 * 1024 * 1024 + 1)],
+      ),
+    ).toThrow("256 MiB");
+  });
