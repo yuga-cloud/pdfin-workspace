@@ -1,0 +1,3 @@
+# Review ownership for all repository changes.
+# Configure branch protection / rulesets to require review from this owner.
+* @yuga-cloud
