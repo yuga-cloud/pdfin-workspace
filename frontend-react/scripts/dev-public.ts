@@ -49,11 +49,11 @@ async function waitForHttp(url: string, timeoutMs: number): Promise<void> {
 
     try {
       const response = await fetch(url, {
-        method: "HEAD",
+        cache: "no-store",
         signal: controller.signal,
       });
 
-      if (response.ok || response.status === 404) {
+      if (response.ok) {
         return;
       }
 
