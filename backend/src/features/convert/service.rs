@@ -167,7 +167,7 @@ async fn stream_field(
             if *total > MAX_MULTIPART_TOTAL_BYTES {
                 return Err(AppError::bad_request(
                     "request_too_large",
-                    "Ukuran total upload melebihi batas maksimum (1 GiB)",
+                    "Ukuran total upload melebihi batas maksimum (500 MiB)",
                 ));
             }
         }
