@@ -24,6 +24,7 @@ use crate::{
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 const MAX_PDF_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
 const MAX_QUALITY_FIELD_BYTES: usize = 32;
+const MAX_MULTIPART_FIELDS: usize = 64;
 const PDF_HEADER_SCAN_BYTES: usize = 1024;
 
 pub async fn compress_pdf(
@@ -41,11 +42,20 @@ pub async fn compress_pdf(
     let input_path = temp_dir.path().join("input.pdf");
     let mut file = false;
     let mut quality = CompressionQuality::Medium;
+    let mut field_count = 0usize;
 
     while let Some(mut field) = multipart.next_field().await.map_err(|error| {
         error!(%error, "Gagal membaca multipart request untuk kompresi");
         AppError::bad_request("invalid_multipart", "Request multipart tidak valid")
     })? {
+        field_count += 1;
+        if field_count > MAX_MULTIPART_FIELDS {
+            return Err(AppError::bad_request(
+                "too_many_fields",
+                "Jumlah field multipart dalam satu request terlalu banyak",
+            ));
+        }
+
         match field.name().unwrap_or_default() {
             "file" => {
                 if file {
