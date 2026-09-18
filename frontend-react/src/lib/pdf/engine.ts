@@ -990,6 +990,10 @@ async function pdfToImages(
           0.86,
         );
 
+      if (image.blob.size > 25 * 1024 * 1024) {
+        fail("Hasil JPG terlalu besar untuk diproses di perangkat.");
+      }
+
       onProgress?.(
         1,
         1,
@@ -1015,6 +1019,8 @@ async function pdfToImages(
     new JSZip();
 
   try {
+    let totalImageBytes = 0;
+
     for (
       let index = 1;
       index <= total;
@@ -1033,6 +1039,15 @@ async function pdfToImages(
           1.6,
           0.86,
         );
+
+      if (image.blob.size > 25 * 1024 * 1024) {
+        fail("Salah satu hasil JPG terlalu besar untuk diproses di perangkat.");
+      }
+
+      totalImageBytes += image.blob.size;
+      if (totalImageBytes > MAX_DEVICE_OUTPUT_BYTES) {
+        fail("Total hasil JPG terlalu besar untuk diproses di perangkat.");
+      }
 
       zip.file(
         `${base}-halaman-${String(index).padStart(3, "0")}.jpg`,
