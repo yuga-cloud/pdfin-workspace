@@ -240,7 +240,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
     const files = items.map((item) => item.file);
 
     try {
-      validateSubmissionLimits(files);
+      validateSubmissionLimits(tool, files);
       validateDeviceProcessingSize(tool, files, options);
     } catch (validationError) {
       const message = validationError instanceof Error ? validationError.message : "File terlalu besar untuk diproses.";
