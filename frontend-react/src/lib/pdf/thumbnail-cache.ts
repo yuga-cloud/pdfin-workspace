@@ -69,18 +69,28 @@ export class PdfThumbnailCache {
 
   async getPageCount(): Promise<number> {
     const pdf = await this.getDocument();
-    if (this.disposed) throw new Error("Preview sudah dibuang.");
-    if (pdf.numPages === 0) {
-      throw new Error("PDF tidak memiliki halaman.");
-    }
 
-    if (pdf.numPages > MAX_THUMBNAIL_PAGES) {
-      throw new Error(
-        `PDF memiliki terlalu banyak halaman untuk pratinjau (maksimum ${MAX_THUMBNAIL_PAGES}).`,
-      );
-    }
+    try {
+      if (this.disposed) {
+        throw new Error("Preview sudah dibuang.");
+      }
 
-    return pdf.numPages;
+      if (pdf.numPages === 0) {
+        throw new Error("PDF tidak memiliki halaman.");
+      }
+
+      if (pdf.numPages > MAX_THUMBNAIL_PAGES) {
+        throw new Error(
+          `PDF memiliki terlalu banyak halaman untuk pratinjau (maksimum ${MAX_THUMBNAIL_PAGES}).`,
+        );
+      }
+
+      return pdf.numPages;
+    } catch (error) {
+      this.pdfPromise = null;
+      await pdf.cleanup().catch(() => undefined);
+      throw error;
+    }
   }
 
   async render(pageNumber: number, signal?: AbortSignal): Promise<PdfThumbnail> {
