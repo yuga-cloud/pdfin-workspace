@@ -4,7 +4,10 @@ use axum::{
 };
 
 use crate::{
-    engines::{common::validate_input, office::powerpoint_to_pdf::powerpoint_to_pdf as powerpoint_to_pdf_engine},
+    engines::{
+        common::validate_input,
+        office::powerpoint_to_pdf::powerpoint_to_pdf as powerpoint_to_pdf_engine,
+    },
     error::{AppError, error_code},
     state::AppState,
 };
