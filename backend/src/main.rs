@@ -26,8 +26,12 @@ use axum::{
 };
 use tokio::{net::TcpListener, sync::Semaphore};
 use tower::limit::ConcurrencyLimitLayer;
-use tower_http::{
-    cors::CorsLayer, limit::RequestBodyLimitLayer, timeout::TimeoutLayer, trace::TraceLayer,
+tower_http::{
+    cors::CorsLayer,
+    csrf::CsrfLayer,
+    limit::RequestBodyLimitLayer,
+    timeout::TimeoutLayer,
+    trace::TraceLayer,
 };
 use tracing::info;
 
@@ -134,6 +138,11 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 ),
         )
         .layer(cors)
+        // Block cross-site state-changing browser requests (including simple
+        // multipart POSTs that would otherwise bypass CORS preflight).
+        // Same-origin browser traffic and non-browser clients without the
+        // Fetch Metadata/Origin headers remain supported.
+        .layer(CsrfLayer::new())
         .layer(middleware::from_fn(add_security_headers));
 
     let listener = TcpListener::bind(server_addr).await?.tap_io(|stream| {
