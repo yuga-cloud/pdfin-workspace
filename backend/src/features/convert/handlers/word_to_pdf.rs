@@ -4,10 +4,7 @@ use axum::{
 };
 
 use crate::{
-    engines::{
-        common::validate_input,
-        office::word_to_pdf::word_to_pdf as word_to_pdf_engine,
-    },
+    engines::{common::validate_input, office::word_to_pdf::word_to_pdf as word_to_pdf_engine},
     error::{AppError, error_code},
     state::AppState,
 };
