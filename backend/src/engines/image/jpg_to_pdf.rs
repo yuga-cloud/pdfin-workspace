@@ -9,6 +9,8 @@ use crate::engines::common::validate_input;
 const MAX_IMAGES_PER_DOCUMENT: usize = 64;
 const MAX_TOTAL_INPUT_SIZE: usize = 256 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION: u32 = 20_000;
+const MAX_IMAGE_PIXELS: u64 = 50_000_000;
+const MAX_OUTPUT_SIZE_BYTES: usize = 256 * 1024 * 1024;
 
 #[expect(
     dead_code,
@@ -77,6 +79,19 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
                 index + 1,
                 width,
                 height
+            ));
+        }
+
+        let pixels = u64::try_from(width)
+            .ok()
+            .and_then(|width| u64::try_from(height).ok().and_then(|height| width.checked_mul(height)))
+            .ok_or_else(|| format!("Dimensi JPEG {} terlalu besar", index + 1))?;
+
+        if pixels > MAX_IMAGE_PIXELS {
+            return Err(format!(
+                "Jumlah pixel JPEG {} melebihi batas maksimum ({} juta pixel)",
+                index + 1,
+                MAX_IMAGE_PIXELS / 1_000_000
             ));
         }
 
@@ -151,6 +166,13 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
 
     if output.is_empty() {
         return Err("PDF hasil konversi kosong".to_owned());
+    }
+
+    if output.len() > MAX_OUTPUT_SIZE_BYTES {
+        return Err(format!(
+            "PDF hasil konversi melebihi batas maksimum ({} MiB)",
+            MAX_OUTPUT_SIZE_BYTES / 1024 / 1024
+        ));
     }
 
     Ok(output)
@@ -265,5 +287,16 @@ mod tests {
 
         let error = validate_jpeg_dimensions(&jpeg, 1).unwrap_err();
         assert!(error.contains("terlalu besar"));
+    }
+
+    #[test]
+    fn rejects_jpeg_over_pixel_limit() {
+        let jpeg = [
+            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x4E, 0x20, 0x30, 0xD4, 0x03, 0x00,
+            0x11, 0x00, 0x22, 0x00, 0x33,
+        ];
+
+        let error = validate_jpeg_dimensions(&jpeg, 1).unwrap_err();
+        assert!(error.contains("terlalu besar") || error.contains("tidak valid"));
     }
 }
