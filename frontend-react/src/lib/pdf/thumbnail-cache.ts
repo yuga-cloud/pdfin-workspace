@@ -44,6 +44,8 @@ export class PdfThumbnailCache {
     if (this.disposed) throw new Error("Preview sudah dibuang.");
     return pdfjs.getDocument({
       data,
+      enableScripting: false,
+      isEvalSupported: false,
       disableAutoFetch: true,
       stopAtErrors: true,
       maxImageSize: MAX_THUMBNAIL_PIXELS,
