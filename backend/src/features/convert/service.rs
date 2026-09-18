@@ -12,7 +12,7 @@ use crate::{
 
 const MAX_MULTIPART_FILES: usize = 50;
 const MAX_MULTIPART_FIELDS: usize = 64;
-const MAX_CONVERSION_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
+const MAX_CONVERSION_UPLOAD_BYTES: usize = 100 * 1024 * 1024;
 const MAX_MULTIPART_TOTAL_BYTES: usize = 500 * 1024 * 1024;
 
 pub struct TempUpload {
@@ -145,7 +145,7 @@ async fn stream_field(
         file_size = file_size.checked_add(chunk.len()).ok_or_else(|| {
             AppError::bad_request(
                 "upload_too_large",
-                "Ukuran file melebihi batas maksimum (500 MB)",
+                "Ukuran file melebihi batas maksimum (100 MB)",
             )
         })?;
 
