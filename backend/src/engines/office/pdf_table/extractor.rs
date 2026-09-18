@@ -7,10 +7,19 @@ const ROW_TOLERANCE_FACTOR: f32 = 0.45;
 const MIN_ROW_TOLERANCE: f32 = 2.0;
 const MAX_ROW_TOLERANCE: f32 = 8.0;
 
-const MAX_EXTRACTION_PAGES: usize = 5_000;
+const MAX_PDFIUM_INPUT_BYTES: usize = 100 * 1024 * 1024;
+const MAX_EXTRACTION_PAGES: usize = 1_000;
 const MAX_WORDS_PER_PAGE: usize = 50_000;
+const MAX_WORDS_PER_DOCUMENT: usize = 250_000;
 
 pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> {
+    if pdf_bytes.len() > MAX_PDFIUM_INPUT_BYTES {
+        return Err(format!(
+            "PDF terlalu besar untuk ekstraksi PDFium (maksimum {} MiB)",
+            MAX_PDFIUM_INPUT_BYTES / 1024 / 1024
+        ));
+    }
+
     let pdfium = pdfium_bundled::bind_pdfium_silent()
         .map_err(|error| format!("Gagal memuat PDFium: {error}"))?;
 
@@ -27,6 +36,7 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
     }
 
     let mut pages = Vec::with_capacity(document_page_count);
+    let mut total_words = 0usize;
 
     for (page_index, page) in document.pages().iter().enumerate() {
         let text = page.text().map_err(|error| {
@@ -233,6 +243,15 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
             return Err(format!(
                 "Jumlah word pada halaman {} melebihi batas maksimum ({MAX_WORDS_PER_PAGE})",
                 page_index + 1
+            ));
+        }
+
+        total_words = total_words
+            .checked_add(words.len())
+            .ok_or_else(|| "Jumlah word PDF terlalu besar".to_owned())?;
+        if total_words > MAX_WORDS_PER_DOCUMENT {
+            return Err(format!(
+                "Jumlah total word PDF melebihi batas maksimum ({MAX_WORDS_PER_DOCUMENT})"
             ));
         }
 
