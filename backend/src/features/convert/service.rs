@@ -11,6 +11,7 @@ use crate::{
 };
 
 const MAX_MULTIPART_FILES: usize = 50;
+const MAX_MULTIPART_FIELDS: usize = 64;
 const MAX_CONVERSION_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
 const MAX_MULTIPART_TOTAL_BYTES: usize = 1024 * 1024 * 1024;
 
@@ -25,13 +26,24 @@ impl TempUpload {
 }
 
 pub async fn read_single_file(mut multipart: Multipart) -> Result<TempUpload, AppError> {
+    let mut field_count = 0usize;
+
     loop {
         match multipart.next_field().await {
-            Ok(Some(field)) if field.name() == Some("file") => {
-                return stream_field(field, None).await;
-            }
+            Ok(Some(field)) => {
+                field_count += 1;
 
-            Ok(Some(_)) => continue,
+                if field_count > MAX_MULTIPART_FIELDS {
+                    return Err(AppError::bad_request(
+                        "too_many_fields",
+                        "Jumlah field multipart dalam satu request terlalu banyak",
+                    ));
+                }
+
+                if field.name() == Some("file") {
+                    return stream_field(field, None).await;
+                }
+            }
 
             Ok(None) => {
                 return Err(AppError::bad_request(
@@ -55,10 +67,24 @@ pub async fn read_single_file(mut multipart: Multipart) -> Result<TempUpload, Ap
 pub async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<TempUpload>, AppError> {
     let mut files = Vec::new();
     let mut total_size = 0usize;
+    let mut field_count = 0usize;
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(field)) if field.name() == Some("file") => {
+            Ok(Some(field)) => {
+                field_count += 1;
+
+                if field_count > MAX_MULTIPART_FIELDS {
+                    return Err(AppError::bad_request(
+                        "too_many_fields",
+                        "Jumlah field multipart dalam satu request terlalu banyak",
+                    ));
+                }
+
+                if field.name() != Some("file") {
+                    continue;
+                }
+
                 if files.len() >= MAX_MULTIPART_FILES {
                     return Err(AppError::bad_request(
                         "too_many_files",
@@ -69,8 +95,6 @@ pub async fn read_multiple_files(mut multipart: Multipart) -> Result<Vec<TempUpl
                 let file = stream_field(field, Some(&mut total_size)).await?;
                 files.push(file);
             }
-
-            Ok(Some(_)) => continue,
 
             Ok(None) => break,
 
