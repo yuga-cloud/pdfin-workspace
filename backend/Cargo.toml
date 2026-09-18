@@ -23,6 +23,7 @@ tower-http = {
     version = "0.7.0",
     features = [
         "cors",
+        "csrf",
         "fs",
         "trace",
         "timeout",
