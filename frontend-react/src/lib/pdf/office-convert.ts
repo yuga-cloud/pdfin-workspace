@@ -842,19 +842,19 @@ export async function pdfToWord(
   const pdf =
     await task.promise;
 
-  if (pdf.numPages === 0) {
-    throw new Error("PDF tidak memiliki halaman.");
-  }
-
-  if (pdf.numPages > MAX_DEVICE_PDF_PAGES) {
-    throw new Error(
-      "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
-        MAX_DEVICE_PDF_PAGES +
-        ").",
-    );
-  }
-
   try {
+    if (pdf.numPages === 0) {
+      throw new Error("PDF tidak memiliki halaman.");
+    }
+
+    if (pdf.numPages > MAX_DEVICE_PDF_PAGES) {
+      throw new Error(
+        "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+          MAX_DEVICE_PDF_PAGES +
+          ").",
+      );
+    }
+
     const total =
       pdf.numPages;
 
@@ -1113,19 +1113,19 @@ export async function pdfToPowerpoint(
   const pdf =
     await task.promise;
 
-  if (pdf.numPages === 0) {
-    throw new Error("PDF tidak memiliki halaman.");
-  }
-
-  if (pdf.numPages > MAX_DEVICE_PDF_PAGES) {
-    throw new Error(
-      "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
-        MAX_DEVICE_PDF_PAGES +
-        ").",
-    );
-  }
-
   try {
+    if (pdf.numPages === 0) {
+      throw new Error("PDF tidak memiliki halaman.");
+    }
+
+    if (pdf.numPages > MAX_DEVICE_PDF_PAGES) {
+      throw new Error(
+        "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+          MAX_DEVICE_PDF_PAGES +
+          ").",
+      );
+    }
+
     const total =
       pdf.numPages;
 
