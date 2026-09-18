@@ -133,7 +133,8 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                     },
                 ),
         )
-        .layer(cors);
+        .layer(cors)
+        .layer(middleware::from_fn(add_security_headers));
 
     let listener = TcpListener::bind(server_addr).await?.tap_io(|stream| {
         if let Err(error) = stream.set_nodelay(true) {
