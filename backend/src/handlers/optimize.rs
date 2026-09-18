@@ -22,6 +22,7 @@ use crate::{
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 const MAX_PDF_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
 const MAX_WATERMARK_TEXT_BYTES: usize = 1024;
+const MAX_MULTIPART_FIELDS: usize = 64;
 
 struct TempPdfUpload {
     file: NamedTempFile,
@@ -152,10 +153,20 @@ async fn read_watermark_request(
 ) -> Result<(TempPdfUpload, String), AppError> {
     let mut file = None;
     let mut text = None;
+    let mut field_count = 0usize;
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(field)) => match field.name().unwrap_or_default() {
+            Ok(Some(field)) => {
+                field_count += 1;
+                if field_count > MAX_MULTIPART_FIELDS {
+                    return Err(AppError::bad_request(
+                        "too_many_fields",
+                        "Jumlah field multipart dalam satu request terlalu banyak",
+                    ));
+                }
+
+                match field.name().unwrap_or_default() {
                 "file" => {
                     if file.is_some() {
                         return Err(AppError::bad_request(
@@ -201,7 +212,8 @@ async fn read_watermark_request(
 
                     text = Some(value);
                 }
-                _ => {}
+                    _ => {}
+                }
             },
             Ok(None) => break,
             Err(error) => {
