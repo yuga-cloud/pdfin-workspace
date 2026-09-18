@@ -99,6 +99,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     );
 
     let cors = build_cors_layer()?;
+    let csrf = build_csrf_layer()?;
 
     let app = Router::new()
         .route("/health", get(health))
@@ -140,7 +141,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         // multipart POSTs that would otherwise bypass CORS preflight).
         // Same-origin browser traffic and non-browser clients without the
         // Fetch Metadata/Origin headers remain supported.
-        .layer(CsrfLayer::new())
+.layer(csrf)
         .layer(middleware::from_fn(add_security_headers));
 
     let listener = TcpListener::bind(server_addr).await?.tap_io(|stream| {
@@ -260,6 +261,20 @@ fn build_cors_layer() -> Result<CorsLayer, Box<dyn Error + Send + Sync>> {
         .allow_origin(origin)
         .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
         .allow_headers([axum::http::header::CONTENT_TYPE]))
+}
+
+fn build_csrf_layer() -> Result<CsrfLayer, Box<dyn Error + Send + Sync>> {
+    let mut csrf = CsrfLayer::new();
+
+    if let Some(origin) = std::env::var("PDFIN_CORS_ORIGIN")
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+    {
+        csrf = csrf.add_trusted_origin(origin)?;
+    }
+
+    Ok(csrf)
 }
 
 fn init_tracing() {
