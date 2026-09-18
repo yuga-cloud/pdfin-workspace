@@ -19,7 +19,7 @@ env:
 jobs:
   changes:
     name: Detect system dependency changes
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     outputs:
       system-deps: ${{ steps.filter.outputs.system-deps }}
     steps:
@@ -71,7 +71,8 @@ jobs:
   rust:
     name: Rust check, lint and test
     needs: changes
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -125,8 +126,8 @@ jobs:
   system-integration:
     name: System dependency integration tests
     needs: changes
-    if: needs.changes.outputs.system-deps == 'true' && github.event_name != 'pull_request'
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
+    if: needs.changes.outputs.system-deps == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -169,7 +170,8 @@ jobs:
 
   frontend:
     name: Frontend typecheck, lint, test and build
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'self-hosted' }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, x64]
     defaults:
       run:
         working-directory: frontend-react
