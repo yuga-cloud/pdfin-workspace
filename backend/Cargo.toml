@@ -51,3 +51,4 @@ pdfium-render = "0.9.3"
 pdfium-bundled = "0.1.1"
 
 docx-rs = "0.4.22"
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
