@@ -481,6 +481,8 @@ async function splitEachPage(
   const base =
     stem(file.name);
 
+  let totalSplitBytes = 0;
+
   for (
     let index = 0;
     index < total;
@@ -508,6 +510,11 @@ async function splitEachPage(
 
     if (bytes.byteLength > MAX_DEVICE_OUTPUT_BYTES) {
       fail("Hasil halaman terlalu besar untuk diproses di perangkat.");
+    }
+
+    totalSplitBytes += bytes.byteLength;
+    if (totalSplitBytes > MAX_DEVICE_OUTPUT_BYTES) {
+      fail("Total hasil split terlalu besar untuk diproses di perangkat.");
     }
 
     zip.file(
