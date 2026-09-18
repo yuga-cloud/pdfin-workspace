@@ -3,7 +3,6 @@ name: Security
 on:
   push:
     branches: [main]
-  pull_request:
   schedule:
     - cron: "17 3 * * 1"
 
@@ -17,7 +16,7 @@ permissions:
 jobs:
   cargo-audit:
     name: Cargo audit
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
