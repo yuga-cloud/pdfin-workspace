@@ -19,6 +19,7 @@ const ZIP_CONTENT_TYPE: &str = "application/zip";
 const MAX_SPLIT_RANGES: usize = 64;
 const MAX_RANGE_INPUT_LENGTH: usize = 4 * 1024;
 const MAX_INPUT_BYTES: usize = 500 * 1024 * 1024;
+const MAX_MULTIPART_FIELDS: usize = 64;
 
 struct TempPdfUpload {
     file: NamedTempFile,
@@ -124,10 +125,20 @@ async fn read_split_request(
 ) -> Result<(TempPdfUpload, Vec<(u32, u32)>), AppError> {
     let mut file = None;
     let mut ranges = None;
+    let mut field_count = 0usize;
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(mut field)) => match field.name().unwrap_or_default() {
+            Ok(Some(mut field)) => {
+                field_count += 1;
+                if field_count > MAX_MULTIPART_FIELDS {
+                    return Err(AppError::bad_request(
+                        "too_many_fields",
+                        "Jumlah field multipart dalam satu request terlalu banyak",
+                    ));
+                }
+
+                match field.name().unwrap_or_default() {
                 "file" => {
                     if file.is_some() {
                         return Err(AppError::bad_request(
@@ -205,7 +216,8 @@ async fn read_split_request(
 
                     ranges = Some(parse_ranges(&text)?);
                 }
-                _ => {}
+                    _ => {}
+                }
             },
             Ok(None) => break,
             Err(error) => {
