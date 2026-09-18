@@ -29,6 +29,174 @@ async function loadPptxGenJs() {
   return import("pptxgenjs");
 }
 
+const MAX_OFFICE_ARCHIVE_BYTES = 100 * 1024 * 1024;
+const MAX_OFFICE_ARCHIVE_ENTRIES = 2_048;
+const MAX_OFFICE_ARCHIVE_UNCOMPRESSED_BYTES = 256 * 1024 * 1024;
+const MAX_OFFICE_ENTRY_BYTES = 32 * 1024 * 1024;
+const MAX_OFFICE_RELATIONSHIP_BYTES = 1024 * 1024;
+const MAX_OFFICE_RELATIONSHIP_SCAN_BYTES = 8 * 1024 * 1024;
+const MAX_PPT_SLIDES = 500;
+const MAX_DEVICE_TEXT_BYTES = 8 * 1024 * 1024;
+
+type JsZipEntryMeta = {
+  uncompressedSize?: unknown;
+};
+
+function officeEntrySize(entry: unknown, label: string): number {
+  const meta = (entry as { _data?: JsZipEntryMeta })._data;
+  const size = meta?.uncompressedSize;
+
+  if (
+    typeof size !== "number" ||
+    !Number.isSafeInteger(size) ||
+    size < 0
+  ) {
+    throw new Error(
+      "Ukuran entry " + label + " tidak dapat divalidasi dengan aman.",
+    );
+  }
+
+  return size;
+}
+
+function validateOfficeEntryName(
+  entry: { name?: unknown; unsafeOriginalName?: unknown },
+  label: string,
+): string {
+  const raw = String(
+    entry.unsafeOriginalName ?? entry.name ?? "",
+  );
+  const normalized = raw.replaceAll("\\", "/");
+
+  if (
+    !normalized ||
+    normalized.startsWith("/") ||
+    normalized.split("/").some((part) => part === "..")
+  ) {
+    throw new Error(
+      "File " + label + " memiliki entry ZIP dengan path berbahaya.",
+    );
+  }
+
+  return normalized;
+}
+
+async function validateOfficeRelationships(
+  zip: Awaited<ReturnType<(typeof import("jszip"))["default"]>>,
+  label: string,
+): Promise<void> {
+  let scannedBytes = 0;
+
+  for (const entry of Object.values(zip.files)) {
+    const name = validateOfficeEntryName(entry, label);
+
+    if (entry.dir || !name.toLowerCase().endsWith(".rels")) {
+      continue;
+    }
+
+    const size = officeEntrySize(entry, label);
+
+    if (size > MAX_OFFICE_RELATIONSHIP_BYTES) {
+      throw new Error(
+        "Relationship XML " + label + " terlalu besar untuk diproses dengan aman.",
+      );
+    }
+
+    scannedBytes += size;
+    if (scannedBytes > MAX_OFFICE_RELATIONSHIP_SCAN_BYTES) {
+      throw new Error(
+        "Total Relationship XML " + label + " melebihi batas validasi.",
+      );
+    }
+
+    const xml = await entry.async("string");
+    const normalized = xml
+      .replace(/\s+/g, "")
+      .toLowerCase();
+
+    if (
+      normalized.includes('targetmode="external"') ||
+      normalized.includes("targetmode='external'")
+    ) {
+      throw new Error(
+        "File " + label + " mengandung external relationship yang tidak didukung.",
+      );
+    }
+  }
+}
+
+async function loadSafeOfficeZip(
+  data: ArrayBuffer,
+  label: string,
+  requiredEntry: string,
+) {
+  if (data.byteLength > MAX_OFFICE_ARCHIVE_BYTES) {
+    throw new Error(
+      "File " + label + " terlalu besar untuk diproses di perangkat (maksimum 100 MiB).",
+    );
+  }
+
+  const { default: JSZip } = await loadJsZip();
+
+  let zip;
+  try {
+    zip = await JSZip.loadAsync(data);
+  } catch {
+    throw new Error("File " + label + " bukan arsip Office yang valid.");
+  }
+
+  const entries = Object.values(zip.files);
+  if (
+    entries.length === 0 ||
+    entries.length > MAX_OFFICE_ARCHIVE_ENTRIES
+  ) {
+    throw new Error(
+      "File " + label + " memiliki jumlah entry ZIP yang tidak didukung.",
+    );
+  }
+
+  if (!zip.file(requiredEntry)) {
+    throw new Error(
+      "File " + label + " tidak memiliki entry Office wajib.",
+    );
+  }
+
+  let totalUncompressed = 0;
+
+  for (const entry of entries) {
+    const name = validateOfficeEntryName(entry, label);
+    if (entry.dir) continue;
+
+    const size = officeEntrySize(entry, label);
+
+    if (size > MAX_OFFICE_ENTRY_BYTES) {
+      throw new Error(
+        "Entry ZIP " + label + " terlalu besar untuk diproses di perangkat.",
+      );
+    }
+
+    totalUncompressed += size;
+    if (totalUncompressed > MAX_OFFICE_ARCHIVE_UNCOMPRESSED_BYTES) {
+      throw new Error(
+        "Ukuran terurai file " + label + " melebihi batas maksimum.",
+      );
+    }
+
+    const normalizedName = name.toLowerCase();
+    if (
+      normalizedName.includes("vbaproject.bin") ||
+      normalizedName.includes("/externallinks/")
+    ) {
+      throw new Error(
+        "File " + label + " mengandung macro/external link yang tidak didukung.",
+      );
+    }
+  }
+
+  await validateOfficeRelationships(zip, label);
+  return zip;
+}
+
 type PdfTextItem = {
   transform: number[];
   str: string;
@@ -76,6 +244,12 @@ export async function wordToPdf(
   const arrayBuffer =
     await file.arrayBuffer();
 
+  await loadSafeOfficeZip(
+    arrayBuffer,
+    "Word",
+    "word/document.xml",
+  );
+
   const { default: mammoth } =
     await loadMammoth();
 
@@ -92,6 +266,12 @@ export async function wordToPdf(
 
   const text =
     result.value;
+
+  if (text.length > MAX_DEVICE_TEXT_BYTES) {
+    throw new Error(
+      "Teks hasil ekstraksi Word terlalu besar untuk diproses di perangkat.",
+    );
+  }
 
   const {
     PDFDocument,
@@ -274,6 +454,12 @@ export async function wordToPdf(
   const pdfBytes =
     await pdfDoc.save();
 
+  if (pdfBytes.byteLength > MAX_DEVICE_OUTPUT_BYTES) {
+    throw new Error(
+      "PDF hasil Word terlalu besar untuk diproses di perangkat.",
+    );
+  }
+
   onProgress?.(
     1,
     1,
@@ -309,13 +495,11 @@ export async function powerpointToPdf(
   const arrayBuffer =
     await file.arrayBuffer();
 
-  const {
-    default: JSZip,
-  } = await loadJsZip();
-
   const zip =
-    await JSZip.loadAsync(
+    await loadSafeOfficeZip(
       arrayBuffer,
+      "PowerPoint",
+      "ppt/presentation.xml",
     );
 
   const slideFiles =
@@ -357,6 +541,12 @@ export async function powerpointToPdf(
   ) {
     throw new Error(
       "File PowerPoint tidak memiliki slide.",
+    );
+  }
+
+  if (slideFiles.length > MAX_PPT_SLIDES) {
+    throw new Error(
+      "PowerPoint memiliki terlalu banyak slide untuk diproses di perangkat.",
     );
   }
 
@@ -406,10 +596,27 @@ export async function powerpointToPdf(
       `Memproses slide ${index + 1}/${slideFiles.length}...`,
     );
 
+    const slideEntry =
+      zip.files[slideFiles[index]];
+    const slideSize = officeEntrySize(
+      slideEntry,
+      "PowerPoint",
+    );
+
+    if (slideSize > MAX_OFFICE_ENTRY_BYTES) {
+      throw new Error(
+        "Ukuran slide PowerPoint terlalu besar untuk diproses di perangkat.",
+      );
+    }
+
     const slideXmlText =
-      await zip.files[
-        slideFiles[index]
-      ].async("text");
+      await slideEntry.async("text");
+
+    if (slideXmlText.length > MAX_DEVICE_TEXT_BYTES) {
+      throw new Error(
+        "XML slide PowerPoint terlalu besar untuk diproses di perangkat.",
+      );
+    }
 
     const xmlDoc =
       parser.parseFromString(
@@ -779,6 +986,12 @@ export async function pdfToWord(
         doc,
       );
 
+    if (docxBlob.size > MAX_DEVICE_OUTPUT_BYTES) {
+      throw new Error(
+        "DOCX hasil konversi terlalu besar untuk diproses di perangkat.",
+      );
+    }
+
     onProgress?.(
       1,
       1,
@@ -1024,6 +1237,12 @@ export async function pdfToPowerpoint(
       (await pptx.write({
         outputType: "blob",
       })) as Blob;
+
+    if (pptxBlob.size > MAX_DEVICE_OUTPUT_BYTES) {
+      throw new Error(
+        "PPTX hasil konversi terlalu besar untuk diproses di perangkat.",
+      );
+    }
 
     onProgress?.(
       1,
