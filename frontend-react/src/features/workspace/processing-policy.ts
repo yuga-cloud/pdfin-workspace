@@ -8,6 +8,8 @@ import type { ProcessingLocation, ToolDef } from "@/shared/tools/catalog";
  */
 export const MAX_DEVICE_PROCESSING_BYTES = 100 * 1024 * 1024;
 export const MAX_REORDER_UI_PAGES = 500;
+export const MAX_SUBMISSION_FILES = 50;
+export const MAX_SUBMISSION_BYTES = 500 * 1024 * 1024;
 
 export function effectiveProcessingLocation(
   tool: ToolDef,
@@ -38,4 +40,29 @@ export function validateDeviceProcessingSize(
     `File ${oversized.name} terlalu besar untuk diproses. ` +
       `Gunakan file maksimal ${MAX_DEVICE_PROCESSING_BYTES / 1024 / 1024} MiB.`,
   );
+}
+
+export function validateSubmissionLimits(
+  files: readonly File[],
+): void {
+  if (files.length > MAX_SUBMISSION_FILES) {
+    throw new Error(
+      "Jumlah file dalam satu proses dibatasi " +
+        MAX_SUBMISSION_FILES +
+        " file.",
+    );
+  }
+
+  const totalBytes = files.reduce(
+    (total, file) => total + file.size,
+    0,
+  );
+
+  if (totalBytes > MAX_SUBMISSION_BYTES) {
+    throw new Error(
+      "Total ukuran file dalam satu proses dibatasi " +
+        MAX_SUBMISSION_BYTES / 1024 / 1024 +
+        " MiB.",
+    );
+  }
 }
