@@ -10,6 +10,7 @@ use super::pdf_table::{Table, detect_tables, extract_pdf_words, model::PdfWord};
 const MIN_COLUMN_WIDTH: f64 = 10.0;
 const MAX_COLUMN_WIDTH: f64 = 60.0;
 const MAX_OCR_TABLES: usize = 100;
+const MAX_XLSX_OUTPUT_BYTES: usize = 128 * 1024 * 1024;
 const MAX_WORKBOOK_CELLS: usize = 2_000_000;
 
 const HEADER_COLOR: u32 = 0x44C7E6;
@@ -193,9 +194,18 @@ fn build_workbook(tables: &[Table]) -> Result<Vec<u8>, String> {
         write_rows_to_sheet(worksheet, rows)?;
     }
 
-    workbook
+    let output = workbook
         .save_to_buffer()
-        .map_err(|error| format!("Gagal membuat XLSX: {error}"))
+        .map_err(|error| format!("Gagal membuat XLSX: {error}"))?;
+
+    if output.len() > MAX_XLSX_OUTPUT_BYTES {
+        return Err(format!(
+            "XLSX hasil konversi melebihi batas maksimum ({} MiB)",
+            MAX_XLSX_OUTPUT_BYTES / 1024 / 1024
+        ));
+    }
+
+    Ok(output)
 }
 
 fn write_rows_to_sheet(
