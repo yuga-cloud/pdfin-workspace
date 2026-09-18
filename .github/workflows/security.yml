@@ -15,7 +15,8 @@ permissions:
 
 jobs:
   cargo-audit:
-    name: Cargo audit
+    name: Cargo audit (private stage)
+    if: github.event.repository.visibility != 'public'
     runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
