@@ -2,8 +2,8 @@
 set -eu
 cd "$(dirname "$0")"
 
-# Start backend Axum server on port 3000 if not running
-if ! curl -sf -o /dev/null --max-time 1 http://127.0.0.1:3000/rust-api/pdf-to-excel || true; then
+# Start backend Axum server on port 3000 if not running.
+if ! curl -sf -o /dev/null --max-time 1 http://127.0.0.1:3000/health; then
   echo "Starting Axum backend server..."
   cargo run --manifest-path ../backend/Cargo.toml >>/tmp/backend-startup.log 2>&1 &
 fi
