@@ -809,7 +809,15 @@ async function stampPdf(
     "Menyimpan",
   );
 
-  return document.save();
+  const result = await document.save();
+
+  if (result.byteLength > MAX_DEVICE_OUTPUT_BYTES) {
+    fail(
+      "Hasil PDF terlalu besar untuk diproses di perangkat.",
+    );
+  }
+
+  return result;
 }
 
 type PdfjsDocument =
