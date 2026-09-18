@@ -92,14 +92,6 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
             ));
         }
 
-            return Err(format!(
-                "Resolusi JPEG {} terlalu besar: {}x{}",
-                index + 1,
-                width,
-                height
-            ));
-        }
-
         let image_id = document.add_object(image);
         let image_name = format!("Im{}", index + 1).into_bytes();
 
