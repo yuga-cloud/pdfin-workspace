@@ -87,7 +87,15 @@ function validateOfficeEntryName(
 }
 
 async function validateOfficeRelationships(
-  zip: Awaited<ReturnType<(typeof import("jszip"))["default"]>>,
+  zip: {
+    files: Record<string, {
+      dir: boolean;
+      name: string;
+      unsafeOriginalName?: string;
+      async: (type: "string") => Promise<string>;
+      [key: string]: unknown;
+    }>;
+  },
   label: string,
 ): Promise<void> {
   let scannedBytes = 0;
@@ -603,6 +611,10 @@ export async function powerpointToPdf(
 
     const slideEntry =
       zip.files[slideFiles[index]];
+    if (!slideEntry) {
+      throw new Error("Slide PowerPoint tidak ditemukan di dalam arsip.");
+    }
+
     const slideSize = officeEntrySize(
       slideEntry,
       "PowerPoint",
