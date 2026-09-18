@@ -40,8 +40,8 @@ Before making the repository public, verify all of the following:
    a floating dependency installation.
 3. Rust dependencies are locked and CI uses `--locked`.
 4. GitHub Actions used on trusted runners are pinned to immutable commit SHAs.
-5. Self-hosted runner jobs cannot execute code from untrusted fork or Dependabot
-   pull requests.
+5. Public pull requests are validated only on GitHub-hosted runners; the
+   self-hosted runner is reserved for trusted repository code.
 6. The production backend is loopback-only and the host firewall blocks direct
    public access to port 3000.
 7. PDF/Office/image processing runs under the unprivileged service account and
@@ -50,7 +50,9 @@ Before making the repository public, verify all of the following:
    are patched to supported security releases before launch.
 9. Public traffic is protected at the edge with TLS and appropriate
    rate-limiting/abuse controls.
-10. Branch protection/rulesets require review and all required security checks
+10. CodeQL, dependency review, and dependency audits are enabled for the public
+    release path.
+11. Branch protection/rulesets require review and all required security checks
     before changes reach `main`.
 
 ## Scope
