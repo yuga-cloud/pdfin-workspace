@@ -152,12 +152,37 @@ async function fileBytes(
 async function loadPdfDoc(
   bytes: Uint8Array,
 ) {
+  if (bytes.byteLength > MAX_DEVICE_PDF_BYTES) {
+    fail(
+      "PDF terlalu besar untuk diproses di perangkat (maksimum 100 MiB).",
+    );
+  }
+
   const { PDFDocument } =
     await loadPdfLib();
 
   try {
-    return await PDFDocument.load(bytes);
-  } catch {
+    const document = await PDFDocument.load(bytes);
+    const pageCount = document.getPageCount();
+
+    if (pageCount === 0) {
+      fail("PDF tidak memiliki halaman.");
+    }
+
+    if (pageCount > MAX_DEVICE_PDF_PAGES) {
+      fail(
+        "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+          MAX_DEVICE_PDF_PAGES +
+          ").",
+      );
+    }
+
+    return document;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("terlalu")) {
+      throw error;
+    }
+
     fail(
       "PDF tidak bisa dibaca. Mungkin rusak atau terkunci password.",
     );
