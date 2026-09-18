@@ -21,7 +21,7 @@ CPUQuota=300%
 # Keep the HTTP listener private; put a TLS reverse proxy in front for public deployments.
 Environment=PDFIN_HOST=127.0.0.1
 Environment=PDFIN_PORT=3000
-Environment=PDFIN_MAX_REQUEST_MB=50
+Environment=PDFIN_MAX_REQUEST_MB=500
 Environment=PDFIN_REQUEST_TIMEOUT_SECONDS=120
 Environment=PDFIN_MAX_CONCURRENCY=4
 Environment=PDFIN_MAX_CONVERSION_CONCURRENCY=2
