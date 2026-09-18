@@ -18,6 +18,7 @@ use crate::{
 
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 const MAX_PDF_UPLOAD_BYTES: usize = 500 * 1024 * 1024;
+const MAX_MULTIPART_FIELDS: usize = 64;
 const MAX_PAGE_ORDER_LENGTH: usize = 16 * 1024;
 
 pub async fn manage_pages(
@@ -32,11 +33,20 @@ pub async fn manage_pages(
     let input_path = temp.path().to_owned();
     let mut file_present = false;
     let mut page_order = None;
+    let mut field_count = 0usize;
 
     while let Some(mut field) = multipart.next_field().await.map_err(|error| {
         error!(%error, "Gagal membaca multipart request");
         AppError::bad_request("invalid_multipart", "Request multipart tidak valid")
     })? {
+        field_count += 1;
+        if field_count > MAX_MULTIPART_FIELDS {
+            return Err(AppError::bad_request(
+                "too_many_fields",
+                "Jumlah field multipart dalam satu request terlalu banyak",
+            ));
+        }
+
         match field.name().unwrap_or_default() {
             "file" => {
                 if file_present {
@@ -179,6 +189,14 @@ fn parse_page_order(input: &str) -> Result<Vec<u32>, AppError> {
         return Err(AppError::bad_request(
             "invalid_pages",
             "Urutan halaman tidak valid atau terlalu panjang",
+        ));
+    }
+
+    let mut seen = std::collections::HashSet::with_capacity(pages.len());
+    if pages.iter().any(|page| !seen.insert(*page)) {
+        return Err(AppError::bad_request(
+            "duplicate_pages",
+            "Urutan halaman tidak boleh mengandung halaman yang sama lebih dari sekali",
         ));
     }
 
