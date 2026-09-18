@@ -42,6 +42,8 @@ const MAX_OFFICE_RELATIONSHIP_BYTES = 1024 * 1024;
 const MAX_OFFICE_RELATIONSHIP_SCAN_BYTES = 8 * 1024 * 1024;
 const MAX_PPT_SLIDES = 500;
 const MAX_DEVICE_TEXT_BYTES = 8 * 1024 * 1024;
+const MAX_PDF_TEXT_ITEMS_PER_PAGE = 10_000;
+const MAX_PDF_TEXT_ITEMS_TOTAL = 250_000;
 
 type JsZipEntryMeta = {
   uncompressedSize?: unknown;
@@ -860,6 +862,8 @@ export async function pdfToWord(
         typeof Paragraph
       >[] = [];
 
+    let totalTextItems = 0;
+
     for (
       let pageNumber = 1;
       pageNumber <= total;
@@ -885,6 +889,19 @@ export async function pdfToWord(
 
         const items =
           getPdfTextItems(textContent.items);
+
+        if (items.length > MAX_PDF_TEXT_ITEMS_PER_PAGE) {
+          throw new Error(
+            "Terlalu banyak item teks pada halaman PDF.",
+          );
+        }
+
+        totalTextItems += items.length;
+        if (totalTextItems > MAX_PDF_TEXT_ITEMS_TOTAL) {
+          throw new Error(
+            "Jumlah total item teks PDF terlalu besar untuk diproses di perangkat.",
+          );
+        }
 
         const sortedItems =
           [...items].sort(
@@ -1112,6 +1129,8 @@ export async function pdfToPowerpoint(
     const pptx =
       new PptxGenJS();
 
+    let totalTextItems = 0;
+
     for (
       let pageNumber = 1;
       pageNumber <= total;
@@ -1137,6 +1156,19 @@ export async function pdfToPowerpoint(
 
         const items =
           getPdfTextItems(textContent.items);
+
+        if (items.length > MAX_PDF_TEXT_ITEMS_PER_PAGE) {
+          throw new Error(
+            "Terlalu banyak item teks pada halaman PDF.",
+          );
+        }
+
+        totalTextItems += items.length;
+        if (totalTextItems > MAX_PDF_TEXT_ITEMS_TOTAL) {
+          throw new Error(
+            "Jumlah total item teks PDF terlalu besar untuk diproses di perangkat.",
+          );
+        }
 
         const sortedItems =
           [...items].sort(
