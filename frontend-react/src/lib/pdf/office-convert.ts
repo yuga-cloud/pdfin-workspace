@@ -833,6 +833,8 @@ export async function pdfToWord(
   const task =
     pdfjs.getDocument({
       data,
+      enableScripting: false,
+      isEvalSupported: false,
       stopAtErrors: true,
       maxImageSize: 20_000_000,
     });
@@ -1102,6 +1104,8 @@ export async function pdfToPowerpoint(
   const task =
     pdfjs.getDocument({
       data,
+      enableScripting: false,
+      isEvalSupported: false,
       stopAtErrors: true,
       maxImageSize: 20_000_000,
     });
