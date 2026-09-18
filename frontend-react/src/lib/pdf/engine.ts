@@ -51,6 +51,12 @@ export type ProcessOutput = {
   mime: string;
 };
 
+export const MAX_DEVICE_PDF_BYTES = 100 * 1024 * 1024;
+export const MAX_DEVICE_PDF_PAGES = 1_000;
+export const MAX_DEVICE_RENDER_PIXELS = 20_000_000;
+export const MAX_DEVICE_OUTPUT_BYTES = 512 * 1024 * 1024;
+export const MAX_DEVICE_SPLIT_PAGES = 1_000;
+
 function fail(message: string): never {
   throw new Error(message);
 }
