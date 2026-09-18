@@ -492,6 +492,10 @@ async function splitEachPage(
     const bytes =
       await output.save();
 
+    if (bytes.byteLength > MAX_DEVICE_OUTPUT_BYTES) {
+      fail("Hasil halaman terlalu besar untuk diproses di perangkat.");
+    }
+
     zip.file(
       `${base}-halaman-${String(index + 1).padStart(3, "0")}.pdf`,
       bytes,
@@ -506,10 +510,16 @@ async function splitEachPage(
     "Mengemas ZIP",
   );
 
-  return zip.generateAsync({
+  const zipBlob = await zip.generateAsync({
     type: "blob",
     streamFiles: true,
   });
+
+  if (zipBlob.size > MAX_DEVICE_OUTPUT_BYTES) {
+    fail("Hasil ZIP terlalu besar untuk diproses di perangkat.");
+  }
+
+  return zipBlob;
 }
 
 async function mergeAll(
