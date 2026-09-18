@@ -159,6 +159,33 @@ async fn health() -> &'static str {
     "ok"
 }
 
+async fn add_security_headers(request: Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    let headers = response.headers_mut();
+
+    headers.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
+    headers.insert("X-Frame-Options", HeaderValue::from_static("DENY"));
+    headers.insert(
+        "Referrer-Policy",
+        HeaderValue::from_static("no-referrer"),
+    );
+    headers.insert(
+        "Permissions-Policy",
+        HeaderValue::from_static("camera=(), microphone=(), geolocation=()"),
+    );
+    headers.insert(
+        "Content-Security-Policy",
+        HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; base-uri 'none'"),
+    );
+    headers.insert(
+        "X-Permitted-Cross-Domain-Policies",
+        HeaderValue::from_static("none"),
+    );
+    headers.insert("Cache-Control", HeaderValue::from_static("no-store"));
+
+    response
+}
+
 async fn enforce_rate_limit(
     State(state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
