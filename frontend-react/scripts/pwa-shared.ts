@@ -85,6 +85,7 @@ export function publicAppHost(hostHeader: string | null | undefined): string {
   if (!host || !/^[a-z0-9.-]+$/.test(host) || !host.includes(".")) return "";
   if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "";
   if (isVercelSystemHost(host)) return "";
+  if (host !== "pdfin.app" && !host.endsWith(".pdfin.app")) return "";
   return host;
 }
 
