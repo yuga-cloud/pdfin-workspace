@@ -11,6 +11,13 @@ ExecStart=/opt/pdfin/bin/backend
 Restart=on-failure
 RestartSec=2
 
+# Contain resource exhaustion from hostile documents without taking the whole host down.
+MemoryHigh=2G
+MemoryMax=3G
+TasksMax=128
+LimitNOFILE=8192
+CPUQuota=300%
+
 # Keep the HTTP listener private; put a TLS reverse proxy in front for public deployments.
 Environment=PDFIN_HOST=127.0.0.1
 Environment=PDFIN_PORT=3000
