@@ -1,4 +1,4 @@
-use std::str;
+use std::{io::{Cursor, Read}, str};
 
 const ZIP_LOCAL_FILE_HEADER: [u8; 4] = [0x50, 0x4b, 0x03, 0x04];
 const ZIP_CENTRAL_DIRECTORY_HEADER: [u8; 4] = [0x50, 0x4b, 0x01, 0x02];
@@ -8,6 +8,7 @@ const MAX_PDF_HEADER_SCAN_BYTES: usize = 1024;
 const MAX_OFFICE_ZIP_ENTRIES: usize = 2_048;
 const MAX_OFFICE_UNCOMPRESSED_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_OFFICE_FILENAME_BYTES: usize = 1_024;
+const MAX_RELATIONSHIP_FILE_BYTES: u64 = 1024 * 1024;
 
 pub fn validate_input(bytes: &[u8], format: &str) -> Result<(), String> {
     if bytes.is_empty() {
@@ -229,6 +230,58 @@ fn validate_office_zip(
         ));
     }
 
+    validate_ooxml_relationships(bytes, format)?;
+
+    Ok(())
+}
+
+fn validate_ooxml_relationships(bytes: &[u8], format: &str) -> Result<(), String> {
+    let mut archive = ::zip::ZipArchive::new(Cursor::new(bytes))
+        .map_err(|error| format!("Struktur ZIP {format} tidak dapat dibaca: {error}"))?;
+
+    if archive.has_overlapping_files() {
+        return Err(format!(
+            "File {format} memiliki ZIP entry yang saling overlap"
+        ));
+    }
+
+    for index in 0..archive.len() {
+        let mut entry = archive
+            .by_index(index)
+            .map_err(|error| format!("Gagal membaca entry ZIP {format}: {error}"))?;
+
+        if entry.is_dir() || !entry.name().to_ascii_lowercase().ends_with(".rels") {
+            continue;
+        }
+
+        if entry.size() > MAX_RELATIONSHIP_FILE_BYTES {
+            return Err(format!(
+                "Relationship XML {format} melebihi batas maksimum ({} KiB)",
+                MAX_RELATIONSHIP_FILE_BYTES / 1024
+            ));
+        }
+
+        let mut xml = Vec::with_capacity(entry.size() as usize + 1);
+        entry
+            .take(MAX_RELATIONSHIP_FILE_BYTES + 1)
+            .read_to_end(&mut xml)
+            .map_err(|error| format!("Gagal membaca Relationship XML {format}: {error}"))?;
+
+        let normalized: String = String::from_utf8_lossy(&xml)
+            .chars()
+            .filter(|character| !character.is_ascii_whitespace())
+            .collect::<String>()
+            .to_ascii_lowercase();
+
+        if normalized.contains("targetmode=\"external\"")
+            || normalized.contains("targetmode='external'")
+        {
+            return Err(format!(
+                "File {format} mengandung external relationship yang tidak didukung"
+            ));
+        }
+    }
+
     Ok(())
 }
 
@@ -274,13 +327,23 @@ mod tests {
     }
 
     fn minimal_ooxml(entries: &[&str]) -> Vec<u8> {
+        minimal_ooxml_with_special_entry(entries, None)
+    }
+
+    fn minimal_ooxml_with_special_entry(
+        entries: &[&str],
+        special: Option<(&str, &[u8])>,
+    ) -> Vec<u8> {
         let mut out = Vec::new();
         let mut central = Vec::new();
         let mut offset = 0_u32;
 
         for name in entries {
             let name = name.as_bytes();
-            let data = b"{}";
+            let data = special
+                .filter(|(entry_name, _)| *entry_name == *name)
+                .map(|(_, data)| data)
+                .unwrap_or(b"{}");
             let crc = crc32(data);
             let size = u32::try_from(data.len()).unwrap();
 
@@ -386,6 +449,17 @@ mod tests {
 
         assert!(validate_input(&macro_doc, "Word").is_err());
         assert!(validate_input(&external_link, "Excel").is_err());
+    }
+
+    #[test]
+    fn rejects_external_relationships() {
+        let relationships = br#"<Relationships><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com" TargetMode="External"/></Relationships>"#;
+        let malicious = minimal_ooxml_with_special_entry(
+            &["[Content_Types].xml", "word/document.xml", "word/_rels/document.xml.rels"],
+            Some(("word/_rels/document.xml.rels", relationships)),
+        );
+
+        assert!(validate_input(&malicious, "Word").is_err());
     }
 
     #[test]
