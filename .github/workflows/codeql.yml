@@ -21,6 +21,7 @@ concurrency:
 jobs:
   analyze:
     name: CodeQL / ${{ matrix.language }}
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
