@@ -12,6 +12,7 @@ const MAX_CACHED_THUMBNAILS = 48;
 
 const MAX_THUMBNAIL_PAGES = 1_000;
 const MAX_THUMBNAIL_PIXELS = 20_000_000;
+const MAX_THUMBNAIL_INPUT_BYTES = 100 * 1024 * 1024;
 
 function createAbortError(): Error {
   const error = new Error("Preview dibatalkan.");
@@ -33,6 +34,12 @@ export class PdfThumbnailCache {
 
   private async loadDocument() {
     const pdfjs = await loadPdfjs();
+    if (this.file.size > MAX_THUMBNAIL_INPUT_BYTES) {
+      throw new Error(
+        "PDF terlalu besar untuk pratinjau di browser (maksimum 100 MiB).",
+      );
+    }
+
     const data = new Uint8Array(await this.file.arrayBuffer());
     if (this.disposed) throw new Error("Preview sudah dibuang.");
     return pdfjs.getDocument({
