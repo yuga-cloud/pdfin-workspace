@@ -30,7 +30,14 @@ pub async fn handler(
 ) -> Result<Response, AppError> {
     let data = read_single_file(multipart).await?;
 
-    let bytes = run_conversion_validated(state, data, validate_${1}_input, excel_to_pdf_engine, "Excel → PDF").await?;
+    let bytes = run_conversion_validated(
+        state,
+        data,
+        validate_excel_input,
+        excel_to_pdf_engine,
+        "Excel → PDF",
+    )
+    .await?;
 
     Ok(binary_response(PDF_CONTENT_TYPE, bytes))
 }
