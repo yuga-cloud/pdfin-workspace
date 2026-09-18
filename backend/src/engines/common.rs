@@ -19,9 +19,11 @@ pub fn validate_input(bytes: &[u8], format: &str) -> Result<(), String> {
         "jpg" | "jpeg" => validate_jpeg_signature(bytes),
         "excel" => validate_office_zip(bytes, "Excel", &["[Content_Types].xml", "xl/workbook.xml"]),
         "word" => validate_office_zip(bytes, "Word", &["[Content_Types].xml", "word/document.xml"]),
-        "powerpoint" => {
-            validate_office_zip(bytes, "PowerPoint", &["[Content_Types].xml", "ppt/presentation.xml"])
-        }
+        "powerpoint" => validate_office_zip(
+            bytes,
+            "PowerPoint",
+            &["[Content_Types].xml", "ppt/presentation.xml"],
+        ),
         _ => Ok(()),
     }
 }
@@ -79,7 +81,9 @@ fn validate_office_zip(
     let comment_length = usize::from(read_u16(bytes, eocd_offset + 20)?);
 
     if disk_number != 0 || central_start_disk != 0 || entries_on_disk != entries_total {
-        return Err(format!("ZIP {format} menggunakan multi-disk yang tidak didukung"));
+        return Err(format!(
+            "ZIP {format} menggunakan multi-disk yang tidak didukung"
+        ));
     }
 
     if entries_total == usize::from(u16::MAX)
@@ -120,9 +124,7 @@ fn validate_office_zip(
     let mut has_macro_payload = false;
 
     for _ in 0..entries_total {
-        if cursor
-            .checked_add(46)
-            .is_none_or(|end| end > central_end)
+        if cursor.checked_add(46).is_none_or(|end| end > central_end)
             || bytes.get(cursor..cursor + 4) != Some(ZIP_CENTRAL_DIRECTORY_HEADER.as_slice())
         {
             return Err(format!("Central directory {format} terpotong atau invalid"));
@@ -141,9 +143,7 @@ fn validate_office_zip(
         }
 
         if !matches!(compression, 0 | 8) {
-            return Err(format!(
-                "Metode kompresi ZIP {format} tidak didukung"
-            ));
+            return Err(format!("Metode kompresi ZIP {format} tidak didukung"));
         }
 
         total_uncompressed = total_uncompressed
@@ -200,9 +200,7 @@ fn validate_office_zip(
         }
 
         if compressed_size > 0 && uncompressed_size > MAX_OFFICE_UNCOMPRESSED_BYTES {
-            return Err(format!(
-                "Entry ZIP {format} melebihi batas ukuran terurai"
-            ));
+            return Err(format!("Entry ZIP {format} melebihi batas ukuran terurai"));
         }
 
         cursor = record_end;
@@ -220,7 +218,9 @@ fn validate_office_zip(
             .map(|(_, name)| *name)
             .collect::<Vec<_>>()
             .join(", ");
-        return Err(format!("File {format} tidak memiliki entry OOXML wajib: {missing}"));
+        return Err(format!(
+            "File {format} tidak memiliki entry OOXML wajib: {missing}"
+        ));
     }
 
     if has_macro_payload {
@@ -373,10 +373,16 @@ mod tests {
 
     #[test]
     fn rejects_macro_or_external_link_markers() {
-        let macro_doc =
-            minimal_ooxml(&["[Content_Types].xml", "word/document.xml", "word/vbaProject.bin"]);
-        let external_link =
-            minimal_ooxml(&["[Content_Types].xml", "xl/workbook.xml", "xl/externalLinks/externalLink1.xml"]);
+        let macro_doc = minimal_ooxml(&[
+            "[Content_Types].xml",
+            "word/document.xml",
+            "word/vbaProject.bin",
+        ]);
+        let external_link = minimal_ooxml(&[
+            "[Content_Types].xml",
+            "xl/workbook.xml",
+            "xl/externalLinks/externalLink1.xml",
+        ]);
 
         assert!(validate_input(&macro_doc, "Word").is_err());
         assert!(validate_input(&external_link, "Excel").is_err());
