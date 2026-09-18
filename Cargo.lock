@@ -219,6 +219,7 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
+ "zip",
  "tracing-subscriber",
 ]
 
