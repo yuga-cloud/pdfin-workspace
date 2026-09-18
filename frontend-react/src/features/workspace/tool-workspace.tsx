@@ -177,7 +177,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
         case "pdf": return file.type === "application/pdf" || /\.pdf$/i.test(file.name);
         case "image": return file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/webp" || /\.(png|jpe?g|webp)$/i.test(file.name);
         case "word": return file.type.includes("wordprocessingml") || file.type === "application/msword" || /\.docx$/i.test(file.name);
-        case "excel": return file.type.includes("spreadsheetml") || file.type === "application/vnd.ms-excel" || /\.xlsx?$/i.test(file.name);
+        case "excel": return file.type.includes("spreadsheetml") || /\.xlsx$/i.test(file.name);
         case "powerpoint": return file.type.includes("presentationml") || /\.pptx$/i.test(file.name);
         default: return false;
       }
