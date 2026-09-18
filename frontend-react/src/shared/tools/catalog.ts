@@ -217,7 +217,7 @@ export const IMAGE_ACCEPT =
 export const WORD_ACCEPT =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx";
 export const EXCEL_ACCEPT =
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,.xlsx,.xls";
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx";
 export const POWERPOINT_ACCEPT =
   "application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx";
 
