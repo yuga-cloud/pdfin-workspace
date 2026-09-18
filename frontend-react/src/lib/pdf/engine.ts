@@ -320,19 +320,19 @@ export async function renderThumbs(
   const urls: string[] = [];
   const total = pdf.numPages;
 
-  if (total === 0) {
-    fail("PDF tidak memiliki halaman.");
-  }
-
-  if (total > MAX_DEVICE_PDF_PAGES) {
-    fail(
-      "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
-        MAX_DEVICE_PDF_PAGES +
-        ").",
-    );
-  }
-
   try {
+    if (total === 0) {
+      fail("PDF tidak memiliki halaman.");
+    }
+
+    if (total > MAX_DEVICE_PDF_PAGES) {
+      fail(
+        "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+          MAX_DEVICE_PDF_PAGES +
+          ").",
+      );
+    }
+
     for (
       let pageNumber = 1;
       pageNumber <= total;
