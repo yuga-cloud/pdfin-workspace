@@ -286,6 +286,13 @@ export async function renderThumbs(
   throwIfAborted(signal);
 
   const data = await fileBytes(file);
+
+  if (data.byteLength > MAX_DEVICE_PDF_BYTES) {
+    fail(
+      "PDF terlalu besar untuk diproses di perangkat (maksimum 100 MiB).",
+    );
+  }
+
   throwIfAborted(signal);
 
   const loadingTask = pdfjs.getDocument({
@@ -980,6 +987,12 @@ async function pdfToImages(
   const data =
     await fileBytes(file);
 
+  if (data.byteLength > MAX_DEVICE_PDF_BYTES) {
+    fail(
+      "PDF terlalu besar untuk diproses di perangkat (maksimum 100 MiB).",
+    );
+  }
+
   const source =
     await pdfjs.getDocument({
       data,
@@ -1094,12 +1107,17 @@ async function pdfToImages(
       "Mengemas ZIP",
     );
 
+    const zipBlob = await zip.generateAsync({
+      type: "blob",
+      streamFiles: true,
+    });
+
+    if (zipBlob.size > MAX_DEVICE_OUTPUT_BYTES) {
+      fail("Hasil ZIP terlalu besar untuk diproses di perangkat.");
+    }
+
     return {
-      blob:
-        await zip.generateAsync({
-          type: "blob",
-          streamFiles: true,
-        }),
+      blob: zipBlob,
       filename:
         `${base}-jpg.zip`,
       mime:
