@@ -1,5 +1,4 @@
 import type { ToolOptions } from "@/lib/pdf/engine";
-import type { ToolOptions } from "@/lib/pdf/engine";
 import type { ProcessingLocation, ToolDef } from "@/shared/tools/catalog";
 
 /**
