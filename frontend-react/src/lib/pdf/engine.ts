@@ -452,6 +452,18 @@ async function splitEachPage(
   const total =
     source.getPageCount();
 
+  if (total === 0) {
+    fail("PDF tidak memiliki halaman.");
+  }
+
+  if (total > MAX_DEVICE_SPLIT_PAGES) {
+    fail(
+      "PDF memiliki terlalu banyak halaman untuk dipecah di perangkat (maksimum " +
+        MAX_DEVICE_SPLIT_PAGES +
+        ").",
+    );
+  }
+
   const base =
     stem(file.name);
 
