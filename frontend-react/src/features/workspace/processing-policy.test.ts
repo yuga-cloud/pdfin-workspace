@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   effectiveProcessingLocation,
   validateDeviceProcessingSize,
+  validateSubmissionLimits,
 } from "@/features/workspace/processing-policy";
 import type { ToolDef } from "@/shared/tools/catalog";
 
@@ -60,5 +61,21 @@ describe("processing policy", () => {
         options(),
       ),
     ).not.toThrow();
+  });
+
+  it("rejects too many submitted files", () => {
+    expect(() =>
+      validateSubmissionLimits(
+        Array.from({ length: 51 }, () => makeFile(1)),
+      ),
+    ).toThrow("50");
+  });
+
+  it("rejects a submission above the backend request limit", () => {
+    expect(() =>
+      validateSubmissionLimits([
+        makeFile(500 * 1024 * 1024 + 1),
+      ]),
+    ).toThrow("500 MiB");
   });
 });
