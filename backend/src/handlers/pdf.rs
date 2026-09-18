@@ -160,7 +160,7 @@ async fn read_multiple_files_to_tempfiles(
                 }
 
                 if field.name() == Some("file") {
-                if files.len() >= MAX_MERGE_FILES {
+                    if files.len() >= MAX_MERGE_FILES {
                     return Err(AppError::bad_request(
                         "too_many_files",
                         "Jumlah file PDF dalam satu request terlalu banyak",
@@ -244,10 +244,20 @@ async fn read_multiple_files_to_tempfiles(
 async fn read_rotate_request(mut multipart: Multipart) -> Result<(TempPdfUpload, i64), AppError> {
     let mut file = None;
     let mut degrees = DEFAULT_ROTATION_DEGREES;
+    let mut field_count = 0usize;
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(mut field)) => match field.name().unwrap_or_default() {
+            Ok(Some(mut field)) => {
+                field_count += 1;
+                if field_count > MAX_MULTIPART_FIELDS {
+                    return Err(AppError::bad_request(
+                        "too_many_fields",
+                        "Jumlah field multipart dalam satu request terlalu banyak",
+                    ));
+                }
+
+                match field.name().unwrap_or_default() {
                 "file" => {
                     if file.is_some() {
                         return Err(AppError::bad_request(
@@ -320,7 +330,8 @@ async fn read_rotate_request(mut multipart: Multipart) -> Result<(TempPdfUpload,
                         AppError::bad_request("invalid_degrees", "Nilai derajat rotasi tidak valid")
                     })?;
                 }
-                _ => {}
+                    _ => {}
+                }
             },
             Ok(None) => break,
             Err(error) => {
