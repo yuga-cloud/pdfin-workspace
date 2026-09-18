@@ -27,6 +27,8 @@ Environment=PDFIN_TRUSTED_PROXY_IPS=127.0.0.1
 # Least-privilege hardening for untrusted PDF/Office processing.
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
+DevicePolicy=closed
 ProtectSystem=strict
 ProtectHome=true
 ProtectKernelTunables=true
@@ -34,14 +36,22 @@ ProtectKernelModules=true
 ProtectKernelLogs=true
 ProtectControlGroups=true
 ProtectClock=true
+ProtectProc=invisible
+ProcSubset=pid
 LockPersonality=true
 RestrictSUIDSGID=true
 RestrictNamespaces=true
 RestrictRealtime=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
 UMask=0077
 
-# The service only needs a temporary working area plus its executable and libraries.
+# The service only needs loopback networking. This also prevents parser
+# subprocesses from reaching external networks (SSRF/exfiltration guard).
+IPAddressDeny=any
+IPAddressAllow=127.0.0.0/8
+IPAddressAllow=::1
 ReadWritePaths=/tmp
 
 [Install]
