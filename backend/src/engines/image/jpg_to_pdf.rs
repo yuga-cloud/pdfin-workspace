@@ -50,7 +50,19 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
 
     for (index, image_bytes) in images.iter().enumerate() {
         validate_input(image_bytes, "JPG")?;
-        validate_jpeg_dimensions(image_bytes, index + 1)?;
+        let (validated_width, validated_height) =
+            validate_jpeg_dimensions(image_bytes, index + 1)?;
+        let pixels = u64::from(validated_width)
+            .checked_mul(u64::from(validated_height))
+            .ok_or_else(|| format!("Dimensi JPEG {} terlalu besar", index + 1))?;
+
+        if pixels > MAX_IMAGE_PIXELS {
+            return Err(format!(
+                "Jumlah pixel JPEG {} melebihi batas maksimum ({} juta pixel)",
+                index + 1,
+                MAX_IMAGE_PIXELS / 1_000_000
+            ));
+        }
 
         let image = xobject::image_from((*image_bytes).to_vec())
             .map_err(|error| format!("Gagal membaca gambar JPEG {}: {error}", index + 1))?;
@@ -73,25 +85,18 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
             return Err(format!("Dimensi JPEG {} tidak valid", index + 1));
         }
 
-        if width as u32 > MAX_IMAGE_DIMENSION || height as u32 > MAX_IMAGE_DIMENSION {
+        if width as u32 != validated_width || height as u32 != validated_height {
+            return Err(format!(
+                "Dimensi JPEG {} berbeda antara header dan decoder",
+                index + 1
+            ));
+        }
+
             return Err(format!(
                 "Resolusi JPEG {} terlalu besar: {}x{}",
                 index + 1,
                 width,
                 height
-            ));
-        }
-
-        let pixels = u64::try_from(width)
-            .ok()
-            .and_then(|width| u64::try_from(height).ok().and_then(|height| width.checked_mul(height)))
-            .ok_or_else(|| format!("Dimensi JPEG {} terlalu besar", index + 1))?;
-
-        if pixels > MAX_IMAGE_PIXELS {
-            return Err(format!(
-                "Jumlah pixel JPEG {} melebihi batas maksimum ({} juta pixel)",
-                index + 1,
-                MAX_IMAGE_PIXELS / 1_000_000
             ));
         }
 
@@ -178,7 +183,10 @@ pub fn jpgs_to_pdf(images: &[&[u8]]) -> Result<Vec<u8>, String> {
     Ok(output)
 }
 
-fn validate_jpeg_dimensions(bytes: &[u8], image_number: usize) -> Result<(), String> {
+fn validate_jpeg_dimensions(
+    bytes: &[u8],
+    image_number: usize,
+) -> Result<(u32, u32), String> {
     if bytes.len() < 4 || bytes[..2] != [0xFF, 0xD8] {
         return Err(format!("File JPEG {} tidak valid", image_number));
     }
@@ -236,7 +244,7 @@ fn validate_jpeg_dimensions(bytes: &[u8], image_number: usize) -> Result<(), Str
                 ));
             }
 
-            return Ok(());
+            return Ok((width, height));
         }
 
         offset += segment_length;
@@ -275,7 +283,7 @@ mod tests {
             0x00, 0x22, 0x00, 0x33,
         ];
 
-        assert!(validate_jpeg_dimensions(&jpeg, 1).is_ok());
+        assert_eq!(validate_jpeg_dimensions(&jpeg, 1).unwrap(), (4000, 2000));
     }
 
     #[test]
@@ -290,13 +298,13 @@ mod tests {
     }
 
     #[test]
-    fn rejects_jpeg_over_pixel_limit() {
+    fn validates_large_jpeg_dimensions_before_decode() {
         let jpeg = [
-            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x4E, 0x20, 0x30, 0xD4, 0x03, 0x00,
+            0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x30, 0x39, 0x30, 0x39, 0x03, 0x00,
             0x11, 0x00, 0x22, 0x00, 0x33,
         ];
 
-        let error = validate_jpeg_dimensions(&jpeg, 1).unwrap_err();
-        assert!(error.contains("terlalu besar") || error.contains("tidak valid"));
+        assert_eq!(validate_jpeg_dimensions(&jpeg, 1).unwrap(), (12345, 12345));
+        assert!(u64::from(12345_u32) * u64::from(12345_u32) > MAX_IMAGE_PIXELS);
     }
 }
