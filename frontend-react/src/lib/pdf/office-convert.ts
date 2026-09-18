@@ -129,10 +129,9 @@ async function validateOfficeRelationships(
       .replace(/\s+/g, "")
       .toLowerCase();
 
-    if (
-      normalized.includes('targetmode="external"') ||
-      normalized.includes("targetmode='external'")
-    ) {
+    // Reject the TargetMode attribute itself so encoded values cannot bypass
+    // the external-relationship check.
+    if (normalized.includes("targetmode")) {
       throw new Error(
         "File " + label + " mengandung external relationship yang tidak didukung.",
       );
