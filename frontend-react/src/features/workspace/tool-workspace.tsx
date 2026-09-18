@@ -25,6 +25,7 @@ import { acceptFor, type ToolDef } from "@/shared/tools/catalog";
 import {
   MAX_REORDER_UI_PAGES,
   validateDeviceProcessingSize,
+  validateSubmissionLimits,
 } from "@/features/workspace/processing-policy";
 import { processTool, type ToolOptions } from "@/lib/pdf/engine";
 import { PdfThumbnailCache } from "@/lib/pdf/thumbnail-cache";
@@ -239,6 +240,7 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
     const files = items.map((item) => item.file);
 
     try {
+      validateSubmissionLimits(files);
       validateDeviceProcessingSize(tool, files, options);
     } catch (validationError) {
       const message = validationError instanceof Error ? validationError.message : "File terlalu besar untuk diproses.";
