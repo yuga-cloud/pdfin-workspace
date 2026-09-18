@@ -6,6 +6,7 @@ import type { ProcessingLocation, ToolDef } from "@/shared/tools/catalog";
  * jobs into excessive renderer/heap pressure.
  */
 export const MAX_DEVICE_PROCESSING_BYTES = 100 * 1024 * 1024;
+export const MAX_REORDER_UI_PAGES = 500;
 
 export function effectiveProcessingLocation(
   tool: ToolDef,
