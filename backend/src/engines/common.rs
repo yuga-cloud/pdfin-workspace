@@ -273,9 +273,10 @@ fn validate_ooxml_relationships(bytes: &[u8], format: &str) -> Result<(), String
             .collect::<String>()
             .to_ascii_lowercase();
 
-        if normalized.contains("targetmode=\"external\"")
-            || normalized.contains("targetmode='external'")
-        {
+        // OOXML uses TargetMode=External to opt into external relationships.
+        // Reject the attribute itself rather than only the literal value so
+        // character/entity encoding cannot bypass this validation.
+        if normalized.contains("targetmode") {
             return Err(format!(
                 "File {format} mengandung external relationship yang tidak didukung"
             ));
