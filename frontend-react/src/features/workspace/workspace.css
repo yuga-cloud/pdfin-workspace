@@ -15,7 +15,7 @@
 .workspace-pages, .workspace-options { border: 1px solid var(--color-border); box-shadow: var(--shadow-card); }
 .workspace-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .workspace-panel-count { flex: 0 0 auto; border-radius: 999px; padding: .34rem .55rem; background: var(--color-surface-2); color: var(--color-muted); font-size: .64rem; font-weight: 800; }
-.workspace-page-card { border: 1px solid transparent; box-shadow: inset 0 0 0 1px rgba(32,33,36,.02); transition: transform var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out); }
+.workspace-page-card { border: 1px solid transparent; box-shadow: inset 0 0 0 1px rgba(32,33,36,.02); transition: transform var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out); content-visibility: auto; contain-intrinsic-size: 260px; }
 .workspace-page-card:hover { transform: translateY(-2px); border-color: var(--color-border); box-shadow: var(--shadow-card); }
 .workspace-options { scroll-margin-top: 6rem; }
 .workspace-field { transition: border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out); }
