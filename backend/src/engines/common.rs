@@ -341,7 +341,7 @@ mod tests {
         for name in entries {
             let name = name.as_bytes();
             let data = special
-                .filter(|(entry_name, _)| *entry_name == *name)
+                .filter(|(entry_name, _)| entry_name.as_bytes() == name)
                 .map(|(_, data)| data)
                 .unwrap_or(b"{}");
             let crc = crc32(data);
