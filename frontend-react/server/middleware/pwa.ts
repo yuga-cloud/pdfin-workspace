@@ -25,6 +25,33 @@ function requestHost(event: PwaEvent): string {
   );
 }
 
+function applySecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "DENY");
+  headers.set("Referrer-Policy", "no-referrer");
+  headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  );
+  headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  headers.set("X-Permitted-Cross-Domain-Policies", "none");
+  headers.set("X-DNS-Prefetch-Control", "off");
+  headers.set("Origin-Agent-Cluster", "?1");
+  headers.set(
+    "Content-Security-Policy",
+    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; form-action 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self';",
+  );
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function injectHeadStreaming(response: Response, host: string): Response {
   const injector = createHeadInjector({
     host,
@@ -54,18 +81,23 @@ export default async function pwsMiddleware(
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
   const method = (event.req.method ?? "GET").toUpperCase();
-  if (method !== "GET") return next();
+  if (method !== "GET") {
+    const result = await next();
+    return result instanceof Response ? applySecurityHeaders(result) : result;
+  }
 
   const path = event.url.pathname;
   const urlWithQuery = path + event.url.search;
 
   if (path === "/__app/manifest.webmanifest" || path === "/__app/manifest.json") {
-    return new Response(renderWebManifest(requestHost(event)), {
-      headers: {
-        "content-type": "application/manifest+json; charset=utf-8",
-        "cache-control": "no-cache",
-      },
-    });
+    return applySecurityHeaders(
+      new Response(renderWebManifest(requestHost(event)), {
+        headers: {
+          "content-type": "application/manifest+json; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+      }),
+    );
   }
 
   if (
@@ -77,15 +109,20 @@ export default async function pwsMiddleware(
       host: requestHost(event),
       url: urlWithQuery,
     });
-    return new Response(html, {
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        "cache-control": "no-cache",
-      },
-    });
+    return applySecurityHeaders(
+      new Response(html, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+      }),
+    );
   }
 
-  if (!isDocumentPath(path)) return next();
+  if (!isDocumentPath(path)) {
+    const result = await next();
+    return result instanceof Response ? applySecurityHeaders(result) : result;
+  }
 
   const result = await next();
   if (
@@ -94,7 +131,7 @@ export default async function pwsMiddleware(
     String(result.headers.get("content-type") ?? "").includes("text/html") &&
     !result.headers.get("content-encoding")
   ) {
-    return injectHeadStreaming(result, requestHost(event));
+    return applySecurityHeaders(injectHeadStreaming(result, requestHost(event)));
   }
-  return result;
+  return result instanceof Response ? applySecurityHeaders(result) : result;
 }
