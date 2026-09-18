@@ -8,23 +8,31 @@ import { appEnvPlugin } from "./scripts/app-env-plugin.ts";
 
 const devPublicHost = process.env.PDFIN_DEV_PUBLIC_HOST?.trim();
 
+const apiProxy = {
+  "/rust-api": {
+    target: "http://127.0.0.1:3000",
+    changeOrigin: true,
+  },
+} as const;
+
+const publicHostOptions = devPublicHost
+  ? { allowedHosts: [devPublicHost] }
+  : {};
+
 export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "127.0.0.1",
     port: 8080,
     strictPort: true,
-    ...(devPublicHost ? { allowedHosts: [devPublicHost] } : {}),
-    proxy: {
-      "/rust-api": {
-        target: "http://127.0.0.1:3000",
-        changeOrigin: true,
-      },
-    },
+    ...publicHostOptions,
+    proxy: apiProxy,
   },
   preview: {
     host: "127.0.0.1",
     port: 8081,
     strictPort: true,
+    ...publicHostOptions,
+    proxy: apiProxy,
   },
   resolve: { tsconfigPaths: true },
   plugins: [
