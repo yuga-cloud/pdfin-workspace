@@ -56,6 +56,8 @@ export const MAX_DEVICE_PDF_PAGES = 1_000;
 export const MAX_DEVICE_RENDER_PIXELS = 20_000_000;
 export const MAX_DEVICE_OUTPUT_BYTES = 512 * 1024 * 1024;
 export const MAX_DEVICE_SPLIT_PAGES = 1_000;
+export const MAX_DEVICE_IMAGE_DIMENSION = 20_000;
+export const MAX_DEVICE_IMAGE_PIXELS = 50_000_000;
 
 function fail(message: string): never {
   throw new Error(message);
@@ -115,6 +117,16 @@ async function normalizeImageToJpeg(file: File): Promise<Blob> {
 
   const bitmap = await createImageBitmap(file);
   try {
+    if (
+      bitmap.width > MAX_DEVICE_IMAGE_DIMENSION ||
+      bitmap.height > MAX_DEVICE_IMAGE_DIMENSION ||
+      bitmap.width * bitmap.height > MAX_DEVICE_IMAGE_PIXELS
+    ) {
+      fail(
+        "Gambar terlalu besar untuk diproses di browser (maksimum 50 juta pixel).",
+      );
+    }
+
     const canvas = document.createElement("canvas");
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
@@ -297,6 +309,8 @@ export async function renderThumbs(
 
   const loadingTask = pdfjs.getDocument({
     data,
+    enableScripting: false,
+    isEvalSupported: false,
     disableAutoFetch: true,
     stopAtErrors: true,
     maxImageSize: MAX_DEVICE_RENDER_PIXELS,
@@ -996,6 +1010,8 @@ async function pdfToImages(
   const source =
     await pdfjs.getDocument({
       data,
+      enableScripting: false,
+      isEvalSupported: false,
       stopAtErrors: true,
       maxImageSize: MAX_DEVICE_RENDER_PIXELS,
     }).promise;
