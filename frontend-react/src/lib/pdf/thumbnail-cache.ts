@@ -10,6 +10,9 @@ const THUMBNAIL_WIDTH = 180;
 const JPEG_QUALITY = 0.68;
 const MAX_CACHED_THUMBNAILS = 48;
 
+const MAX_THUMBNAIL_PAGES = 1_000;
+const MAX_THUMBNAIL_PIXELS = 20_000_000;
+
 function createAbortError(): Error {
   const error = new Error("Preview dibatalkan.");
   error.name = "AbortError";
@@ -32,7 +35,12 @@ export class PdfThumbnailCache {
     const pdfjs = await loadPdfjs();
     const data = new Uint8Array(await this.file.arrayBuffer());
     if (this.disposed) throw new Error("Preview sudah dibuang.");
-    return pdfjs.getDocument({ data, disableAutoFetch: true }).promise;
+    return pdfjs.getDocument({
+      data,
+      disableAutoFetch: true,
+      stopAtErrors: true,
+      maxImageSize: MAX_THUMBNAIL_PIXELS,
+    }).promise;
   }
 
   private async getDocument() {
@@ -53,6 +61,16 @@ export class PdfThumbnailCache {
   async getPageCount(): Promise<number> {
     const pdf = await this.getDocument();
     if (this.disposed) throw new Error("Preview sudah dibuang.");
+    if (pdf.numPages === 0) {
+      throw new Error("PDF tidak memiliki halaman.");
+    }
+
+    if (pdf.numPages > MAX_THUMBNAIL_PAGES) {
+      throw new Error(
+        `PDF memiliki terlalu banyak halaman untuk pratinjau (maksimum ${MAX_THUMBNAIL_PAGES}).`,
+      );
+    }
+
     return pdf.numPages;
   }
 
@@ -82,6 +100,15 @@ export class PdfThumbnailCache {
         const canvas = document.createElement("canvas");
         const width = Math.max(1, Math.floor(viewport.width));
         const height = Math.max(1, Math.floor(viewport.height));
+
+        if (
+          width > 16_384 ||
+          height > 16_384 ||
+          width * height > MAX_THUMBNAIL_PIXELS
+        ) {
+          throw new Error("Ukuran halaman PDF terlalu besar untuk pratinjau.");
+        }
+
         canvas.width = width;
         canvas.height = height;
         const context = canvas.getContext("2d");
