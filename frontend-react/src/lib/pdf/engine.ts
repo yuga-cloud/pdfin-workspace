@@ -328,7 +328,8 @@ export async function renderThumbs(
       const page =
         await pdf.getPage(pageNumber);
 
-      const base =
+      try {
+        const base =
         page.getViewport({
           scale: 1,
         });
@@ -410,9 +411,10 @@ export async function renderThumbs(
         throwIfAborted(signal);
       }
 
-      urls.push(url);
-
-      page.cleanup();
+        urls.push(url);
+      } finally {
+        page.cleanup();
+      }
 
       await yieldToUi();
     }
