@@ -11,6 +11,8 @@ const DEFAULT_REQUESTS_PER_MINUTE: u32 = 60;
 const DEFAULT_BURST_SIZE: u32 = 10;
 const MAX_TRACKED_IPS: usize = 10_000;
 const ENTRY_RETENTION: Duration = Duration::from_secs(5 * 60);
+const LOOPBACK_PROXY_V4: &str = "127.0.0.1";
+const LOOPBACK_PROXY_V6: &str = "::1";
 
 #[derive(Clone)]
 pub struct IpRateLimiter {
@@ -47,6 +49,10 @@ impl IpRateLimiter {
             return peer_ip;
         }
 
+        if let Some(cloudflare_ip) = parse_header_ip(headers, "cf-connecting-ip") {
+            return cloudflare_ip;
+        }
+
         let Some(forwarded_for) = headers.get("x-forwarded-for") else {
             return peer_ip;
         };
@@ -66,9 +72,9 @@ impl IpRateLimiter {
     pub fn allow(&self, ip: IpAddr) -> bool {
         let now = Instant::now();
         let Ok(mut state) = self.state.lock() else {
-            // Fail open if the limiter's internal mutex is poisoned. The request
-            // concurrency and body limits still protect the backend from overload.
-            return true;
+            // Fail closed if the limiter state is poisoned. Request concurrency,
+            // body limits, and timeouts remain available as independent guards.
+            return false;
         };
 
         if state.len() >= MAX_TRACKED_IPS && !state.contains_key(&ip) {
@@ -97,25 +103,30 @@ impl IpRateLimiter {
     }
 }
 
+fn parse_header_ip(headers: &HeaderMap, name: &'static str) -> Option<IpAddr> {
+    headers.get(name)?.to_str().ok()?.trim().parse().ok()
+}
+
 fn parse_trusted_proxies() -> HashSet<IpAddr> {
-    std::env::var("PDFIN_TRUSTED_PROXY_IPS")
-        .ok()
-        .into_iter()
-        .flat_map(|value| {
-            value
-                .split(',')
-                .map(str::trim)
-                .map(str::to_owned)
-                .collect::<Vec<_>>()
-        })
-        .filter_map(|value| match value.parse::<IpAddr>() {
-            Ok(ip) => Some(ip),
+    let mut proxies = HashSet::from([
+        LOOPBACK_PROXY_V4.parse::<IpAddr>().expect("valid IPv4"),
+        LOOPBACK_PROXY_V6.parse::<IpAddr>().expect("valid IPv6"),
+    ]);
+
+    let configured = std::env::var("PDFIN_TRUSTED_PROXY_IPS").unwrap_or_default();
+
+    for value in configured.split(',').map(str::trim).filter(|value| !value.is_empty()) {
+        match value.parse::<IpAddr>() {
+            Ok(ip) => {
+                proxies.insert(ip);
+            }
             Err(_) => {
                 tracing::warn!(proxy = %value, "Alamat trusted proxy tidak valid; diabaikan");
-                None
             }
-        })
-        .collect()
+        }
+    }
+
+    proxies
 }
 
 fn parse_env_u32(name: &str, default: u32) -> u32 {
@@ -191,6 +202,17 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("x-forwarded-for", client.to_string().parse().unwrap());
 
+        assert_eq!(limiter.client_ip(proxy, &headers), client);
+    }
+
+    #[test]
+    fn prefers_cloudflare_client_ip_through_trusted_proxy() {
+        let proxy = "127.0.0.1".parse().unwrap();
+        let client: IpAddr = "203.0.113.20".parse().unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("cf-connecting-ip", client.to_string().parse().unwrap());
+
+        let limiter = limiter_with(&[proxy]);
         assert_eq!(limiter.client_ip(proxy, &headers), client);
     }
 }
