@@ -291,11 +291,25 @@ export async function renderThumbs(
   const loadingTask = pdfjs.getDocument({
     data,
     disableAutoFetch: true,
+    stopAtErrors: true,
+    maxImageSize: MAX_DEVICE_RENDER_PIXELS,
   });
 
   const pdf = await loadingTask.promise;
   const urls: string[] = [];
   const total = pdf.numPages;
+
+  if (total === 0) {
+    fail("PDF tidak memiliki halaman.");
+  }
+
+  if (total > MAX_DEVICE_PDF_PAGES) {
+    fail(
+      "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+        MAX_DEVICE_PDF_PAGES +
+        ").",
+    );
+  }
 
   try {
     for (
