@@ -115,7 +115,11 @@ fn parse_trusted_proxies() -> HashSet<IpAddr> {
 
     let configured = std::env::var("PDFIN_TRUSTED_PROXY_IPS").unwrap_or_default();
 
-    for value in configured.split(',').map(str::trim).filter(|value| !value.is_empty()) {
+    for value in configured
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
         match value.parse::<IpAddr>() {
             Ok(ip) => {
                 proxies.insert(ip);
