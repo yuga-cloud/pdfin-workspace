@@ -57,7 +57,7 @@ export const MAX_DEVICE_RENDER_PIXELS = 20_000_000;
 export const MAX_DEVICE_OUTPUT_BYTES = 512 * 1024 * 1024;
 export const MAX_DEVICE_SPLIT_PAGES = 1_000;
 export const MAX_DEVICE_IMAGE_DIMENSION = 20_000;
-export const MAX_DEVICE_IMAGE_PIXELS = 50_000_000;
+export const MAX_DEVICE_IMAGE_PIXELS = 20_000_000;
 
 function fail(message: string): never {
   throw new Error(message);
