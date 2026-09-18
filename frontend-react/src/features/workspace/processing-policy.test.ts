@@ -80,8 +80,6 @@ describe("processing policy", () => {
       ),
     ).toThrow("500 MiB");
   });
-});
-
   it("rejects an oversized server-side conversion file before upload", () => {
     expect(() =>
       validateSubmissionLimits(
@@ -109,3 +107,5 @@ describe("processing policy", () => {
       ),
     ).toThrow("256 MiB");
   });
+});
+
