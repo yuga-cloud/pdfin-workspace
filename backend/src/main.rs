@@ -37,7 +37,7 @@ use crate::{error::AppError, rate_limit::IpRateLimiter, state::AppState};
 
 const DEFAULT_HOST: Ipv4Addr = Ipv4Addr::LOCALHOST;
 const DEFAULT_PORT: u16 = 3000;
-const DEFAULT_MAX_REQUEST_BODY_SIZE_MB: usize = 50;
+const DEFAULT_MAX_REQUEST_BODY_SIZE_MB: usize = 500;
 const DEFAULT_REQUEST_TIMEOUT_SECONDS: u64 = 120;
 const DEFAULT_MAX_CONCURRENCY: usize = 4;
 const DEFAULT_MAX_CONVERSION_CONCURRENCY: usize = 2;
