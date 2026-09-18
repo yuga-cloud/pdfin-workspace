@@ -21,6 +21,7 @@ const DEFAULT_ROTATION_DEGREES: i64 = 90;
 const PDF_CONTENT_TYPE: &str = "application/pdf";
 const MAX_MERGE_FILES: usize = 32;
 const MAX_TOTAL_MERGE_INPUT_BYTES: usize = 500 * 1024 * 1024;
+const MAX_MULTIPART_FIELDS: usize = 64;
 
 struct TempPdfUpload {
     file: NamedTempFile,
@@ -145,10 +146,20 @@ async fn read_multiple_files_to_tempfiles(
     mut multipart: Multipart,
 ) -> Result<Vec<TempPdfUpload>, AppError> {
     let mut files = Vec::new();
+    let mut field_count = 0usize;
 
     loop {
         match multipart.next_field().await {
-            Ok(Some(mut field)) if field.name() == Some("file") => {
+            Ok(Some(mut field)) => {
+                field_count += 1;
+                if field_count > MAX_MULTIPART_FIELDS {
+                    return Err(AppError::bad_request(
+                        "too_many_fields",
+                        "Jumlah field multipart dalam satu request terlalu banyak",
+                    ));
+                }
+
+                if field.name() == Some("file") {
                 if files.len() >= MAX_MERGE_FILES {
                     return Err(AppError::bad_request(
                         "too_many_files",
@@ -204,6 +215,9 @@ async fn read_multiple_files_to_tempfiles(
                 }
 
                 files.push(TempPdfUpload { file: temp, size });
+                } else {
+                    continue;
+                }
             }
             Ok(Some(_)) => continue,
             Ok(None) => break,
