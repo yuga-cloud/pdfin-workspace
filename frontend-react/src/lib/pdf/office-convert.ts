@@ -7,7 +7,12 @@ import type {
   ProgressFn,
   ProcessOutput,
 } from "./engine";
-import { loadPdfjs } from "./engine";
+import {
+  loadPdfjs,
+  MAX_DEVICE_OUTPUT_BYTES,
+  MAX_DEVICE_PDF_BYTES,
+  MAX_DEVICE_PDF_PAGES,
+} from "./engine";
 
 async function loadPdfLib() {
   return import("pdf-lib");
@@ -806,13 +811,33 @@ export async function pdfToWord(
       await file.arrayBuffer(),
     );
 
+  if (data.byteLength > MAX_DEVICE_PDF_BYTES) {
+    throw new Error(
+      "PDF terlalu besar untuk diproses di perangkat (maksimum 100 MiB).",
+    );
+  }
+
   const task =
     pdfjs.getDocument({
       data,
+      stopAtErrors: true,
+      maxImageSize: 20_000_000,
     });
 
   const pdf =
     await task.promise;
+
+  if (pdf.numPages === 0) {
+    throw new Error("PDF tidak memiliki halaman.");
+  }
+
+  if (pdf.numPages > MAX_DEVICE_PDF_PAGES) {
+    throw new Error(
+      "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+        MAX_DEVICE_PDF_PAGES +
+        ").",
+    );
+  }
 
   try {
     const total =
@@ -1040,13 +1065,33 @@ export async function pdfToPowerpoint(
       await file.arrayBuffer(),
     );
 
+  if (data.byteLength > MAX_DEVICE_PDF_BYTES) {
+    throw new Error(
+      "PDF terlalu besar untuk diproses di perangkat (maksimum 100 MiB).",
+    );
+  }
+
   const task =
     pdfjs.getDocument({
       data,
+      stopAtErrors: true,
+      maxImageSize: 20_000_000,
     });
 
   const pdf =
     await task.promise;
+
+  if (pdf.numPages === 0) {
+    throw new Error("PDF tidak memiliki halaman.");
+  }
+
+  if (pdf.numPages > MAX_DEVICE_PDF_PAGES) {
+    throw new Error(
+      "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+        MAX_DEVICE_PDF_PAGES +
+        ").",
+    );
+  }
 
   try {
     const total =
