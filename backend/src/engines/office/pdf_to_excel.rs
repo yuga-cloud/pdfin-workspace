@@ -10,6 +10,7 @@ use super::pdf_table::{Table, detect_tables, extract_pdf_words, model::PdfWord};
 const MIN_COLUMN_WIDTH: f64 = 10.0;
 const MAX_COLUMN_WIDTH: f64 = 60.0;
 const MAX_OCR_TABLES: usize = 100;
+const MAX_WORKBOOK_CELLS: usize = 2_000_000;
 
 const HEADER_COLOR: u32 = 0x44C7E6;
 
@@ -157,9 +158,25 @@ fn cleanup_ocr_files(image_paths: &[PathBuf]) {
 
 fn build_workbook(tables: &[Table]) -> Result<Vec<u8>, String> {
     let mut workbook = Workbook::new();
+    let mut total_cells = 0usize;
 
     for (table_index, table) in tables.iter().enumerate() {
         let rows = &table.rows;
+
+        let table_cells = rows
+            .iter()
+            .try_fold(0usize, |total, row| total.checked_add(row.len()))
+            .ok_or_else(|| "Jumlah cell Excel terlalu besar".to_owned())?;
+
+        total_cells = total_cells
+            .checked_add(table_cells)
+            .ok_or_else(|| "Jumlah cell Excel terlalu besar".to_owned())?;
+
+        if total_cells > MAX_WORKBOOK_CELLS {
+            return Err(format!(
+                "Jumlah cell hasil Excel melebihi batas maksimum ({MAX_WORKBOOK_CELLS})"
+            ));
+        }
 
         if rows.is_empty() {
             continue;
