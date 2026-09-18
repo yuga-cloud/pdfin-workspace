@@ -482,10 +482,11 @@ async function splitEachPage(
       await fileBytes(file),
     );
 
-  const zip = new JSZip();
+  try {
+    const zip = new JSZip();
 
-  const total =
-    source.getPageCount();
+    const total =
+      source.getPageCount();
 
   if (total === 0) {
     fail("PDF tidak memiliki halaman.");
@@ -561,7 +562,10 @@ async function splitEachPage(
     fail("Hasil ZIP terlalu besar untuk diproses di perangkat.");
   }
 
-  return zipBlob;
+    return zipBlob;
+  } finally {
+    await source.cleanup();
+  }
 }
 
 async function mergeAll(
