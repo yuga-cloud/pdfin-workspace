@@ -127,7 +127,7 @@ jobs:
   system-integration:
     name: System dependency integration tests
     needs: changes
-    if: needs.changes.outputs.system-deps == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: needs.changes.outputs.system-deps == 'true' && (github.event_name != 'pull_request' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
