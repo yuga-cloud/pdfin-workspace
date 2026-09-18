@@ -1024,10 +1024,12 @@ async function pdfToImages(
     source.numPages;
 
   if (total === 0) {
+    await source.cleanup();
     fail("PDF tidak memiliki halaman.");
   }
 
   if (total > MAX_DEVICE_PDF_PAGES) {
+    await source.cleanup();
     fail(
       "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
         MAX_DEVICE_PDF_PAGES +
