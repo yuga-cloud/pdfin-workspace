@@ -19,12 +19,19 @@ const publicHostOptions = devPublicHost
   ? { allowedHosts: [devPublicHost] }
   : {};
 
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+} as const;
+
 export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "127.0.0.1",
     port: 8080,
     strictPort: true,
     ...publicHostOptions,
+    headers: securityHeaders,
     proxy: apiProxy,
   },
   preview: {
@@ -32,6 +39,7 @@ export default defineConfig(({ command, isPreview }) => ({
     port: 8081,
     strictPort: true,
     ...publicHostOptions,
+    headers: securityHeaders,
     proxy: apiProxy,
   },
   resolve: { tsconfigPaths: true },
