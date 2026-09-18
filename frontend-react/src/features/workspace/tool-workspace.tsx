@@ -22,7 +22,10 @@ import { Button } from "@/shared/ui/button";
 import { Progress } from "@/shared/ui/progress";
 import { PdfPageThumbnail } from "@/features/workspace/pdf-page-thumbnail";
 import { acceptFor, type ToolDef } from "@/shared/tools/catalog";
-import { validateDeviceProcessingSize } from "@/features/workspace/processing-policy";
+import {
+  MAX_REORDER_UI_PAGES,
+  validateDeviceProcessingSize,
+} from "@/features/workspace/processing-policy";
 import { processTool, type ToolOptions } from "@/lib/pdf/engine";
 import { PdfThumbnailCache } from "@/lib/pdf/thumbnail-cache";
 import { cn, formatBytes, uid } from "@/lib/utils";
@@ -129,6 +132,16 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
 
     void cache.getPageCount().then((count) => {
       if (cancelled) return;
+
+      if (
+        tool.slug === "halaman" &&
+        count > MAX_REORDER_UI_PAGES
+      ) {
+        throw new Error(
+          `Atur halaman dibatasi ${MAX_REORDER_UI_PAGES} halaman di browser agar antarmuka tetap responsif.`,
+        );
+      }
+
       setPageCount(count);
       if (tool.slug === "halaman") {
         setOptions((current) => ({
