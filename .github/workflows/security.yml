@@ -17,7 +17,7 @@ permissions:
 jobs:
   cargo-audit:
     name: Cargo audit
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
