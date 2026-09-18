@@ -952,10 +952,24 @@ async function pdfToImages(
   const source =
     await pdfjs.getDocument({
       data,
+      stopAtErrors: true,
+      maxImageSize: MAX_DEVICE_RENDER_PIXELS,
     }).promise;
 
   const total =
     source.numPages;
+
+  if (total === 0) {
+    fail("PDF tidak memiliki halaman.");
+  }
+
+  if (total > MAX_DEVICE_PDF_PAGES) {
+    fail(
+      "PDF memiliki terlalu banyak halaman untuk diproses di perangkat (maksimum " +
+        MAX_DEVICE_PDF_PAGES +
+        ").",
+    );
+  }
 
   const base =
     stem(file.name);
