@@ -123,7 +123,7 @@ fn validate_office_zip(
         if cursor
             .checked_add(46)
             .is_none_or(|end| end > central_end)
-            || bytes.get(cursor..cursor + 4) != Some(&ZIP_CENTRAL_DIRECTORY_HEADER)
+            || bytes.get(cursor..cursor + 4) != Some(ZIP_CENTRAL_DIRECTORY_HEADER.as_slice())
         {
             return Err(format!("Central directory {format} terpotong atau invalid"));
         }
@@ -188,7 +188,7 @@ fn validate_office_zip(
         let normalized_name = name.to_ascii_lowercase();
         if normalized_name.ends_with("vbaproject.bin")
             || normalized_name.contains("/macros/")
-            || normalized_name.contains("externalLinks/".to_ascii_lowercase().as_str())
+            || normalized_name.contains("externallinks/")
         {
             has_macro_payload = true;
         }
