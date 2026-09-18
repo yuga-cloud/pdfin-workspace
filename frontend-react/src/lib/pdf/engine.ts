@@ -830,18 +830,30 @@ async function renderPageJpeg(
         scale,
       });
 
-    const canvas =
-      document.createElement("canvas");
-
-    canvas.width = Math.max(
+    const width = Math.max(
       1,
       Math.floor(viewport.width),
     );
-
-    canvas.height = Math.max(
+    const height = Math.max(
       1,
       Math.floor(viewport.height),
     );
+
+    if (
+      width > 16_384 ||
+      height > 16_384 ||
+      width * height > MAX_DEVICE_RENDER_PIXELS
+    ) {
+      throw new Error(
+        "Ukuran halaman PDF terlalu besar untuk dirender di perangkat.",
+      );
+    }
+
+    const canvas =
+      document.createElement("canvas");
+
+    canvas.width = width;
+    canvas.height = height;
 
     const context =
       canvas.getContext("2d");
