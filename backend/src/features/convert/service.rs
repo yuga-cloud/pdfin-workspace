@@ -299,39 +299,4 @@ where
     })
 }
 
-pub async fn run_conversion<F, T>(
-    state: AppState,
-    data: TempUpload,
-    engine: F,
-    operation: &'static str,
-) -> Result<T, AppError>
-where
-    F: FnOnce(&[u8]) -> Result<T, String> + Send + 'static,
-    T: Send + 'static,
-{
-    let permit = acquire_conversion_permit(&state, operation).await?;
 
-    let result = task::spawn_blocking(move || {
-        let _permit = permit;
-        let data = read_temp_file(data)?;
-        engine(&data)
-    })
-    .await
-    .map_err(|error| {
-        error!(%error, operation, "Conversion worker mengalami panic");
-
-        AppError::internal(
-            error_code::CONVERSION_WORKER_FAILED,
-            "Worker konversi mengalami kegagalan",
-        )
-    })?;
-
-    result.map_err(|error| {
-        error!(%error, operation, "Konversi gagal");
-
-        AppError::internal(
-            error_code::CONVERSION_FAILED,
-            "Gagal memproses file. Silakan coba lagi.",
-        )
-    })
-}
