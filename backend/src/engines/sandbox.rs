@@ -199,8 +199,28 @@ pub fn command_with_read_only_paths_and_env(
                     .arg("--new-session")
                     .arg("--unshare-all");
 
-                for root in ["/usr", "/bin", "/sbin", "/lib", "/lib64", "/etc"] {
+                for root in ["/usr", "/bin", "/sbin", "/lib", "/lib64"] {
                     let path = Path::new(root);
+                    if path.exists() {
+                        command.arg("--ro-bind").arg(path).arg(path);
+                    }
+                }
+
+                // Start /etc empty and expose only non-secret runtime configuration
+                // required by the dynamic loader/font stack. Do not bind the host
+                // /etc tree wholesale because it can contain application credentials.
+                command.arg("--tmpfs").arg("/etc");
+
+                for path in [
+                    "/etc/ld.so.cache",
+                    "/etc/ld.so.conf",
+                    "/etc/ld.so.conf.d",
+                    "/etc/fonts",
+                    "/etc/nsswitch.conf",
+                    "/etc/passwd",
+                    "/etc/group",
+                ] {
+                    let path = Path::new(path);
                     if path.exists() {
                         command.arg("--ro-bind").arg(path).arg(path);
                     }
@@ -272,8 +292,8 @@ fn append_read_only_bind(command: &mut Command, path: &Path) -> Result<(), Strin
         .parent()
         .ok_or_else(|| format!("Path sandbox tidak memiliki parent: {}", path.display()))?;
 
-    const PREBOUND_ROOTS: [&str; 9] = [
-        "/usr", "/bin", "/sbin", "/lib", "/lib64", "/etc", "/dev", "/proc", "/tmp",
+    const PREBOUND_ROOTS: [&str; 8] = [
+        "/usr", "/bin", "/sbin", "/lib", "/lib64", "/dev", "/proc", "/tmp",
     ];
 
     let mut destination = PathBuf::from("/");
@@ -371,7 +391,7 @@ mod tests {
 
         let mut command = command("/bin/sh", writable_dir.path()).expect("sandbox command");
         let script = format!(
-            "test -z \"$PDFIN_SANDBOX_TEST_SECRET\" && test ! -e \"{}\" && test -w \"{}\"",
+            "test -z \"$PDFIN_SANDBOX_TEST_SECRET\" && test ! -e \"{}\" && test ! -e /etc/shadow && test -w \"{}\"",
             host_only.display(),
             writable_dir.path().display()
         );
