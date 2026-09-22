@@ -162,7 +162,7 @@ test("renders the manifest with the per-host name", () => {
 
 test("Vite keeps the Nitro/PWA server wiring", () => {
   const viteConfig = readFileSync(join(PROJECT_ROOT, "vite.config.ts"), "utf8");
-  assert.match(viteConfig, /serverDir:\s*"\\.\\/server"/);
+  assert.equal(viteConfig.includes('serverDir: "./server"'), true);
   assert.match(viteConfig, /pwaPlugin\(\)/);
 });
 
