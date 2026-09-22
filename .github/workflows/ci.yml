@@ -146,9 +146,9 @@ jobs:
         run: cargo test --workspace --all-targets --all-features --locked -- --skip tesseract_should_be_available
 
   system-integration:
-    name: System dependency integration tests
+    name: System dependency smoke tests
     needs: changes
-    timeout-minutes: 30
+    timeout-minutes: 10
     if: needs.changes.outputs.system-deps == 'true' && (github.event_name != 'pull_request' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: [self-hosted, linux, x64]
     steps:
@@ -194,8 +194,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Tests
-        run: cargo test --workspace --all-targets --all-features --locked
+      - name: Test parser sandbox
+        run: cargo test -p backend --all-features --locked required_sandbox_clears_environment_and_isolates_tmp -- --exact
+
+      - name: Test Tesseract availability
+        run: cargo test -p backend --all-features --locked tesseract_should_be_available -- --exact
 
 
   frontend:
