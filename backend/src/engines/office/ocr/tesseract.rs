@@ -52,17 +52,17 @@ pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
         &[image_path],
     )?
     .arg(image_path)
-        .arg("stdout")
-        .arg("--psm")
-        .arg("6")
-        .arg("-l")
-        .arg("eng")
-        .arg("tsv")
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(stdout_file))
-        .stderr(Stdio::from(stderr_file))
-        .spawn()
-        .map_err(|error| format!("Gagal menjalankan Tesseract: {error}"))?;
+    .arg("stdout")
+    .arg("--psm")
+    .arg("6")
+    .arg("-l")
+    .arg("eng")
+    .arg("tsv")
+    .stdin(Stdio::null())
+    .stdout(Stdio::from(stdout_file))
+    .stderr(Stdio::from(stderr_file))
+    .spawn()
+    .map_err(|error| format!("Gagal menjalankan Tesseract: {error}"))?;
 
     let deadline = Instant::now() + OCR_TIMEOUT;
     loop {
