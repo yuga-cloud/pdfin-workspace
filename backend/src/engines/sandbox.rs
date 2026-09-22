@@ -186,7 +186,11 @@ pub fn command_with_read_only_paths_and_env(
                         program,
                         "Bubblewrap tidak ditemukan; parser berjalan tanpa sandbox"
                     );
-                    return Ok(Command::new(program));
+                    let mut command = Command::new(program);
+                    for (name, value) in extra_env {
+                        command.env(name, value);
+                    }
+                    return Ok(command);
                 };
 
                 let mut command = Command::new(bwrap);
