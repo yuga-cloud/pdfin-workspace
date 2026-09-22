@@ -292,8 +292,8 @@ fn append_read_only_bind(command: &mut Command, path: &Path) -> Result<(), Strin
         .parent()
         .ok_or_else(|| format!("Path sandbox tidak memiliki parent: {}", path.display()))?;
 
-    const PREBOUND_ROOTS: [&str; 8] = [
-        "/usr", "/bin", "/sbin", "/lib", "/lib64", "/dev", "/proc", "/tmp",
+    const PREBOUND_ROOTS: [&str; 9] = [
+        "/usr", "/bin", "/sbin", "/lib", "/lib64", "/etc", "/dev", "/proc", "/tmp",
     ];
 
     let mut destination = PathBuf::from("/");
