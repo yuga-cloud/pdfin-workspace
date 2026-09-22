@@ -244,8 +244,7 @@ fn contains_zip64_extra_field(extra: &[u8]) -> bool {
 
     while cursor + 4 <= extra.len() {
         let field_id = u16::from_le_bytes([extra[cursor], extra[cursor + 1]]);
-        let field_size =
-            usize::from(u16::from_le_bytes([extra[cursor + 2], extra[cursor + 3]]));
+        let field_size = usize::from(u16::from_le_bytes([extra[cursor + 2], extra[cursor + 3]]));
 
         let Some(field_end) = cursor
             .checked_add(4)
@@ -522,7 +521,10 @@ mod tests {
             "\\xl\\workbook.xml",
         ] {
             let malicious = minimal_ooxml(&["[Content_Types].xml", name]);
-            assert!(validate_input(&malicious, "Excel").is_err(), "path should reject: {name}");
+            assert!(
+                validate_input(&malicious, "Excel").is_err(),
+                "path should reject: {name}"
+            );
         }
     }
 
