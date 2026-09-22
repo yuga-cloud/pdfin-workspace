@@ -24,21 +24,15 @@ impl SandboxMode {
 }
 
 pub fn mode() -> SandboxMode {
-    SandboxMode::parse(
-        std::env::var("PDFIN_PARSER_SANDBOX")
-            .ok()
-            .as_deref(),
-    )
+    SandboxMode::parse(std::env::var("PDFIN_PARSER_SANDBOX").ok().as_deref())
 }
 
 pub fn ensure_ready() -> Result<(), String> {
-    match SandboxMode::parse(
-        std::env::var("PDFIN_PARSER_SANDBOX")
-            .ok()
-            .as_deref(),
-    ) {
+    match SandboxMode::parse(std::env::var("PDFIN_PARSER_SANDBOX").ok().as_deref()) {
         SandboxMode::Disabled => {
-            tracing::warn!("Parser sandbox dinonaktifkan; service tidak terisolasi dari parser host");
+            tracing::warn!(
+                "Parser sandbox dinonaktifkan; service tidak terisolasi dari parser host"
+            );;
             Ok(())
         }
         SandboxMode::Auto => {
@@ -61,9 +55,7 @@ pub fn ensure_ready() -> Result<(), String> {
             #[cfg(target_os = "linux")]
             {
                 if find_bwrap().is_none() {
-                    return Err(
-                        "Parser sandbox required tetapi bwrap tidak ditemukan".to_owned()
-                    );
+                    return Err("Parser sandbox required tetapi bwrap tidak ditemukan".to_owned());
                 }
 
                 verify_runtime()
@@ -113,11 +105,7 @@ pub fn command_with_read_only_paths_and_env(
     read_only_paths: &[&Path],
     extra_env: &[(&str, &std::ffi::OsStr)],
 ) -> Result<Command, String> {
-    let mode = SandboxMode::parse(
-        std::env::var("PDFIN_PARSER_SANDBOX")
-            .ok()
-            .as_deref(),
-    );
+    let mode = SandboxMode::parse(std::env::var("PDFIN_PARSER_SANDBOX").ok().as_deref());
 
     if !writable_dir.is_absolute() {
         return Err(format!(
@@ -159,8 +147,7 @@ pub fn command_with_read_only_paths_and_env(
             {
                 if mode == SandboxMode::Required {
                     return Err(
-                        "Parser sandbox required membutuhkan Linux + bubblewrap."
-                            .to_owned(),
+                        "Parser sandbox required membutuhkan Linux + bubblewrap.".to_owned()
                     );
                 }
 
@@ -351,7 +338,7 @@ fn find_bwrap() -> Option<std::path::PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::{command, SandboxMode};
+    use super::{SandboxMode, command};
 
     #[test]
     fn parses_modes() {
