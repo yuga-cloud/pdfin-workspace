@@ -219,7 +219,6 @@ async fn read_multiple_files_to_tempfiles(
                     continue;
                 }
             }
-            Ok(Some(_)) => continue,
             Ok(None) => break,
             Err(error) => {
                 error!(%error, "Gagal membaca multipart request");
