@@ -1,4 +1,7 @@
-use std::{io::{Cursor, Read}, str};
+use std::{
+    io::{Cursor, Read},
+    str,
+};
 
 const ZIP_LOCAL_FILE_HEADER: [u8; 4] = [0x50, 0x4b, 0x03, 0x04];
 const ZIP_CENTRAL_DIRECTORY_HEADER: [u8; 4] = [0x50, 0x4b, 0x01, 0x02];
@@ -239,9 +242,9 @@ fn validate_ooxml_relationships(bytes: &[u8], format: &str) -> Result<(), String
     let mut archive = ::zip::ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| format!("Struktur ZIP {format} tidak dapat dibaca: {error}"))?;
 
-    let has_overlapping_files = archive.has_overlapping_files().map_err(|error| {
-        format!("Gagal memeriksa overlap ZIP {format}: {error}")
-    })?;
+    let has_overlapping_files = archive
+        .has_overlapping_files()
+        .map_err(|error| format!("Gagal memeriksa overlap ZIP {format}: {error}"))?;
 
     if has_overlapping_files {
         return Err(format!(
@@ -460,7 +463,11 @@ mod tests {
     fn rejects_external_relationships() {
         let relationships = br#"<Relationships><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com" TargetMode="External"/></Relationships>"#;
         let malicious = minimal_ooxml_with_special_entry(
-            &["[Content_Types].xml", "word/document.xml", "word/_rels/document.xml.rels"],
+            &[
+                "[Content_Types].xml",
+                "word/document.xml",
+                "word/_rels/document.xml.rels",
+            ],
             Some(("word/_rels/document.xml.rels", relationships)),
         );
 
