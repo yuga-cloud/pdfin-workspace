@@ -331,7 +331,7 @@ fn find_bwrap() -> Option<std::path::PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::SandboxMode;
+    use super::{command, SandboxMode};
 
     #[test]
     fn parses_modes() {
@@ -360,7 +360,6 @@ mod tests {
             }
         );
     }
-}
 
     #[cfg(target_os = "linux")]
     #[test]
