@@ -283,7 +283,6 @@ fn read_limited_file(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
     if !metadata.file_type().is_file() {
         return Err(format!("File worker {} bukan regular file", path.display()));
     }
-    }
 
     let mut file = File::open(path)
         .map_err(|error| format!("Gagal membaca file worker {}: {error}", path.display()))?;
