@@ -23,18 +23,34 @@ const MAX_EXTRACTION_PAGES: usize = 1_000;
 const MAX_WORDS_PER_PAGE: usize = 50_000;
 const MAX_WORDS_PER_DOCUMENT: usize = 250_000;
 const MAX_WORD_TEXT_BYTES: usize = 64 * 1024;
+const MAX_TOTAL_WORD_TEXT_BYTES: usize = 64 * 1024 * 1024;
 const MAX_PDFIUM_OBJECTS: usize = 750_000;
 
 const PDFIUM_WORKER_TIMEOUT: Duration = Duration::from_secs(120);
 const MAX_PDFIUM_WORKER_OUTPUT_BYTES: usize = 64 * 1024 * 1024;
 const MAX_PDFIUM_WORKER_STDERR_BYTES: usize = 16 * 1024;
 
-fn append_word_char(text: &mut String, value: char) -> Result<(), String> {
-    let next_len = text.len().saturating_add(value.len_utf8());
+fn append_word_char(
+    text: &mut String,
+    value: char,
+    total_text_bytes: &mut usize,
+) -> Result<(), String> {
+    let value_len = value.len_utf8();
+    let next_len = text.len().saturating_add(value_len);
     if next_len > MAX_WORD_TEXT_BYTES {
         return Err(format!(
             "Text word PDF melebihi batas maksimum ({} KiB)",
             MAX_WORD_TEXT_BYTES / 1024
+        ));
+    }
+
+    *total_text_bytes = total_text_bytes
+        .checked_add(value_len)
+        .ok_or_else(|| "Total text PDF terlalu besar".to_owned())?;
+    if *total_text_bytes > MAX_TOTAL_WORD_TEXT_BYTES {
+        return Err(format!(
+            "Total text hasil ekstraksi PDF melebihi batas maksimum ({} MiB)",
+            MAX_TOTAL_WORD_TEXT_BYTES / 1024 / 1024
         ));
     }
 
@@ -379,6 +395,7 @@ fn extract_pdf_words_in_process(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, S
         let chars = text.chars();
 
         let mut words = Vec::new();
+        let mut total_text_bytes = 0usize;
 
         let mut current_text = String::new();
 
@@ -409,7 +426,7 @@ fn extract_pdf_words_in_process(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, S
                      * tidak ikut memperluas bounding box.
                      */
                     if !current_text.is_empty() {
-                        append_word_char(&mut current_text, value)?;
+                        append_word_char(&mut current_text, value, &mut total_text_bytes)?;
                     }
 
                     continue;
@@ -454,7 +471,7 @@ fn extract_pdf_words_in_process(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, S
              * langsung mulai word baru.
              */
             let Some(previous_right_value) = previous_right else {
-                append_word_char(&mut current_text, value)?;
+                append_word_char(&mut current_text, value, &mut total_text_bytes)?;
 
                 current_left = left;
                 current_right = right;
@@ -502,14 +519,14 @@ fn extract_pdf_words_in_process(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, S
                     &mut current_bottom,
                 );
 
-                append_word_char(&mut current_text, value)?;
+                append_word_char(&mut current_text, value, &mut total_text_bytes)?;
 
                 current_left = left;
                 current_right = right;
                 current_top = top;
                 current_bottom = bottom;
             } else {
-                append_word_char(&mut current_text, value)?;
+                append_word_char(&mut current_text, value, &mut total_text_bytes)?;
 
                 current_right = current_right.max(right);
                 current_top = current_top.min(top);
