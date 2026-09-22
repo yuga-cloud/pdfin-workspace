@@ -202,7 +202,6 @@ async function loadPdfDoc(
   try {
     const document = await PDFDocument.load(bytes);
     const pageCount = document.getPageCount();
-    validateDevicePdfDimensions(document);
 
     if (pageCount === 0) {
       fail("PDF tidak memiliki halaman.");
@@ -215,6 +214,8 @@ async function loadPdfDoc(
           ").",
       );
     }
+
+    validateDevicePdfDimensions(document);
 
     return document;
   } catch (error) {
