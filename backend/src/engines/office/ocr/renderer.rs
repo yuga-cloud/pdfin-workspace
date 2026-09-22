@@ -1,7 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Stdio,
     thread,
     time::Duration,
 };
@@ -251,7 +251,7 @@ fn create_temp_dir() -> Result<PathBuf, String> {
     tempfile::Builder::new()
         .prefix("pdfin-ocr-")
         .tempdir()
-        .map(tempfile::TempDir::into_path)
+        .map(tempfile::TempDir::keep)
         .map_err(|error| format!("Gagal membuat direktori OCR sementara: {error}"))
 }
 

@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File},
     io::Read,
-    process::{Command, Stdio},
+    process::Stdio,
     thread,
     time::{Duration, Instant},
 };

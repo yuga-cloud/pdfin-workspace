@@ -2,7 +2,7 @@ use std::{
     fs::{self, File},
     io::{Read, Seek, SeekFrom},
     path::Path,
-    process::{Command, Stdio},
+    process::Stdio,
     thread,
     time::{Duration, Instant},
 };
@@ -267,7 +267,7 @@ mod tests {
 
     #[test]
     fn tesseract_should_be_available() {
-        let output = Command::new(tesseract_executable())
+        let output = std::process::Command::new(tesseract_executable())
             .arg("--version")
             .output()
             .expect("Tesseract tidak ditemukan");

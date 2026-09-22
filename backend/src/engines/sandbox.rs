@@ -73,7 +73,7 @@ pub fn ensure_ready() -> Result<(), String> {
 fn verify_runtime() -> Result<(), String> {
     let writable_dir =
         tempfile::tempdir().map_err(|error| format!("Gagal membuat probe sandbox: {error}"))?;
-    let command = command("/bin/true", writable_dir.path())?;
+    let mut command = command("/bin/true", writable_dir.path())?;
     let status = command
         .status()
         .map_err(|error| format!("Gagal menjalankan probe sandbox: {error}"))?;

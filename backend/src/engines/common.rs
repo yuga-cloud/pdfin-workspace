@@ -289,7 +289,7 @@ fn validate_ooxml_relationships(bytes: &[u8], format: &str) -> Result<(), String
     }
 
     for index in 0..archive.len() {
-        let mut entry = archive
+        let entry = archive
             .by_index(index)
             .map_err(|error| format!("Gagal membaca entry ZIP {format}: {error}"))?;
 

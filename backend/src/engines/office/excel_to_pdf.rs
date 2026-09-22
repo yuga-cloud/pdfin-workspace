@@ -76,17 +76,19 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
         .ok_or_else(|| "Path Python UNO bukan UTF-8 yang valid.".to_owned())?;
 
     for program in ["libreoffice", "soffice"] {
-        let mut python_command = match crate::engines::sandbox::command(python_program, temp_path) {
-            Ok(command) => command
-                .arg(&script_path)
-                .arg(&input_path)
-                .arg(&output_path)
-                .arg(&pipe_name),
-            Err(error) => {
-                last_error = Some(format!("Tidak bisa menyiapkan helper UNO: {error}"));
-                continue;
-            }
-        };
+        let mut python_command =
+            match crate::engines::sandbox::command(python_program, temp_path) {
+                Ok(command) => command,
+                Err(error) => {
+                    last_error = Some(format!("Tidak bisa menyiapkan helper UNO: {error}"));
+                    continue;
+                }
+            };
+        python_command
+            .arg(&script_path)
+            .arg(&input_path)
+            .arg(&output_path)
+            .arg(&pipe_name);
 
         let mut office = match crate::engines::sandbox::command(program, temp_path) {
             Ok(command) => match command
