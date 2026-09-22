@@ -178,6 +178,11 @@ fn validate_office_zip(
             return Err(format!("Nama/metadata entry ZIP {format} tidak valid"));
         }
 
+        let extra = &bytes[name_end..extra_end];
+        if contains_zip64_extra_field(extra) {
+            return Err(format!("ZIP64 untuk {format} tidak didukung"));
+        }
+
         let name = str::from_utf8(&bytes[name_start..name_end])
             .map_err(|_| format!("Nama entry ZIP {format} bukan UTF-8 yang valid"))?;
 
@@ -232,6 +237,33 @@ fn validate_office_zip(
     validate_ooxml_relationships(bytes, format)?;
 
     Ok(())
+}
+
+fn contains_zip64_extra_field(extra: &[u8]) -> bool {
+    let mut cursor = 0usize;
+
+    while cursor + 4 <= extra.len() {
+        let field_id = u16::from_le_bytes([extra[cursor], extra[cursor + 1]]);
+        let field_size =
+            usize::from(u16::from_le_bytes([extra[cursor + 2], extra[cursor + 3]]));
+
+        let Some(field_end) = cursor.checked_add(4).and_then(|offset| offset.checked_add(field_size))
+        else {
+            return true;
+        };
+
+        if field_end > extra.len() {
+            return true;
+        }
+
+        if field_id == 0x0001 {
+            return true;
+        }
+
+        cursor = field_end;
+    }
+
+    cursor != extra.len()
 }
 
 fn has_dangerous_zip_path(name: &str) -> bool {
