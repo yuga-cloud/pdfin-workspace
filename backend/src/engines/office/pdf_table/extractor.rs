@@ -274,13 +274,15 @@ fn file_size_exceeds(path: &Path, limit: usize) -> bool {
 }
 
 fn read_limited_file(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
-    let metadata = fs::symlink_metadata(path)
-        .map_err(|error| format!("Gagal membaca metadata file worker {}: {error}", path.display()))?;
-    if !metadata.file_type().is_file() {
-        return Err(format!(
-            "File worker {} bukan regular file",
+    let metadata = fs::symlink_metadata(path).map_err(|error| {
+        format!(
+            "Gagal membaca metadata file worker {}: {error}",
             path.display()
-        ));
+        )
+    })?;
+    if !metadata.file_type().is_file() {
+        return Err(format!("File worker {} bukan regular file", path.display()));
+    }
     }
 
     let mut file = File::open(path)
