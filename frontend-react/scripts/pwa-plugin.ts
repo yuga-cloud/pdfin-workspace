@@ -85,7 +85,7 @@ function servePwa(middlewares: MiddlewareServer["middlewares"]): void {
       try {
         sendHtml(response, renderInstallPage(requestHost(request), rawUrl));
       } catch (error) {
-        console.error("[app-builder] install page missing:", error);
+        console.error("[pdfin] install page missing:", error);
         response.statusCode = 500;
         response.end("install page unavailable");
       }
@@ -171,7 +171,7 @@ export function pwaPlugin(): Plugin {
   let root = process.cwd();
 
   return {
-    name: "app-builder:pwa",
+    name: "pdfin:pwa",
     configResolved(config) {
       root = config.root;
     },

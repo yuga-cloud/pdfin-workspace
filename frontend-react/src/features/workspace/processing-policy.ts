@@ -8,7 +8,7 @@ import type { ProcessingLocation, ToolDef } from "@/shared/tools/catalog";
 export const MAX_DEVICE_PROCESSING_BYTES = 100 * 1024 * 1024;
 export const MAX_REORDER_UI_PAGES = 500;
 export const MAX_SUBMISSION_FILES = 50;
-export const MAX_SUBMISSION_BYTES = 500 * 1024 * 1024;
+export const MAX_SUBMISSION_BYTES = 256 * 1024 * 1024;
 export const MAX_SERVER_CONVERSION_FILE_BYTES = 100 * 1024 * 1024;
 export const MAX_SERVER_JPG_TOTAL_BYTES = 256 * 1024 * 1024;
 

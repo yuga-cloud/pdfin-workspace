@@ -46,8 +46,12 @@ pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
     let stderr_file = File::create(&stderr_path)
         .map_err(|error| format!("Gagal membuat log Tesseract: {error}"))?;
 
-    let mut child = Command::new(executable)
-        .arg(image_path)
+    let mut child = crate::engines::sandbox::command_with_read_only_paths(
+        executable,
+        temp_dir.path(),
+        &[image_path],
+    )?
+    .arg(image_path)
         .arg("stdout")
         .arg("--psm")
         .arg("6")

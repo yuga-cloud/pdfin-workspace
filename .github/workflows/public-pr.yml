@@ -1,4 +1,4 @@
-name: Public PR CI
+name: PR CI (GitHub-hosted)
 
 on:
   pull_request:
@@ -14,10 +14,11 @@ concurrency:
 jobs:
   rust:
     name: Rust validation (GitHub-hosted)
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -44,15 +45,21 @@ jobs:
 
   frontend:
     name: Frontend validation (GitHub-hosted)
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend-react
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
 
       - name: Verify Node and npm
         shell: bash
@@ -87,3 +94,35 @@ jobs:
 
       - name: Audit dependencies
         run: npm audit --audit-level=high
+
+  security:
+    name: Full-history secret scan (GitHub-hosted)
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download pinned Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors "$url" -o "$archive"
+          echo "${GITLEAKS_SHA256}  $archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          test -x "$RUNNER_TEMP/gitleaks"
+          "$RUNNER_TEMP/gitleaks" version
+
+      - name: Scan every Git ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/gitleaks" git --redact --log-opts="--all"

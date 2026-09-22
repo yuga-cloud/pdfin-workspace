@@ -58,9 +58,29 @@ export const MAX_DEVICE_OUTPUT_BYTES = 512 * 1024 * 1024;
 export const MAX_DEVICE_SPLIT_PAGES = 1_000;
 export const MAX_DEVICE_IMAGE_DIMENSION = 20_000;
 export const MAX_DEVICE_IMAGE_PIXELS = 20_000_000;
+export const MAX_DEVICE_PAGE_DIMENSION_POINTS = 20_000;
 
 function fail(message: string): never {
   throw new Error(message);
+}
+
+function validateDevicePdfDimensions(document: { getPages: () => Array<{ getSize: () => { width: number; height: number } }> }): void {
+  for (const [index, page] of document.getPages().entries()) {
+    const { width, height } = page.getSize();
+
+    if (
+      !Number.isFinite(width) ||
+      !Number.isFinite(height) ||
+      width <= 0 ||
+      height <= 0 ||
+      width > MAX_DEVICE_PAGE_DIMENSION_POINTS ||
+      height > MAX_DEVICE_PAGE_DIMENSION_POINTS
+    ) {
+      fail(
+        `Dimensi halaman PDF ${index + 1} melebihi batas maksimum (${MAX_DEVICE_PAGE_DIMENSION_POINTS} pt).`,
+      );
+    }
+  }
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -123,7 +143,7 @@ async function normalizeImageToJpeg(file: File): Promise<Blob> {
       bitmap.width * bitmap.height > MAX_DEVICE_IMAGE_PIXELS
     ) {
       fail(
-        "Gambar terlalu besar untuk diproses di browser (maksimum 50 juta pixel).",
+        "Gambar terlalu besar untuk diproses di browser (maksimum 20 juta pixel).",
       );
     }
 
@@ -176,6 +196,7 @@ async function loadPdfDoc(
   try {
     const document = await PDFDocument.load(bytes);
     const pageCount = document.getPageCount();
+    validateDevicePdfDimensions(document);
 
     if (pageCount === 0) {
       fail("PDF tidak memiliki halaman.");
@@ -191,7 +212,10 @@ async function loadPdfDoc(
 
     return document;
   } catch (error) {
-    if (error instanceof Error && error.message.includes("terlalu")) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("terlalu") || error.message.includes("Dimensi halaman PDF"))
+    ) {
       throw error;
     }
 
@@ -309,9 +333,8 @@ export async function renderThumbs(
 
   const loadingTask = pdfjs.getDocument({
     data,
-    enableScripting: false,
-    isEvalSupported: false,
     disableAutoFetch: true,
+    disableStream: true,
     stopAtErrors: true,
     maxImageSize: MAX_DEVICE_RENDER_PIXELS,
   });
@@ -482,8 +505,7 @@ async function splitEachPage(
       await fileBytes(file),
     );
 
-  try {
-    const zip = new JSZip();
+  const zip = new JSZip();
 
     const total =
       source.getPageCount();
@@ -562,10 +584,7 @@ async function splitEachPage(
     fail("Hasil ZIP terlalu besar untuk diproses di perangkat.");
   }
 
-    return zipBlob;
-  } finally {
-    await source.cleanup();
-  }
+  return zipBlob;
 }
 
 async function mergeAll(
@@ -1014,8 +1033,6 @@ async function pdfToImages(
   const source =
     await pdfjs.getDocument({
       data,
-      enableScripting: false,
-      isEvalSupported: false,
       stopAtErrors: true,
       maxImageSize: MAX_DEVICE_RENDER_PIXELS,
     }).promise;
@@ -1500,19 +1517,6 @@ export async function processTool(
         mime:
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       };
-    }
-
-    case "pdf-ke-powerpoint": {
-      const {
-        pdfToPowerpoint,
-      } = await import(
-        "@/lib/pdf/office-convert"
-      );
-
-      return pdfToPowerpoint(
-        files[0],
-        onProgress,
-      );
     }
 
     default:

@@ -31,7 +31,6 @@ const ICONS: Record<ToolDef["slug"], typeof Files> = {
   "powerpoint-ke-pdf": Presentation,
   "pdf-ke-word": FileText,
   "pdf-ke-excel": FileSpreadsheet,
-  "pdf-ke-powerpoint": Presentation,
 };
 
 const GROUP_COPY: Record<ToolDef["group"], { eyebrow: string; description: string }> = {

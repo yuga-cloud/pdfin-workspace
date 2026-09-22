@@ -4,3 +4,4 @@ pub mod office;
 pub mod optimize;
 pub mod pdf;
 pub mod rendering;
+pub mod sandbox;

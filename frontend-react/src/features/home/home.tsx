@@ -37,7 +37,6 @@ const ICONS: Record<ToolDef["slug"], typeof Files> = {
   "powerpoint-ke-pdf": Presentation,
   "pdf-ke-word": FileText,
   "pdf-ke-excel": FileSpreadsheet,
-  "pdf-ke-powerpoint": Presentation,
 };
 
 export function Home() {

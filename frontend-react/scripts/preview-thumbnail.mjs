@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 // Capture a 1280x800 preview PNG of the dev server (argv[2] -> argv[3]).
-// Contract with SandboxInternal.CapturePreviewThumbnail: exit 0 only after the
-// PNG is written; the service treats any non-zero exit as a gated skip and does
-// not download the file.
+// The caller treats a non-zero exit as a failed preview capture and never
+// consumes a partial screenshot.
 import { chromium } from "playwright";
 import { checkedOutputPath, checkedUrl } from "./browser-guard.mjs";
 
-// The service always passes a loopback URL and a /tmp path; the checks keep that
-// true when the script is invoked by hand.
+// Keep preview captures restricted to loopback URLs and approved output paths.
 const url = checkedUrl(process.argv[2] || "http://127.0.0.1:8080/");
 const outPng = checkedOutputPath(process.argv[3] || "/tmp/preview-thumbnail.png", [
   "/tmp",

@@ -9,6 +9,21 @@ The backend applies request size, timeout, concurrency, upload, PDF parsing, and
 output limits. Uploaded files are written to temporary storage and are not
 intended to become publicly retrievable files.
 
+The backend parser subprocesses also support an OS-level bubblewrap sandbox.
+On Linux the default parser mode is required; production deployments should keep
+PDFIN_PARSER_SANDBOX=required and install bubblewrap. The sandbox removes inherited
+environment variables, disables network access for the parser namespace, exposes
+the host filesystem read-only, and grants write access only to the parser's
+temporary work directory.
+
+PDFium text extraction is additionally moved out of the HTTP process into a
+short-lived worker subprocess. The parent performs bounded PDF preflight, then
+passes the PDF to the worker through the sandboxed temporary directory. The
+worker writes a bounded JSON result back to the same directory. This keeps the
+PDFium native parser out of the backend process address space while preserving
+the existing PDF → Excel engine contract.
+
+
 Production deployments should keep the Rust backend bound to loopback and put
 TLS termination, rate limiting, and edge filtering in front of it. The example
 systemd unit in `deploy/pdfin.service.example` includes additional

@@ -6,6 +6,8 @@ PDFin's `CI` and `Security` workflows target a repository-level self-hosted Linu
 - `linux`
 - `x64`
 
+The workflow uses `actions/cache@v5` and Node 24-based GitHub Actions. Keep the self-hosted runner application at least version **2.327.1** so the current Node 24 action runtime and cache service are supported.
+
 GitHub routes a job to a self-hosted runner when all labels in `runs-on` match. The runner application itself is lightweight; the CPU/RAM load comes from the CI job that is actually running.
 
 ## 1. Create the runner
@@ -39,7 +41,8 @@ sudo pacman -S --needed \
   npm \
   tesseract \
   libreoffice-fresh \
-  poppler
+  poppler \
+  bubblewrap
 ```
 
 Then make sure the stable Rust toolchain and components required by CI are installed:
@@ -63,6 +66,7 @@ pkg-config --version
 tesseract --version
 libreoffice --version
 pdftoppm -v
+bwrap --version
 ```
 
 The current workflow also expects a C compiler available as `cc` for native Rust dependencies.

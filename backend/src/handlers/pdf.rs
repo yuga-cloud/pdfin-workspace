@@ -161,60 +161,69 @@ async fn read_multiple_files_to_tempfiles(
 
                 if field.name() == Some("file") {
                     if files.len() >= MAX_MERGE_FILES {
-                    return Err(AppError::bad_request(
-                        "too_many_files",
-                        "Jumlah file PDF dalam satu request terlalu banyak",
-                    ));
-                }
-
-                let temp = NamedTempFile::new().map_err(|error| {
-                    error!(%error, "Gagal membuat temporary file PDF");
-                    AppError::internal("tempfile_failed", "Gagal menyiapkan penyimpanan sementara")
-                })?;
-
-                let mut output = tokio::fs::File::from_std(temp.reopen().map_err(|error| {
-                    error!(%error, "Gagal membuka temporary file PDF");
-                    AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
-                })?);
-
-                let mut size = 0usize;
-                while let Some(chunk) = field.chunk().await.map_err(|error| {
-                    error!(%error, "Gagal membaca file PDF");
-                    AppError::bad_request("invalid_upload", "Gagal membaca file PDF yang diunggah")
-                })? {
-                    size = size.checked_add(chunk.len()).ok_or_else(|| {
-                        AppError::bad_request(
-                            "merge_input_too_large",
-                            "Ukuran PDF melebihi kapasitas yang didukung",
-                        )
-                    })?;
-
-                    if size > MAX_TOTAL_MERGE_INPUT_BYTES {
                         return Err(AppError::bad_request(
-                            "merge_input_too_large",
-                            "Ukuran PDF melebihi batas maksimum (500 MB)",
+                            "too_many_files",
+                            "Jumlah file PDF dalam satu request terlalu banyak",
                         ));
                     }
 
-                    output.write_all(&chunk).await.map_err(|error| {
-                        error!(%error, "Gagal menulis temporary PDF");
+                    let temp = NamedTempFile::new().map_err(|error| {
+                        error!(%error, "Gagal membuat temporary file PDF");
+                        AppError::internal(
+                            "tempfile_failed",
+                            "Gagal menyiapkan penyimpanan sementara",
+                        )
+                    })?;
+
+                    let mut output = tokio::fs::File::from_std(temp.reopen().map_err(|error| {
+                        error!(%error, "Gagal membuka temporary file PDF");
+                        AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
+                    })?);
+
+                    let mut size = 0usize;
+                    while let Some(chunk) = field.chunk().await.map_err(|error| {
+                        error!(%error, "Gagal membaca file PDF");
+                        AppError::bad_request(
+                            "invalid_upload",
+                            "Gagal membaca file PDF yang diunggah",
+                        )
+                    })? {
+                        size = size.checked_add(chunk.len()).ok_or_else(|| {
+                            AppError::bad_request(
+                                "merge_input_too_large",
+                                "Ukuran PDF melebihi kapasitas yang didukung",
+                            )
+                        })?;
+
+                        if size > MAX_TOTAL_MERGE_INPUT_BYTES {
+                            return Err(AppError::bad_request(
+                                "merge_input_too_large",
+                                "Ukuran PDF melebihi batas maksimum (500 MB)",
+                            ));
+                        }
+
+                        output.write_all(&chunk).await.map_err(|error| {
+                            error!(%error, "Gagal menulis temporary PDF");
+                            AppError::internal(
+                                "tempfile_write_failed",
+                                "Gagal menyimpan PDF sementara",
+                            )
+                        })?;
+                    }
+
+                    output.flush().await.map_err(|error| {
+                        error!(%error, "Gagal flush temporary PDF");
                         AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
                     })?;
-                }
 
-                output.flush().await.map_err(|error| {
-                    error!(%error, "Gagal flush temporary PDF");
-                    AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
-                })?;
+                    if size == 0 {
+                        return Err(AppError::bad_request(
+                            "empty_file",
+                            "Salah satu file PDF kosong",
+                        ));
+                    }
 
-                if size == 0 {
-                    return Err(AppError::bad_request(
-                        "empty_file",
-                        "Salah satu file PDF kosong",
-                    ));
-                }
-
-                files.push(TempPdfUpload { file: temp, size });
+                    files.push(TempPdfUpload { file: temp, size });
                 } else {
                     continue;
                 }
@@ -258,81 +267,91 @@ async fn read_rotate_request(mut multipart: Multipart) -> Result<(TempPdfUpload,
                 }
 
                 match field.name().unwrap_or_default() {
-                "file" => {
-                    if file.is_some() {
-                        return Err(AppError::bad_request(
-                            "duplicate_file",
-                            "Field file hanya boleh dikirim sekali",
-                        ));
-                    }
-
-                    let temp = NamedTempFile::new().map_err(|error| {
-                        error!(%error, "Gagal membuat temporary file PDF");
-                        AppError::internal(
-                            "tempfile_failed",
-                            "Gagal menyiapkan penyimpanan sementara",
-                        )
-                    })?;
-                    let mut output = tokio::fs::File::from_std(temp.reopen().map_err(|error| {
-                        error!(%error, "Gagal membuka temporary file PDF");
-                        AppError::internal("tempfile_failed", "Gagal membuka penyimpanan sementara")
-                    })?);
-
-                    let mut size = 0usize;
-                    while let Some(chunk) = field.chunk().await.map_err(|error| {
-                        error!(%error, "Gagal membaca file PDF");
-                        AppError::bad_request(
-                            "invalid_upload",
-                            "Gagal membaca file PDF yang diunggah",
-                        )
-                    })? {
-                        size = size.checked_add(chunk.len()).ok_or_else(|| {
-                            AppError::bad_request(
-                                "rotate_input_too_large",
-                                "Ukuran PDF melebihi kapasitas yang didukung",
-                            )
-                        })?;
-
-                        if size > MAX_TOTAL_MERGE_INPUT_BYTES {
+                    "file" => {
+                        if file.is_some() {
                             return Err(AppError::bad_request(
-                                "rotate_input_too_large",
-                                "Ukuran PDF melebihi batas maksimum (500 MB)",
+                                "duplicate_file",
+                                "Field file hanya boleh dikirim sekali",
                             ));
                         }
 
-                        output.write_all(&chunk).await.map_err(|error| {
-                            error!(%error, "Gagal menulis temporary PDF");
+                        let temp = NamedTempFile::new().map_err(|error| {
+                            error!(%error, "Gagal membuat temporary file PDF");
+                            AppError::internal(
+                                "tempfile_failed",
+                                "Gagal menyiapkan penyimpanan sementara",
+                            )
+                        })?;
+                        let mut output =
+                            tokio::fs::File::from_std(temp.reopen().map_err(|error| {
+                                error!(%error, "Gagal membuka temporary file PDF");
+                                AppError::internal(
+                                    "tempfile_failed",
+                                    "Gagal membuka penyimpanan sementara",
+                                )
+                            })?);
+
+                        let mut size = 0usize;
+                        while let Some(chunk) = field.chunk().await.map_err(|error| {
+                            error!(%error, "Gagal membaca file PDF");
+                            AppError::bad_request(
+                                "invalid_upload",
+                                "Gagal membaca file PDF yang diunggah",
+                            )
+                        })? {
+                            size = size.checked_add(chunk.len()).ok_or_else(|| {
+                                AppError::bad_request(
+                                    "rotate_input_too_large",
+                                    "Ukuran PDF melebihi kapasitas yang didukung",
+                                )
+                            })?;
+
+                            if size > MAX_TOTAL_MERGE_INPUT_BYTES {
+                                return Err(AppError::bad_request(
+                                    "rotate_input_too_large",
+                                    "Ukuran PDF melebihi batas maksimum (500 MB)",
+                                ));
+                            }
+
+                            output.write_all(&chunk).await.map_err(|error| {
+                                error!(%error, "Gagal menulis temporary PDF");
+                                AppError::internal(
+                                    "tempfile_write_failed",
+                                    "Gagal menyimpan PDF sementara",
+                                )
+                            })?;
+                        }
+
+                        output.flush().await.map_err(|error| {
+                            error!(%error, "Gagal flush temporary PDF");
                             AppError::internal(
                                 "tempfile_write_failed",
                                 "Gagal menyimpan PDF sementara",
                             )
                         })?;
+
+                        if size == 0 {
+                            return Err(AppError::bad_request("empty_file", "File PDF kosong"));
+                        }
+
+                        file = Some(TempPdfUpload { file: temp, size });
                     }
-
-                    output.flush().await.map_err(|error| {
-                        error!(%error, "Gagal flush temporary PDF");
-                        AppError::internal("tempfile_write_failed", "Gagal menyimpan PDF sementara")
-                    })?;
-
-                    if size == 0 {
-                        return Err(AppError::bad_request("empty_file", "File PDF kosong"));
+                    "degrees" => {
+                        let text = field.text().await.map_err(|error| {
+                            error!(%error, "Gagal membaca degrees");
+                            AppError::bad_request("invalid_degrees", "Gagal membaca nilai rotasi")
+                        })?;
+                        degrees = text.trim().parse::<i64>().map_err(|error| {
+                            error!(%error, "Nilai degrees tidak valid: {error}");
+                            AppError::bad_request(
+                                "invalid_degrees",
+                                "Nilai derajat rotasi tidak valid",
+                            )
+                        })?;
                     }
-
-                    file = Some(TempPdfUpload { file: temp, size });
-                }
-                "degrees" => {
-                    let text = field.text().await.map_err(|error| {
-                        error!(%error, "Gagal membaca degrees");
-                        AppError::bad_request("invalid_degrees", "Gagal membaca nilai rotasi")
-                    })?;
-                    degrees = text.trim().parse::<i64>().map_err(|error| {
-                        error!(%error, "Nilai degrees tidak valid: {error}");
-                        AppError::bad_request("invalid_degrees", "Nilai derajat rotasi tidak valid")
-                    })?;
-                }
                     _ => {}
                 }
-            },
+            }
             Ok(None) => break,
             Err(error) => {
                 error!(%error, "Gagal membaca multipart request");

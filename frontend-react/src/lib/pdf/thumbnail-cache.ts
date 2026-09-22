@@ -9,6 +9,7 @@ export type PdfThumbnail = {
 const THUMBNAIL_WIDTH = 180;
 const JPEG_QUALITY = 0.68;
 const MAX_CACHED_THUMBNAILS = 48;
+const MAX_CONCURRENT_RENDERS = 4;
 
 const MAX_THUMBNAIL_PAGES = 1_000;
 const MAX_THUMBNAIL_PIXELS = 20_000_000;
@@ -25,6 +26,12 @@ export class PdfThumbnailCache {
   private pdfPromise: ReturnType<PdfThumbnailCache["loadDocument"]> | null = null;
   private readonly cache = new Map<number, PdfThumbnail>();
   private activeRenders = 0;
+  private readonly renderWaiters: Array<{
+    signal?: AbortSignal;
+    resolve: () => void;
+    reject: (error: Error) => void;
+    onAbort: () => void;
+  }> = [];
   private disposed = false;
   private documentCleanupStarted = false;
 
@@ -44,12 +51,79 @@ export class PdfThumbnailCache {
     if (this.disposed) throw new Error("Preview sudah dibuang.");
     return pdfjs.getDocument({
       data,
-      enableScripting: false,
-      isEvalSupported: false,
       disableAutoFetch: true,
+      disableStream: true,
       stopAtErrors: true,
       maxImageSize: MAX_THUMBNAIL_PIXELS,
     }).promise;
+  }
+
+  private async acquireRenderSlot(signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) throw createAbortError();
+    if (this.disposed) throw new Error("Preview sudah dibuang.");
+
+    if (this.activeRenders < MAX_CONCURRENT_RENDERS) {
+      this.activeRenders += 1;
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const waiter = {
+        signal,
+        resolve: () => {
+          signal?.removeEventListener("abort", onAbort);
+          resolve();
+        },
+        reject: (error: Error) => {
+          signal?.removeEventListener("abort", onAbort);
+          reject(error);
+        },
+        onAbort: () => {
+          const index = this.renderWaiters.indexOf(waiter);
+          if (index !== -1) this.renderWaiters.splice(index, 1);
+          reject(createAbortError());
+        },
+      };
+      const onAbort = () => waiter.onAbort();
+
+      if (signal) {
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (signal.aborted) {
+          waiter.onAbort();
+          return;
+        }
+      }
+
+      this.renderWaiters.push(waiter);
+    });
+
+    if (this.disposed) {
+      this.releaseRenderSlot();
+      throw new Error("Preview sudah dibuang.");
+    }
+  }
+
+  private releaseRenderSlot(): void {
+    this.activeRenders -= 1;
+
+    while (this.renderWaiters.length > 0) {
+      const waiter = this.renderWaiters.shift();
+      if (!waiter) return;
+      if (waiter.signal?.aborted) {
+        waiter.reject(createAbortError());
+        continue;
+      }
+      this.activeRenders += 1;
+      waiter.resolve();
+      return;
+    }
+  }
+
+  private rejectRenderWaiters(): void {
+    while (this.renderWaiters.length > 0) {
+      const waiter = this.renderWaiters.shift();
+      waiter?.reject(new Error("Preview sudah dibuang."));
+    }
   }
 
   private async getDocument() {
@@ -103,7 +177,7 @@ export class PdfThumbnailCache {
     }
     if (signal?.aborted) throw createAbortError();
 
-    this.activeRenders += 1;
+    await this.acquireRenderSlot(signal);
     try {
       const pdf = await this.getDocument();
       if (signal?.aborted) throw createAbortError();
@@ -177,13 +251,14 @@ export class PdfThumbnailCache {
         page.cleanup();
       }
     } finally {
-      this.activeRenders -= 1;
+      this.releaseRenderSlot();
       this.cleanupDocumentWhenIdle();
     }
   }
 
   dispose(): void {
     this.disposed = true;
+    this.rejectRenderWaiters();
     for (const thumbnail of this.cache.values()) URL.revokeObjectURL(thumbnail.url);
     this.cache.clear();
     this.cleanupDocumentWhenIdle();

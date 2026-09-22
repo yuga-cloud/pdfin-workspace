@@ -3,8 +3,7 @@ use axum::{Router, routing::post};
 use crate::state::AppState;
 
 use super::handlers::{
-    excel_to_pdf, jpg_to_pdf, pdf_to_excel, pdf_to_jpg, pdf_to_powerpoint, pdf_to_word,
-    powerpoint_to_pdf, word_to_pdf,
+    excel_to_pdf, jpg_to_pdf, pdf_to_excel, pdf_to_jpg, pdf_to_word, word_to_pdf,
 };
 
 pub fn routes() -> Router<AppState> {
@@ -13,14 +12,6 @@ pub fn routes() -> Router<AppState> {
         .route("/rust-api/jpg-to-pdf", post(jpg_to_pdf::handler))
         .route("/rust-api/pdf-to-excel", post(pdf_to_excel::handler))
         .route("/rust-api/pdf-to-jpg", post(pdf_to_jpg::handler))
-        .route(
-            "/rust-api/pdf-to-powerpoint",
-            post(pdf_to_powerpoint::handler),
-        )
         .route("/rust-api/pdf-to-word", post(pdf_to_word::handler))
-        .route(
-            "/rust-api/powerpoint-to-pdf",
-            post(powerpoint_to_pdf::handler),
-        )
         .route("/rust-api/word-to-pdf", post(word_to_pdf::handler))
 }

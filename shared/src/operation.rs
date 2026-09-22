@@ -12,7 +12,6 @@ pub enum PdfOperation {
 
     PdfToWord,
     PdfToExcel,
-    PdfToPowerPoint,
 
     WordToPdf,
     ExcelToPdf,

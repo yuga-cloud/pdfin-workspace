@@ -4,7 +4,7 @@ export const APP_ENV_ROUTE = "/__app-env";
 
 export function appEnvPlugin(): Plugin {
   return {
-    name: "app-builder:app-env",
+    name: "pdfin:app-env",
     apply: "serve",
     configureServer(server: ViteDevServer) {
       server.middlewares.use((req, res, next) => {

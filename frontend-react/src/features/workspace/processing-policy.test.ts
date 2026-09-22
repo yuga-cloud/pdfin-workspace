@@ -76,9 +76,9 @@ describe("processing policy", () => {
     expect(() =>
       validateSubmissionLimits(
         baseTool({ processing: "server", group: "atur" }),
-        [makeFile(500 * 1024 * 1024 + 1)],
+        [makeFile(256 * 1024 * 1024 + 1)],
       ),
-    ).toThrow("500 MiB");
+    ).toThrow("256 MiB");
   });
   it("rejects an oversized server-side conversion file before upload", () => {
     expect(() =>
@@ -108,4 +108,3 @@ describe("processing policy", () => {
     ).toThrow("256 MiB");
   });
 });
-

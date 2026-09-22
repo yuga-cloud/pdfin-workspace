@@ -1,4 +1,7 @@
-use std::{io::{Cursor, Read}, str};
+use std::{
+    io::{Cursor, Read},
+    str,
+};
 
 const ZIP_LOCAL_FILE_HEADER: [u8; 4] = [0x50, 0x4b, 0x03, 0x04];
 const ZIP_CENTRAL_DIRECTORY_HEADER: [u8; 4] = [0x50, 0x4b, 0x01, 0x02];
@@ -178,11 +181,7 @@ fn validate_office_zip(
         let name = str::from_utf8(&bytes[name_start..name_end])
             .map_err(|_| format!("Nama entry ZIP {format} bukan UTF-8 yang valid"))?;
 
-        if name.starts_with('/')
-            || name.starts_with('\\')
-            || name.contains("../")
-            || name.contains("..\\")
-        {
+        if has_dangerous_zip_path(name) {
             return Err(format!("Entry ZIP {format} memiliki path berbahaya"));
         }
 
@@ -235,11 +234,22 @@ fn validate_office_zip(
     Ok(())
 }
 
+fn has_dangerous_zip_path(name: &str) -> bool {
+    if name.starts_with('/') || name.starts_with('\\') || name.contains('\0') {
+        return true;
+    }
+
+    name.split(['/', '\\']).any(|component| component == "..")
+}
+
 fn validate_ooxml_relationships(bytes: &[u8], format: &str) -> Result<(), String> {
     let mut archive = ::zip::ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| format!("Struktur ZIP {format} tidak dapat dibaca: {error}"))?;
 
-    if archive.has_overlapping_files() {
+    if archive
+        .has_overlapping_files()
+        .map_err(|error| format!("Struktur ZIP {format} tidak dapat diperiksa: {error}"))?
+    {
         return Err(format!(
             "File {format} memiliki ZIP entry yang saling overlap"
         ));
@@ -456,7 +466,11 @@ mod tests {
     fn rejects_external_relationships() {
         let relationships = br#"<Relationships><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com" TargetMode="External"/></Relationships>"#;
         let malicious = minimal_ooxml_with_special_entry(
-            &["[Content_Types].xml", "word/document.xml", "word/_rels/document.xml.rels"],
+            &[
+                "[Content_Types].xml",
+                "word/document.xml",
+                "word/_rels/document.xml.rels",
+            ],
             Some(("word/_rels/document.xml.rels", relationships)),
         );
 
@@ -465,8 +479,17 @@ mod tests {
 
     #[test]
     fn rejects_zip_path_traversal() {
-        let malicious = minimal_ooxml(&["[Content_Types].xml", "../xl/workbook.xml"]);
-        assert!(validate_input(&malicious, "Excel").is_err());
+        for name in [
+            "../xl/workbook.xml",
+            "foo/../xl/workbook.xml",
+            "foo/..",
+            r"foo\\..\\xl\\workbook.xml",
+            "/xl/workbook.xml",
+            "\\xl\\workbook.xml",
+        ] {
+            let malicious = minimal_ooxml(&["[Content_Types].xml", name]);
+            assert!(validate_input(&malicious, "Excel").is_err(), "path should reject: {name}");
+        }
     }
 
     #[test]
