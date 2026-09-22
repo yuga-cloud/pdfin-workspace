@@ -32,7 +32,7 @@ pub fn ensure_ready() -> Result<(), String> {
         SandboxMode::Disabled => {
             tracing::warn!(
                 "Parser sandbox dinonaktifkan; service tidak terisolasi dari parser host"
-            );;
+            );
             Ok(())
         }
         SandboxMode::Auto => {
