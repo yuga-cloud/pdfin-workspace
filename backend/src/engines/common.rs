@@ -239,7 +239,11 @@ fn validate_ooxml_relationships(bytes: &[u8], format: &str) -> Result<(), String
     let mut archive = ::zip::ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| format!("Struktur ZIP {format} tidak dapat dibaca: {error}"))?;
 
-    if archive.has_overlapping_files() {
+    let has_overlapping_files = archive.has_overlapping_files().map_err(|error| {
+        format!("Gagal memeriksa overlap ZIP {format}: {error}")
+    })?;
+
+    if has_overlapping_files {
         return Err(format!(
             "File {format} memiliki ZIP entry yang saling overlap"
         ));
