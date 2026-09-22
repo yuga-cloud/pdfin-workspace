@@ -176,6 +176,12 @@ async function normalizeImageToJpeg(file: File): Promise<Blob> {
 async function fileBytes(
   file: File,
 ): Promise<Uint8Array> {
+  if (file.size > MAX_DEVICE_PDF_BYTES) {
+    fail(
+      "PDF terlalu besar untuk diproses di perangkat (maksimum 100 MiB).",
+    );
+  }
+
   return new Uint8Array(
     await file.arrayBuffer(),
   );
