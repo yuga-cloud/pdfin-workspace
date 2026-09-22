@@ -247,7 +247,9 @@ fn contains_zip64_extra_field(extra: &[u8]) -> bool {
         let field_size =
             usize::from(u16::from_le_bytes([extra[cursor + 2], extra[cursor + 3]]));
 
-        let Some(field_end) = cursor.checked_add(4).and_then(|offset| offset.checked_add(field_size))
+        let Some(field_end) = cursor
+            .checked_add(4)
+            .and_then(|offset| offset.checked_add(field_size))
         else {
             return true;
         };
