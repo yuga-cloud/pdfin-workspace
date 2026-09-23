@@ -1,17 +1,18 @@
-import { useState } from "react";
-import { optimizeApi } from "../lib/api";
+import { useCallback, useState } from "react";
+import { createConversion } from "@/lib/api";
+import type { ConvertRequest } from "@/lib/api";
 
 export function useOptimize() {
   const [loading, setLoading] = useState(false);
 
-  async function optimize(input: Parameters<typeof optimizeApi.optimize>[0]) {
+  const optimize = useCallback(async (input: ConvertRequest) => {
     setLoading(true);
     try {
-      return await optimizeApi.optimize(input);
+      return await createConversion(input);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   return {
     loading,
