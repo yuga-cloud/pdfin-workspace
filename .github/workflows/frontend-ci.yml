@@ -1,0 +1,51 @@
+name: Frontend CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'frontend-react/**'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend-react/**'
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: React validation
+    runs-on: [self-hosted, linux, x64]
+    defaults:
+      run:
+        working-directory: frontend-react
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Node info
+        run: |
+          node --version
+          npm --version
+
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
