@@ -1,5 +1,8 @@
 # PDFin
 
+![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue)
+
 PDFin is a high-performance PDF and Office document processing workspace with a React + Vite frontend and a Rust + Axum backend.
 
 The service is designed around a simple rule: uploaded documents are untrusted input. PDF, image, and Office processing therefore uses bounded input sizes, output sizes, timeouts, concurrency, rate limits, parser-specific guards, and process isolation where available.
@@ -90,4 +93,4 @@ Before opening a pull request, run the same formatting, typecheck, lint, test, a
 
 ## License
 
-No license is declared yet. Choose and add a project license before inviting external reuse or contributions.
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
