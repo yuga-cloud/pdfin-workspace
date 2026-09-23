@@ -1,5 +1,8 @@
 # pdfin-workspace
 
+![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue)
+
 High-performance PDF and Office processing workspace built with Rust.
 
 ## Overview
