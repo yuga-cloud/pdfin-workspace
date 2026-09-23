@@ -1,13 +1,30 @@
 use axum::{Json, Router, routing::post};
-use serde_json::json;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::state::AppState;
 
-async fn create_conversion() -> Json<serde_json::Value> {
-    Json(json!({
-        "message": "conversion endpoint ready",
-        "status": "not_implemented"
-    }))
+#[derive(Debug, Deserialize)]
+struct CreateConversionRequest {
+    file_id: Uuid,
+    operation: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ConversionResponse {
+    job_id: Uuid,
+    status: &'static str,
+}
+
+async fn create_conversion(
+    Json(payload): Json<CreateConversionRequest>,
+) -> Json<ConversionResponse> {
+    let _ = payload;
+
+    Json(ConversionResponse {
+        job_id: Uuid::new_v4(),
+        status: "queued",
+    })
 }
 
 pub fn routes() -> Router<AppState> {
