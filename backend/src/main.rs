@@ -8,24 +8,26 @@ mod routes;
 mod state;
 mod zip;
 
-use std::{error::Error, net::{IpAddr, Ipv4Addr, SocketAddr}, sync::Arc, time::Duration};
+use std::{
+    error::Error,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use axum::{
+    Router,
     extract::{ConnectInfo, DefaultBodyLimit, Request, State},
-    http::{header::RETRY_AFTER, HeaderValue},
+    http::{HeaderValue, header::RETRY_AFTER},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::get,
     serve::ListenerExt,
-    Router,
 };
 use tokio::{net::TcpListener, signal, sync::Semaphore};
 use tower::limit::ConcurrencyLimitLayer;
 use tower_http::{
-    cors::CorsLayer,
-    csrf::CsrfLayer,
-    limit::RequestBodyLimitLayer,
-    timeout::TimeoutLayer,
+    cors::CorsLayer, csrf::CsrfLayer, limit::RequestBodyLimitLayer, timeout::TimeoutLayer,
     trace::TraceLayer,
 };
 use tracing::info;
@@ -48,7 +50,10 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let state = AppState {
         pdf_semaphore: Arc::new(Semaphore::new(parse_env("PDFIN_PDF_CONCURRENCY", 4))),
-        conversion_semaphore: Arc::new(Semaphore::new(parse_env("PDFIN_CONVERSION_CONCURRENCY", 2))),
+        conversion_semaphore: Arc::new(Semaphore::new(parse_env(
+            "PDFIN_CONVERSION_CONCURRENCY",
+            2,
+        ))),
         rate_limiter: IpRateLimiter::from_env(),
     };
 
@@ -60,7 +65,10 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .route("/health", get(health))
         .merge(routes::api_routes())
         .with_state(state.clone())
-        .layer(ConcurrencyLimitLayer::new(parse_env("PDFIN_MAX_CONCURRENCY", 8)))
+        .layer(ConcurrencyLimitLayer::new(parse_env(
+            "PDFIN_MAX_CONCURRENCY",
+            8,
+        )))
         .layer(DefaultBodyLimit::max(body_limit))
         .layer(RequestBodyLimitLayer::new(body_limit))
         .layer(TimeoutLayer::with_status_code(
@@ -79,9 +87,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     info!(address = %addr, "Backend Axum berjalan");
 
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     Ok(())
 }
@@ -94,7 +105,10 @@ async fn add_security_headers(request: Request, next: Next) -> Response {
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
 
-    headers.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
+    headers.insert(
+        "X-Content-Type-Options",
+        HeaderValue::from_static("nosniff"),
+    );
     headers.insert("X-Frame-Options", HeaderValue::from_static("DENY"));
     headers.insert("Referrer-Policy", HeaderValue::from_static("no-referrer"));
     headers.insert("Cache-Control", HeaderValue::from_static("no-store"));
@@ -111,8 +125,11 @@ async fn enforce_rate_limit(
     let client_ip = state.rate_limiter.client_ip(addr.ip(), request.headers());
 
     if !state.rate_limiter.allow(client_ip) {
-        let mut response = AppError::too_many_requests("rate_limited", "Terlalu banyak request.").into_response();
-        response.headers_mut().insert(RETRY_AFTER, HeaderValue::from_static("1"));
+        let mut response =
+            AppError::too_many_requests("rate_limited", "Terlalu banyak request.").into_response();
+        response
+            .headers_mut()
+            .insert(RETRY_AFTER, HeaderValue::from_static("1"));
         return response;
     }
 
@@ -120,11 +137,17 @@ async fn enforce_rate_limit(
 }
 
 fn parse_env<T: std::str::FromStr + Copy>(name: &str, default: T) -> T {
-    std::env::var(name).ok().and_then(|value| value.parse().ok()).unwrap_or(default)
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(default)
 }
 
 fn parse_ipv4_env(name: &str, default: Ipv4Addr) -> Ipv4Addr {
-    std::env::var(name).ok().and_then(|value| value.parse().ok()).unwrap_or(default)
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(default)
 }
 
 fn init_tracing() {
