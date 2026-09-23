@@ -1,13 +1,14 @@
-name: Security
+name: Private Security Audit
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   schedule:
     - cron: "17 3 * * 1"
 
 concurrency:
-  group: security-${{ github.workflow }}-${{ github.ref }}
+  group: private-security-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -15,7 +16,7 @@ permissions:
 
 jobs:
   cargo-audit:
-    name: Cargo audit (private stage)
+    name: Cargo dependency audit
     if: github.event.repository.visibility != 'public'
     runs-on: [self-hosted, linux, x64]
     steps:
@@ -33,7 +34,7 @@ jobs:
           cargo --version
           rustc --version
 
-      - name: Verify committed dependency lockfile
+      - name: Verify locked dependency graph
         run: cargo metadata --locked --format-version=1 >/dev/null
 
       - name: Install cargo-audit
@@ -41,5 +42,5 @@ jobs:
         with:
           tool: cargo-audit
 
-      - name: Audit dependencies
+      - name: Audit Rust dependencies
         run: cargo audit
