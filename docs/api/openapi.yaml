@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: PDFin API
+  version: 1.0.0
+  description: API contract for PDFin frontend integration
+servers:
+  - url: /api/v1
+paths:
+  /files:
+    post:
+      summary: Upload files
+      responses:
+        '200':
+          description: Uploaded file metadata
+  /files/{id}:
+    get:
+      summary: Get file metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File metadata
+  /conversions:
+    post:
+      summary: Create conversion job
+      responses:
+        '200':
+          description: Created job
+  /jobs/{id}:
+    get:
+      summary: Get job status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job status
