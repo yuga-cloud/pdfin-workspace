@@ -5,6 +5,7 @@ use uuid::Uuid;
 pub struct JobResponse {
     pub job_id: Uuid,
     pub status: JobStatus,
+    pub progress: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
