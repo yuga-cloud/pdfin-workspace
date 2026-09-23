@@ -36,9 +36,6 @@ const DEFAULT_HOST: Ipv4Addr = Ipv4Addr::LOCALHOST;
 const DEFAULT_PORT: u16 = 3000;
 const DEFAULT_BODY_LIMIT_MB: usize = 500;
 const DEFAULT_TIMEOUT_SECONDS: u64 = 120;
-const DEFAULT_MAX_CONCURRENCY: usize = 8;
-const DEFAULT_PDF_CONCURRENCY: usize = 4;
-const DEFAULT_CONVERSION_CONCURRENCY: usize = 2;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -49,21 +46,21 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         parse_env("PDFIN_PORT", DEFAULT_PORT),
     );
 
+    let state = AppState {
+        pdf_semaphore: Arc::new(Semaphore::new(parse_env("PDFIN_PDF_CONCURRENCY", 4))),
+        conversion_semaphore: Arc::new(Semaphore::new(parse_env("PDFIN_CONVERSION_CONCURRENCY", 2))),
+        rate_limiter: IpRateLimiter::from_env(),
+    };
+
     let body_limit = parse_env("PDFIN_MAX_REQUEST_MB", DEFAULT_BODY_LIMIT_MB)
         .max(1)
         .saturating_mul(1024 * 1024);
-
-    let state = AppState {
-        pdf_semaphore: Arc::new(Semaphore::new(DEFAULT_PDF_CONCURRENCY)),
-        conversion_semaphore: Arc::new(Semaphore::new(DEFAULT_CONVERSION_CONCURRENCY)),
-        rate_limiter: IpRateLimiter::from_env(),
-    };
 
     let app = Router::new()
         .route("/health", get(health))
         .merge(routes::api_routes())
         .with_state(state.clone())
-        .layer(ConcurrencyLimitLayer::new(DEFAULT_MAX_CONCURRENCY))
+        .layer(ConcurrencyLimitLayer::new(parse_env("PDFIN_MAX_CONCURRENCY", 8)))
         .layer(DefaultBodyLimit::max(body_limit))
         .layer(RequestBodyLimitLayer::new(body_limit))
         .layer(TimeoutLayer::with_status_code(
@@ -74,10 +71,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .layer(CorsLayer::very_permissive())
         .layer(CsrfLayer::new())
         .layer(middleware::from_fn(add_security_headers))
-        .layer(middleware::from_fn_with_state(
-            state,
-            enforce_rate_limit,
-        ));
+        .layer(middleware::from_fn_with_state(state, enforce_rate_limit));
 
     let listener = TcpListener::bind(addr).await?.tap_io(|stream| {
         let _ = stream.set_nodelay(true);
@@ -102,6 +96,7 @@ async fn add_security_headers(request: Request, next: Next) -> Response {
 
     headers.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
     headers.insert("X-Frame-Options", HeaderValue::from_static("DENY"));
+    headers.insert("Referrer-Policy", HeaderValue::from_static("no-referrer"));
     headers.insert("Cache-Control", HeaderValue::from_static("no-store"));
 
     response
@@ -116,16 +111,8 @@ async fn enforce_rate_limit(
     let client_ip = state.rate_limiter.client_ip(addr.ip(), request.headers());
 
     if !state.rate_limiter.allow(client_ip) {
-        let mut response = AppError::too_many_requests(
-            "rate_limited",
-            "Terlalu banyak request.",
-        )
-        .into_response();
-
-        response
-            .headers_mut()
-            .insert(RETRY_AFTER, HeaderValue::from_static("1"));
-
+        let mut response = AppError::too_many_requests("rate_limited", "Terlalu banyak request.").into_response();
+        response.headers_mut().insert(RETRY_AFTER, HeaderValue::from_static("1"));
         return response;
     }
 
@@ -133,17 +120,11 @@ async fn enforce_rate_limit(
 }
 
 fn parse_env<T: std::str::FromStr + Copy>(name: &str, default: T) -> T {
-    std::env::var(name)
-        .ok()
-        .and_then(|value| value.parse().ok())
-        .unwrap_or(default)
+    std::env::var(name).ok().and_then(|value| value.parse().ok()).unwrap_or(default)
 }
 
 fn parse_ipv4_env(name: &str, default: Ipv4Addr) -> Ipv4Addr {
-    std::env::var(name)
-        .ok()
-        .and_then(|value| value.parse().ok())
-        .unwrap_or(default)
+    std::env::var(name).ok().and_then(|value| value.parse().ok()).unwrap_or(default)
 }
 
 fn init_tracing() {
