@@ -1,23 +1,23 @@
+import { ApiError } from "./client";
 import type { JobResponse } from "./types";
 
 const JOBS_API = "/api/v1/jobs";
 
 export async function getJob(jobId: string): Promise<JobResponse> {
-  const response = await fetch(`${JOBS_API}/${encodeURIComponent(jobId)}`);
+  const response = await fetch(
+    `${JOBS_API}/${encodeURIComponent(jobId)}`,
+  );
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch job (${response.status})`);
+    throw new ApiError(
+      `Gagal mengambil job (${response.status}).`,
+      { status: response.status },
+    );
   }
 
-  return response.json() as Promise<JobResponse>;
-}
+  const payload = (await response.json()) as {
+    data?: JobResponse;
+  } & JobResponse;
 
-export async function cancelJob(jobId: string): Promise<void> {
-  const response = await fetch(`${JOBS_API}/${encodeURIComponent(jobId)}`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to cancel job (${response.status})`);
-  }
+  return payload.data ?? payload;
 }
