@@ -27,7 +27,7 @@ describe("postMultipart", () => {
     );
 
     await expect(
-      postMultipart("/rust-api/test", new FormData()),
+      postMultipart("/api/v1/test", new FormData()),
     ).rejects.toMatchObject({
       name: "ApiError",
       code: "invalid_multipart",
@@ -56,7 +56,7 @@ describe("postMultipart", () => {
     );
 
     await expect(
-      postMultipart("/rust-api/test", new FormData()),
+      postMultipart("/api/v1/test", new FormData()),
     ).rejects.toMatchObject({
       code: "rate_limited",
       status: 429,
@@ -68,7 +68,7 @@ describe("postMultipart", () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new TypeError("offline"));
 
     await expect(
-      postMultipart("/rust-api/test", new FormData(), 1000),
+      postMultipart("/api/v1/test", new FormData(), 1000),
     ).rejects.toMatchObject({
       code: "network_error",
       status: 0,
@@ -86,7 +86,7 @@ describe("postMultipart", () => {
     );
 
     await expect(
-      postMultipart("/rust-api/test", new FormData(), 10),
+      postMultipart("/api/v1/test", new FormData(), 10),
     ).rejects.toMatchObject({
       code: "request_timeout",
       status: 0,
@@ -107,7 +107,7 @@ describe("postMultipart", () => {
     });
 
     await expect(
-      postMultipart("/rust-api/test", new FormData(), 10),
+      postMultipart("/api/v1/test", new FormData(), 10),
     ).rejects.toMatchObject({
       code: "request_timeout",
       status: 0,
@@ -122,7 +122,7 @@ describe("postMultipart", () => {
     const oversized = "x".repeat(16 * 1024 + 1);
 
     await expect(
-      postFileWithText("/rust-api/test", file, "text", oversized),
+      postFileWithText("/api/v1/test", file, "text", oversized),
     ).rejects.toMatchObject({
       code: "field_too_large",
       status: 0,
@@ -140,7 +140,7 @@ describe("postMultipart", () => {
     );
 
     await expect(
-      postMultipart("/rust-api/test", new FormData()),
+      postMultipart("/api/v1/test", new FormData()),
     ).rejects.toMatchObject({
       code: "empty_response",
       status: 200,
@@ -160,7 +160,7 @@ describe("postMultipart", () => {
     );
 
     const result = await postMultipart(
-      "/rust-api/test",
+      "/api/v1/test",
       new FormData(),
     );
 

@@ -16,7 +16,7 @@ export function jpgToPdf(
     formData.append("file", file);
   }
 
-  return postMultipart("/rust-api/jpg-to-pdf", formData);
+  return postMultipart("/api/v1/convert/jpg-to-pdf", formData);
 }
 
 /**
@@ -26,7 +26,7 @@ export function pdfToJpg(
   file: File,
 ): Promise<Blob> {
   return postFile(
-    "/rust-api/pdf-to-jpg",
+    "/api/v1/convert/pdf-to-jpg",
     file,
   );
 }
@@ -38,7 +38,7 @@ export function wordToPdf(
   file: File,
 ): Promise<Blob> {
   return postFile(
-    "/rust-api/word-to-pdf",
+    "/api/v1/convert/word-to-pdf",
     file,
   );
 }
@@ -50,7 +50,7 @@ export function excelToPdf(
   file: File,
 ): Promise<Blob> {
   return postFile(
-    "/rust-api/excel-to-pdf",
+    "/api/v1/convert/excel-to-pdf",
     file,
   );
 }
@@ -62,7 +62,7 @@ export function powerpointToPdf(
   file: File,
 ): Promise<Blob> {
   return postFile(
-    "/rust-api/powerpoint-to-pdf",
+    "/api/v1/convert/powerpoint-to-pdf",
     file,
   );
 }
@@ -74,7 +74,7 @@ export function pdfToWord(
   file: File,
 ): Promise<Blob> {
   return postFile(
-    "/rust-api/pdf-to-word",
+    "/api/v1/convert/pdf-to-word",
     file,
   );
 }
@@ -86,7 +86,7 @@ export function pdfToExcel(
   file: File,
 ): Promise<Blob> {
   return postFile(
-    "/rust-api/pdf-to-excel",
+    "/api/v1/convert/pdf-to-excel",
     file,
   );
 }

@@ -12,7 +12,7 @@ The service is designed around a simple rule: uploaded documents are untrusted i
 ```text
 React + Vite + TypeScript
           │
-          │ /rust-api
+          │ /api/v1
           ▼
      Rust + Axum
           │
@@ -57,7 +57,7 @@ npm test
 npm run build
 ```
 
-The Vite development server uses port 8080 and proxies `/rust-api` to the Axum backend on port 3000.
+The Vite development server uses port 8080 and proxies `/api/v1` (plus the deprecated `/rust-api` alias) to the Axum backend on port 3000. The OpenAPI spec is served at `/api/v1/openapi.yaml`.
 
 ## Production model
 

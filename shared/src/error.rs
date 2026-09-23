@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 pub struct ApiError {
     pub code: String,
     pub message: String,
+    /// ID request yang dikorelasikan dengan log server. Diisi middleware
+    /// `x-request-id`; `None` bila ID belum tersedia.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
 }
 
 impl ApiError {
@@ -11,6 +15,7 @@ impl ApiError {
         Self {
             code: code.into(),
             message: message.into(),
+            request_id: None,
         }
     }
 }
@@ -38,5 +43,17 @@ mod tests {
             serde_json::from_str(&json).expect("ApiError harus dapat diparsing");
 
         assert_eq!(restored, error);
+    }
+
+    #[test]
+    fn serializes_request_id_when_present() {
+        let mut error = ApiError::new("invalid_input", "PDF tidak valid.");
+        error.request_id = Some("req-1-000001".to_owned());
+        let json = serde_json::to_string(&error).expect("ApiError harus dapat diserialisasi");
+
+        assert_eq!(
+            json,
+            r#"{"code":"invalid_input","message":"PDF tidak valid.","request_id":"req-1-000001"}"#
+        );
     }
 }

@@ -26,7 +26,7 @@ export function mergePdfs(
   }
 
   return postMultipart(
-    "/rust-api/gabung",
+    "/api/v1/pdf/merge",
     formData,
   );
 }
@@ -39,7 +39,7 @@ export function splitPdf(
   rangeText: string,
 ): Promise<Blob> {
   return postFileWithText(
-    "/rust-api/pisah",
+    "/api/v1/pdf/split",
     file,
     "ranges",
     rangeText,
@@ -54,7 +54,7 @@ export function managePages(
   pageOrder: number[],
 ): Promise<Blob> {
   return postFileWithText(
-    "/rust-api/atur-halaman",
+    "/api/v1/pdf/pages",
     file,
     "pages",
     pageOrder.join(","),
@@ -69,7 +69,7 @@ export function rotatePdf(
   degrees: 90 | 180 | 270,
 ): Promise<Blob> {
   return postFileWithText(
-    "/rust-api/putar",
+    "/api/v1/pdf/rotate",
     file,
     "degrees",
     String(degrees),

@@ -16,7 +16,7 @@ export function compressPdf(
   quality: CompressionQuality,
 ): Promise<Blob> {
   return postFileWithText(
-    "/rust-api/kompres",
+    "/api/v1/pdf/compress",
     file,
     "quality",
     quality,
@@ -31,7 +31,7 @@ export function addWatermark(
   text: string,
 ): Promise<Blob> {
   return postFileWithText(
-    "/rust-api/watermark",
+    "/api/v1/pdf/watermark",
     file,
     "text",
     text,
@@ -45,7 +45,7 @@ export function addPageNumbers(
   file: File | Blob,
 ): Promise<Blob> {
   return postFile(
-    "/rust-api/page-numbers",
+    "/api/v1/pdf/page-numbers",
     file,
   );
 }
