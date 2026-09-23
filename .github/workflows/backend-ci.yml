@@ -23,20 +23,41 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   rust:
     name: Rust validation
     runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
 
       - name: Check toolchain
+        shell: bash
         run: |
+          set -euo pipefail
           cargo --version
           rustc --version
+          rustfmt --version
+          cargo clippy --version
+
+      - name: Cache Cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Verify lockfile
+        run: cargo metadata --locked --format-version=1 >/dev/null
 
       - name: Format
         run: cargo fmt --all -- --check
