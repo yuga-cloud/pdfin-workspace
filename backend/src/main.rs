@@ -141,7 +141,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         // multipart POSTs that would otherwise bypass CORS preflight).
         // Same-origin browser traffic and non-browser clients without the
         // Fetch Metadata/Origin headers remain supported.
-.layer(csrf)
+        .layer(csrf)
         .layer(middleware::from_fn(add_security_headers));
 
     let listener = TcpListener::bind(server_addr).await?.tap_io(|stream| {
