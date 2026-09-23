@@ -1,3 +1,10 @@
-# Review ownership for all repository changes.
-# Configure branch protection / rulesets to require review from this owner.
+# Default ownership
 * @yuga-cloud
+
+# Frontend React changes
+/frontend-react/ @yuga-cloud
+
+# Backend, API contracts, and CI remain owner controlled
+/backend/ @yuga-cloud
+/shared/ @yuga-cloud
+/.github/ @yuga-cloud
