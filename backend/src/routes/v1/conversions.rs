@@ -1,5 +1,6 @@
 use axum::{Json, Router, routing::post};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use shared::{ApiResponse, JobResponse, JobStatus};
 use uuid::Uuid;
 
 use crate::state::AppState;
@@ -10,21 +11,19 @@ struct CreateConversionRequest {
     operation: String,
 }
 
-#[derive(Debug, Serialize)]
-struct ConversionResponse {
-    job_id: Uuid,
-    status: &'static str,
-}
-
 async fn create_conversion(
     Json(payload): Json<CreateConversionRequest>,
-) -> Json<ConversionResponse> {
+) -> Json<ApiResponse<JobResponse>> {
     let _ = payload;
 
-    Json(ConversionResponse {
-        job_id: Uuid::new_v4(),
-        status: "queued",
-    })
+    Json(ApiResponse::success(
+        JobResponse {
+            job_id: Uuid::new_v4(),
+            status: JobStatus::Queued,
+            progress: 0,
+        },
+        Uuid::new_v4(),
+    ))
 }
 
 pub fn routes() -> Router<AppState> {
