@@ -1,4 +1,4 @@
-name: CodeQL
+name: CodeQL Security Analysis
 
 on:
   push:
@@ -7,11 +7,10 @@ on:
     branches: [main]
   schedule:
     - cron: "41 3 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
-  actions: read
-  packages: read
   security-events: write
 
 concurrency:
@@ -41,7 +40,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
-      - name: Build for CodeQL
+      - name: Autobuild
         uses: github/codeql-action/autobuild@faaca9a8f6edddba5725ffe5adefdab6669a2eca # v3
 
       - name: Analyze
