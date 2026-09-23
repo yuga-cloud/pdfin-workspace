@@ -7,9 +7,11 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "**/Cargo.toml"
+      - "**/Cargo.lock"
       - "frontend-react/package.json"
       - "frontend-react/package-lock.json"
       - ".github/workflows/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,15 +19,17 @@ permissions:
 jobs:
   dependency-review:
     name: Dependency vulnerability review
-    # Run on a GitHub-hosted runner once the repository is public. This job
-    # deliberately never uses the privileged self-hosted runner.
     if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Dependency review
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
+          comment-summary-in-pr: always
