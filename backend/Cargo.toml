@@ -5,8 +5,8 @@ edition = "2024"
 
 [dependencies]
 axum = { version = "0.8.9", features = ["multipart"] }
-utoipa = { version = "5", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
+utoipa = { version = "6.0.0", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
 tokio = {
     version = "1.53.1",
