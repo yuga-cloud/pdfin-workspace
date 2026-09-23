@@ -12,7 +12,7 @@ npm ci
 npm run dev
 ```
 
-The frontend uses Vite on port 8080 and proxies `/rust-api` requests to the local Axum backend on port 3000.
+The frontend uses Vite on port 8080 and proxies `/api/v1` requests (plus the deprecated `/rust-api` alias) to the local Axum backend on port 3000.
 
 ## Validation
 

@@ -2,21 +2,24 @@ export type ApiErrorPayload = {
   error?: {
     code?: string;
     message?: string;
+    requestId?: string;
   };
 };
 
 export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
+  readonly requestId?: string;
 
   constructor(
     message: string,
-    options: { code?: string; status: number },
+    options: { code?: string; status: number; requestId?: string },
   ) {
     super(message);
     this.name = "ApiError";
     this.code = options.code ?? "api_error";
     this.status = options.status;
+    this.requestId = options.requestId;
   }
 }
 
@@ -59,6 +62,7 @@ async function parseError(response: Response): Promise<ApiError> {
       return new ApiError(message, {
         code: error?.code,
         status: response.status,
+        requestId: error?.requestId,
       });
     } catch {
       // Fallback ke pesan status HTTP.

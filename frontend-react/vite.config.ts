@@ -9,6 +9,11 @@ import { appEnvPlugin } from "./scripts/app-env-plugin.ts";
 const devPublicHost = process.env.PDFIN_DEV_PUBLIC_HOST?.trim();
 
 const apiProxy = {
+  "/api/v1": {
+    target: "http://127.0.0.1:3000",
+    changeOrigin: true,
+  },
+  // Proxy kompatibilitas untuk endpoint lama (deprecated).
   "/rust-api": {
     target: "http://127.0.0.1:3000",
     changeOrigin: true,

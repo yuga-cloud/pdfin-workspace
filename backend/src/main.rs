@@ -2,6 +2,7 @@ mod engines;
 mod error;
 mod features;
 mod handlers;
+mod middleware;
 mod rate_limit;
 mod routes;
 mod state;
@@ -21,7 +22,7 @@ use axum::{
     extract::DefaultBodyLimit,
     extract::{ConnectInfo, Request, State},
     http::{HeaderValue, header::RETRY_AFTER},
-    middleware::{self, Next},
+    middleware::{self as axum_middleware, Next},
     response::{IntoResponse, Response},
     routing::get,
     serve::ListenerExt,
@@ -129,10 +130,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let app = Router::new()
         .route("/health", get(health))
-        .merge(routes::api_routes().layer(middleware::from_fn_with_state(
-            state.clone(),
-            enforce_rate_limit,
-        )))
+        .merge(
+            routes::api_routes().layer(axum_middleware::from_fn_with_state(
+                state.clone(),
+                enforce_rate_limit,
+            )),
+        )
         .with_state(state)
         .layer(ConcurrencyLimitLayer::new(max_in_flight_requests))
         .layer(DefaultBodyLimit::max(max_request_body_size))
@@ -144,7 +147,13 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .layer(
             TraceLayer::new_for_http()
                 .on_request(|request: &axum::http::Request<_>, _span: &tracing::Span| {
+                    let request_id = request
+                        .extensions()
+                        .get::<crate::middleware::request_id::RequestId>()
+                        .map(|id| id.0.as_str())
+                        .unwrap_or("-");
                     tracing::info!(
+                        request_id,
                         method = %request.method(),
                         uri = %request.uri().path(),
                         "HTTP request masuk"
@@ -168,7 +177,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         // Same-origin browser traffic and non-browser clients without the
         // Fetch Metadata/Origin headers remain supported.
         .layer(csrf)
-        .layer(middleware::from_fn(add_security_headers));
+        .layer(axum_middleware::from_fn(add_security_headers))
+        // Terluar: beri request ID pada semua request/response (header
+        // `x-request-id`) dan sisipkan ke body error JSON.
+        .layer(axum_middleware::from_fn(
+            crate::middleware::request_id::attach_request_id,
+        ));
 
     let listener = TcpListener::bind(server_addr).await?.tap_io(|stream| {
         if let Err(error) = stream.set_nodelay(true) {

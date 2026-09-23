@@ -1,0 +1,532 @@
+openapi: 3.0.3
+info:
+  title: PDFin API
+  version: 1.0.0
+  description: |
+    API publik PDFin versi 1. Semua endpoint operasi dokumen menerima multipart
+    upload (field `file`) dan mengembalikan file hasil langsung (sinkron),
+    bukan job queue.
+
+    Setiap response (sukses maupun error) menyertakan header `x-request-id`
+    untuk korelasi dengan log server; pada response error JSON, request ID
+    yang sama juga disisipkan ke dalam `error.request_id`.
+
+    Endpoint lama `/rust-api/*` masih dipertahankan sebagai alias kompatibilitas
+    dan dianggap *deprecated* — gunakan `/api/v1/*`.
+servers:
+  - url: /api/v1
+tags:
+  - name: PDF
+    description: Operasi pengolahan dokumen PDF (merge, split, halaman, putar, kompres, watermark).
+  - name: Convert
+    description: Konversi antarformat dokumen.
+  - name: Meta
+    description: Kesehatan layanan dan spesifikasi API.
+paths:
+  /health:
+    get:
+      tags: [Meta]
+      summary: Cek kesehatan layanan
+      operationId: getHealth
+      responses:
+        "200":
+          description: Layanan sehat
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+  /openapi.yaml:
+    get:
+      tags: [Meta]
+      summary: Spesifikasi OpenAPI (file ini)
+      operationId: getOpenApi
+      responses:
+        "200":
+          description: Spesifikasi OpenAPI YAML
+          content:
+            application/yaml:
+              schema:
+                type: string
+  /pdf/merge:
+    post:
+      tags: [PDF]
+      summary: Gabungkan beberapa PDF
+      description: Minimal dua file PDF (field `file` dapat diulang, maksimal 32 file, total ≤ 500 MB).
+      operationId: mergePdfs
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: PDF hasil gabungan
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /pdf/split:
+    post:
+      tags: [PDF]
+      summary: Pisahkan PDF berdasarkan rentang halaman
+      operationId: splitPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, ranges]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                ranges:
+                  type: string
+                  description: Rentang halaman, mis. "1-3,5,7-9" (maksimal 64 rentang).
+                  example: 1-3,5,7-9
+      responses:
+        "200":
+          description: Zip berisi PDF hasil pisahan (attachment)
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /pdf/pages:
+    post:
+      tags: [PDF]
+      summary: Atur ulang urutan halaman PDF
+      operationId: managePages
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, pages]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                pages:
+                  type: string
+                  description: Urutan halaman dipisah koma, mis. "3,1,2".
+                  example: "3,1,2"
+      responses:
+        "200":
+          description: PDF dengan urutan halaman baru
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /pdf/rotate:
+    post:
+      tags: [PDF]
+      summary: Putar halaman PDF
+      operationId: rotatePdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, degrees]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                degrees:
+                  type: integer
+                  enum: [90, 180, 270]
+                  description: Sudut rotasi searah jarum jam (default 90).
+      responses:
+        "200":
+          description: PDF hasil rotasi
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /pdf/compress:
+    post:
+      tags: [PDF]
+      summary: Kompres PDF
+      operationId: compressPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                quality:
+                  type: string
+                  enum: [high, medium, low]
+                  description: Kualitas kompresi (default medium).
+      responses:
+        "200":
+          description: PDF terkompres
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /pdf/watermark:
+    post:
+      tags: [PDF]
+      summary: Tambahkan watermark teks ke PDF
+      operationId: addWatermark
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, text]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                text:
+                  type: string
+                  description: Teks watermark (maksimal 1 KB).
+      responses:
+        "200":
+          description: PDF dengan watermark
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /pdf/page-numbers:
+    post:
+      tags: [PDF]
+      summary: Tambahkan nomor halaman ke PDF
+      operationId: addPageNumbers
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: PDF dengan nomor halaman
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /convert/pdf-to-word:
+    post:
+      tags: [Convert]
+      summary: Konversi PDF ke Word (.docx)
+      operationId: pdfToWord
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Dokumen docx hasil konversi
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /convert/pdf-to-excel:
+    post:
+      tags: [Convert]
+      summary: Konversi PDF ke Excel (.xlsx)
+      operationId: pdfToExcel
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Spreadsheet xlsx hasil konversi
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /convert/pdf-to-jpg:
+    post:
+      tags: [Convert]
+      summary: Konversi PDF ke gambar JPG
+      description: Satu file PDF; hasil satu gambar JPG bila PDF satu halaman, atau zip JPG bila banyak halaman.
+      operationId: pdfToJpg
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: JPG (satu halaman) atau zip berisi JPG
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /convert/word-to-pdf:
+    post:
+      tags: [Convert]
+      summary: Konversi Word (.docx) ke PDF
+      operationId: wordToPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: PDF hasil konversi
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /convert/excel-to-pdf:
+    post:
+      tags: [Convert]
+      summary: Konversi Excel (.xlsx) ke PDF
+      operationId: excelToPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: PDF hasil konversi
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /convert/jpg-to-pdf:
+    post:
+      tags: [Convert]
+      summary: Konversi satu atau banyak gambar JPG ke satu PDF
+      operationId: jpgToPdf
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Field `file` dapat diulang untuk banyak gambar.
+      responses:
+        "200":
+          description: PDF hasil konversi
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+components:
+  parameters:
+    RequestId:
+      name: x-request-id
+      in: header
+      schema:
+        type: string
+      description: ID request untuk korelasi dengan log server (dapat dikirim klien, atau dibuatkan otomatis).
+  responses:
+    BadRequest:
+      description: Input tidak valid
+      headers:
+        x-request-id:
+          $ref: "#/components/parameters/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    RateLimited:
+      description: Terlalu banyak request dari IP yang sama
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+        x-request-id:
+          $ref: "#/components/parameters/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    ServiceUnavailable:
+      description: Server sibuk memproses permintaan lain
+      headers:
+        x-request-id:
+          $ref: "#/components/parameters/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: "#/components/schemas/ApiError"
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Kode error bertipe (mis. `invalid_input`, `pdf_busy`, `rate_limited`, `merge_failed`).
+          example: invalid_input
+        message:
+          type: string
+          description: Penjelasan error dalam bahasa Indonesia.
+          example: File PDF tidak valid.
+        request_id:
+          type: string
+          description: ID request untuk korelasi dengan log server; hanya hadir saat tersedia.
+          example: req-1727000000000-000001
