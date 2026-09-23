@@ -3,6 +3,13 @@ name: Public Security Audit
 on:
   push:
     branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "backend/**"
+      - "shared/**"
+      - "frontend-react/**"
+      - ".github/workflows/public-security.yml"
   schedule:
     - cron: "53 3 * * 1"
 
