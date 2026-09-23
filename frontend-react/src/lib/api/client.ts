@@ -136,6 +136,60 @@ export async function postMultipart(
   }
 }
 
+export async function requestJson<T>(
+  endpoint: string,
+  init: RequestInit = {},
+  timeoutMs = DEFAULT_API_TIMEOUT_MS,
+): Promise<T> {
+  if (!endpoint.trim()) {
+    throw new ApiError("Endpoint API tidak valid.", {
+      status: 0,
+      code: "invalid_endpoint",
+    });
+  }
+
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new ApiError("Timeout API tidak valid.", {
+      status: 0,
+      code: "invalid_timeout",
+    });
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(endpoint, {
+      ...init,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw await parseError(response);
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError("Request terlalu lama dan dihentikan.", {
+        status: 0,
+        code: "request_timeout",
+      });
+    }
+
+    throw new ApiError("Tidak dapat terhubung ke server.", {
+      status: 0,
+      code: "network_error",
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function postFile(
   endpoint: string,
   file: File | Blob,
