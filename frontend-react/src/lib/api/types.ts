@@ -32,10 +32,10 @@ export type PdfOperation =
   | "page-numbers"
   | "pdf-to-word"
   | "pdf-to-excel"
-  | "pdf-to-power-point"
+  | "pdf-to-powerpoint"
   | "word-to-pdf"
   | "excel-to-pdf"
-  | "power-point-to-pdf"
+  | "powerpoint-to-pdf"
   | "jpg-to-pdf"
   | "pdf-to-jpg";
 
