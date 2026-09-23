@@ -1,20 +1,18 @@
 use axum::{extract::Path, Json, Router, routing::get};
-use serde::Serialize;
+use shared::{ApiResponse, JobResponse, JobStatus};
 use uuid::Uuid;
 
 use crate::state::AppState;
 
-#[derive(Debug, Serialize)]
-struct JobResponse {
-    job_id: Uuid,
-    status: &'static str,
-}
-
-async fn get_job(Path(id): Path<Uuid>) -> Json<JobResponse> {
-    Json(JobResponse {
-        job_id: id,
-        status: "queued",
-    })
+async fn get_job(Path(id): Path<Uuid>) -> Json<ApiResponse<JobResponse>> {
+    Json(ApiResponse::success(
+        JobResponse {
+            job_id: id,
+            status: JobStatus::Queued,
+            progress: 0,
+        },
+        Uuid::new_v4(),
+    ))
 }
 
 pub fn routes() -> Router<AppState> {
