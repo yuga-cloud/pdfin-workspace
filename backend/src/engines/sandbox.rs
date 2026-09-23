@@ -23,10 +23,6 @@ impl SandboxMode {
     }
 }
 
-pub fn mode() -> SandboxMode {
-    SandboxMode::parse(std::env::var("PDFIN_PARSER_SANDBOX").ok().as_deref())
-}
-
 pub fn ensure_ready() -> Result<(), String> {
     match SandboxMode::parse(std::env::var("PDFIN_PARSER_SANDBOX").ok().as_deref()) {
         SandboxMode::Disabled => {

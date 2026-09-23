@@ -2,6 +2,10 @@ use std::{
     fs::{self, File},
     io::{Read, Seek, SeekFrom, Write},
     path::Path,
+};
+
+#[cfg(not(test))]
+use std::{
     process::Stdio,
     thread,
     time::{Duration, Instant},
@@ -26,8 +30,10 @@ const MAX_WORD_TEXT_BYTES: usize = 64 * 1024;
 const MAX_TOTAL_WORD_TEXT_BYTES: usize = 64 * 1024 * 1024;
 const MAX_PDFIUM_OBJECTS: usize = 750_000;
 
+#[cfg(not(test))]
 const PDFIUM_WORKER_TIMEOUT: Duration = Duration::from_secs(120);
 const MAX_PDFIUM_WORKER_OUTPUT_BYTES: usize = 64 * 1024 * 1024;
+#[cfg(not(test))]
 const MAX_PDFIUM_WORKER_STDERR_BYTES: usize = 16 * 1024;
 
 fn append_word_char(
@@ -70,7 +76,7 @@ struct PdfWordWire {
 pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> {
     #[cfg(test)]
     {
-        return extract_pdf_words_in_process(pdf_bytes);
+        extract_pdf_words_in_process(pdf_bytes)
     }
 
     #[cfg(not(test))]
@@ -196,10 +202,10 @@ pub fn run_pdfium_worker(input_path: &Path, output_path: &Path) -> Result<(), St
     validate_pdfium_input(&pdf_bytes)?;
 
     let pages = extract_pdf_words_in_process(&pdf_bytes)?;
-    if let Ok(metadata) = fs::symlink_metadata(output_path) {
-        if !metadata.file_type().is_file() {
-            return Err("Output worker PDFium bukan regular file".to_owned());
-        }
+    if let Ok(metadata) = fs::symlink_metadata(output_path)
+        && !metadata.file_type().is_file()
+    {
+        return Err("Output worker PDFium bukan regular file".to_owned());
     }
 
     let output_file = File::create(output_path)

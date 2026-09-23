@@ -252,53 +252,26 @@ fn validate_pdf_signature(bytes: &[u8]) -> Result<(), String> {
 }
 #[cfg(test)]
 mod tests {
-    use lopdf::{Dictionary, Object};
+    use lopdf::{Dictionary, Document, Object};
 
     use super::{validate_pdf_page_dimensions, validate_pdf_render_dimensions};
 
     #[test]
     fn accepts_large_page_for_non_raster_processing() {
-        let mut document = lopdf::Document::with_version("1.7");
-        let pages_id = document.new_object_id();
-        let page_id = document.new_object_id();
-
-        document.objects.insert(
-            pages_id,
-            Dictionary::from_iter([
-                (b"Type".to_vec(), Object::Name(b"Pages".to_vec())),
-                (
-                    b"Kids".to_vec(),
-                    Object::Array(vec![Object::Reference(page_id)]),
-                ),
-                (b"Count".to_vec(), Object::Integer(1)),
-                (
-                    b"MediaBox".to_vec(),
-                    Object::Array(vec![
-                        Object::Integer(0),
-                        Object::Integer(0),
-                        Object::Integer(20_000),
-                        Object::Integer(20_000),
-                    ]),
-                ),
-            ])
-            .into(),
-        );
-
-        document.objects.insert(
-            page_id,
-            Dictionary::from_iter([
-                (b"Type".to_vec(), Object::Name(b"Page".to_vec())),
-                (b"Parent".to_vec(), Object::Reference(pages_id)),
-            ])
-            .into(),
-        );
-
+        let document = test_document([0, 0, 20_000, 20_000]);
         assert!(validate_pdf_page_dimensions(&document).is_ok());
     }
 
     #[test]
     fn rejects_oversized_render_page() {
-        let mut document = lopdf::Document::with_version("1.7");
+        let document = test_document([0, 0, 100_000, 100]);
+        assert!(validate_pdf_render_dimensions(&document, 150, 50_000_000).is_err());
+        assert!(validate_pdf_page_dimensions(&document).is_err());
+    }
+
+    fn test_document(media_box: [i64; 4]) -> Document {
+        let mut document = Document::with_version("1.7");
+        let catalog_id = document.new_object_id();
         let pages_id = document.new_object_id();
         let page_id = document.new_object_id();
 
@@ -313,12 +286,13 @@ mod tests {
                 (b"Count".to_vec(), Object::Integer(1)),
                 (
                     b"MediaBox".to_vec(),
-                    Object::Array(vec![
-                        Object::Integer(0),
-                        Object::Integer(0),
-                        Object::Integer(100_000),
-                        Object::Integer(100),
-                    ]),
+                    Object::Array(
+                        media_box
+                            .iter()
+                            .copied()
+                            .map(Object::Integer)
+                            .collect::<Vec<_>>(),
+                    ),
                 ),
             ])
             .into(),
@@ -333,6 +307,16 @@ mod tests {
             .into(),
         );
 
-        assert!(validate_pdf_render_dimensions(&document, 150, 50_000_000).is_err());
+        document.objects.insert(
+            catalog_id,
+            Dictionary::from_iter([
+                (b"Type".to_vec(), Object::Name(b"Catalog".to_vec())),
+                (b"Pages".to_vec(), Object::Reference(pages_id)),
+            ])
+            .into(),
+        );
+
+        document.trailer.set("Root", catalog_id);
+        document
     }
 }

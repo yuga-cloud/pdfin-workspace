@@ -37,14 +37,6 @@ impl AppError {
         }
     }
 
-    pub fn not_implemented(code: impl Into<String>, message: impl Into<String>) -> Self {
-        Self {
-            status: StatusCode::NOT_IMPLEMENTED,
-            code: code.into(),
-            message: message.into(),
-        }
-    }
-
     pub fn service_unavailable(code: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::SERVICE_UNAVAILABLE,
