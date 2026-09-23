@@ -2,10 +2,10 @@ use axum::{extract::Path, Json, Router, routing::{get, post}};
 use shared::{ApiResponse, FileMetadata, UploadResponse};
 use uuid::Uuid;
 
-use crate::state::AppState;
+use crate::{error::AppError, state::AppState};
 
-async fn upload_files() -> Json<ApiResponse<UploadResponse>> {
-    Json(ApiResponse::success(
+async fn upload_files() -> Result<Json<ApiResponse<UploadResponse>>, AppError> {
+    Ok(Json(ApiResponse::success(
         UploadResponse {
             files: vec![FileMetadata {
                 id: Uuid::new_v4(),
@@ -16,11 +16,18 @@ async fn upload_files() -> Json<ApiResponse<UploadResponse>> {
             }],
         },
         Uuid::new_v4(),
-    ))
+    )))
 }
 
-async fn get_file(Path(id): Path<Uuid>) -> Json<ApiResponse<FileMetadata>> {
-    Json(ApiResponse::success(
+async fn get_file(Path(id): Path<Uuid>) -> Result<Json<ApiResponse<FileMetadata>>, AppError> {
+    if id.is_nil() {
+        return Err(AppError::bad_request(
+            "INVALID_FILE_ID",
+            "File id tidak valid",
+        ));
+    }
+
+    Ok(Json(ApiResponse::success(
         FileMetadata {
             id,
             filename: "placeholder.pdf".to_string(),
@@ -29,7 +36,7 @@ async fn get_file(Path(id): Path<Uuid>) -> Json<ApiResponse<FileMetadata>> {
             status: shared::FileStatus::Ready,
         },
         Uuid::new_v4(),
-    ))
+    )))
 }
 
 pub fn routes() -> Router<AppState> {
