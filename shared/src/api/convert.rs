@@ -5,6 +5,6 @@ use crate::PdfOperation;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConvertRequest {
-    pub file_id: Uuid,
+    pub file_ids: Vec<Uuid>,
     pub operation: PdfOperation,
 }
