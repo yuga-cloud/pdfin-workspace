@@ -1,6 +1,7 @@
 name: Public Security Audit
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   schedule:
@@ -13,9 +14,13 @@ concurrency:
   group: public-security-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+  NPM_CONFIG_AUDIT: "true"
+
 jobs:
   audit:
-    name: Dependency audit (GitHub-hosted)
+    name: Public dependency security audit
     if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +38,7 @@ jobs:
           cargo --version
           rustc --version
 
-      - name: Verify committed Cargo.lock
+      - name: Verify locked Rust dependency graph
         run: cargo metadata --locked --format-version=1 >/dev/null
 
       - name: Install cargo-audit
@@ -41,7 +46,7 @@ jobs:
         with:
           tool: cargo-audit
 
-      - name: Cargo audit
+      - name: Audit Rust dependencies
         run: cargo audit
 
       - name: Require committed npm lockfile
@@ -49,15 +54,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f package-lock.json || {
-            echo "::error::frontend-react/package-lock.json is required for public security auditing."
-            exit 1
-          }
+          test -f package-lock.json
 
-      - name: Install frontend dependencies without lifecycle scripts
+      - name: Install frontend dependencies
         working-directory: frontend-react
         run: npm ci --ignore-scripts
 
-      - name: npm audit
+      - name: Audit npm dependencies
         working-directory: frontend-react
         run: npm audit --audit-level=high
