@@ -1,0 +1,26 @@
+name: Cargo Deny
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/backend-api-v1
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-deny:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
