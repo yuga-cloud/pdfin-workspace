@@ -1,30 +1,35 @@
 use axum::{extract::Path, Json, Router, routing::{get, post}};
-use serde::Serialize;
+use shared::{ApiResponse, FileMetadata, UploadResponse};
 use uuid::Uuid;
 
 use crate::state::AppState;
 
-#[derive(Debug, Serialize)]
-struct FileResponse {
-    id: Uuid,
-    filename: String,
-    size: u64,
+async fn upload_files() -> Json<ApiResponse<UploadResponse>> {
+    Json(ApiResponse::success(
+        UploadResponse {
+            files: vec![FileMetadata {
+                id: Uuid::new_v4(),
+                filename: "placeholder.pdf".to_string(),
+                size: 0,
+                mime: "application/pdf".to_string(),
+                status: shared::FileStatus::Uploaded,
+            }],
+        },
+        Uuid::new_v4(),
+    ))
 }
 
-async fn upload_files() -> Json<FileResponse> {
-    Json(FileResponse {
-        id: Uuid::new_v4(),
-        filename: "placeholder.pdf".to_string(),
-        size: 0,
-    })
-}
-
-async fn get_file(Path(id): Path<Uuid>) -> Json<FileResponse> {
-    Json(FileResponse {
-        id,
-        filename: "placeholder.pdf".to_string(),
-        size: 0,
-    })
+async fn get_file(Path(id): Path<Uuid>) -> Json<ApiResponse<FileMetadata>> {
+    Json(ApiResponse::success(
+        FileMetadata {
+            id,
+            filename: "placeholder.pdf".to_string(),
+            size: 0,
+            mime: "application/pdf".to_string(),
+            status: shared::FileStatus::Ready,
+        },
+        Uuid::new_v4(),
+    ))
 }
 
 pub fn routes() -> Router<AppState> {
