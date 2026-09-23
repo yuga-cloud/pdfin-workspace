@@ -4,6 +4,7 @@ use crate::state::AppState;
 
 pub mod conversions;
 pub mod files;
+pub mod health;
 pub mod jobs;
 
 pub fn routes() -> Router<AppState> {
@@ -11,4 +12,5 @@ pub fn routes() -> Router<AppState> {
         .merge(files::routes())
         .merge(conversions::routes())
         .merge(jobs::routes())
+        .merge(health::routes())
 }
