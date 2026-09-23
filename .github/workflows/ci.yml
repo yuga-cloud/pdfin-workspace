@@ -148,7 +148,10 @@ jobs:
   system-integration:
     name: System dependency smoke tests
     needs: changes
-    timeout-minutes: 10
+    # Kompilasi dingin `cargo test -p backend --all-features` (pdfium, ureq,
+    # hyper, ...) butuh >10 menit di runner; 10 menit hanya memangkas build.
+    # 30 menit cukup untuk cold build + dua tes smoke.
+    timeout-minutes: 30
     if: needs.changes.outputs.system-deps == 'true' && (github.event_name != 'pull_request' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: [self-hosted, linux, x64]
     steps:
