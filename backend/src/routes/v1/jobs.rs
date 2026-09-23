@@ -1,4 +1,4 @@
-use axum::{extract::Path, Json, Router, routing::get};
+use axum::{Json, Router, extract::Path, routing::get};
 use shared::{ApiResponse, JobResponse, JobStatus};
 use uuid::Uuid;
 
@@ -16,6 +16,5 @@ async fn get_job(Path(id): Path<Uuid>) -> Json<ApiResponse<JobResponse>> {
 }
 
 pub fn routes() -> Router<AppState> {
-    Router::new()
-        .route("/jobs/:id", get(get_job))
+    Router::new().route("/jobs/:id", get(get_job))
 }

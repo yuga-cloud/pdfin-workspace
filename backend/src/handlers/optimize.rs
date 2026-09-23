@@ -167,54 +167,57 @@ async fn read_watermark_request(
                 }
 
                 match field.name().unwrap_or_default() {
-                "file" => {
-                    if file.is_some() {
-                        return Err(AppError::bad_request(
-                            "duplicate_file",
-                            "Field file hanya boleh dikirim sekali",
-                        ));
+                    "file" => {
+                        if file.is_some() {
+                            return Err(AppError::bad_request(
+                                "duplicate_file",
+                                "Field file hanya boleh dikirim sekali",
+                            ));
+                        }
+                        file = Some(stream_pdf_field(field).await?);
                     }
-                    file = Some(stream_pdf_field(field).await?);
-                }
-                "text" => {
-                    if text.is_some() {
-                        return Err(AppError::bad_request(
-                            "duplicate_watermark",
-                            "Field text hanya boleh dikirim sekali",
-                        ));
+                    "text" => {
+                        if text.is_some() {
+                            return Err(AppError::bad_request(
+                                "duplicate_watermark",
+                                "Field text hanya boleh dikirim sekali",
+                            ));
+                        }
+
+                        let value = field.text().await.map_err(|error| {
+                            error!(%error, "Gagal membaca teks watermark");
+                            AppError::bad_request(
+                                "invalid_watermark",
+                                "Gagal membaca teks watermark",
+                            )
+                        })?;
+
+                        if value.trim().is_empty() {
+                            return Err(AppError::bad_request(
+                                "invalid_watermark",
+                                "Teks watermark tidak boleh kosong",
+                            ));
+                        }
+
+                        if value.len() > MAX_WATERMARK_TEXT_BYTES {
+                            return Err(AppError::bad_request(
+                                "invalid_watermark",
+                                "Teks watermark melebihi batas maksimum (1024 byte)",
+                            ));
+                        }
+
+                        if !value.is_ascii() {
+                            return Err(AppError::bad_request(
+                                "invalid_watermark",
+                                "Teks watermark saat ini hanya mendukung karakter ASCII",
+                            ));
+                        }
+
+                        text = Some(value);
                     }
-
-                    let value = field.text().await.map_err(|error| {
-                        error!(%error, "Gagal membaca teks watermark");
-                        AppError::bad_request("invalid_watermark", "Gagal membaca teks watermark")
-                    })?;
-
-                    if value.trim().is_empty() {
-                        return Err(AppError::bad_request(
-                            "invalid_watermark",
-                            "Teks watermark tidak boleh kosong",
-                        ));
-                    }
-
-                    if value.len() > MAX_WATERMARK_TEXT_BYTES {
-                        return Err(AppError::bad_request(
-                            "invalid_watermark",
-                            "Teks watermark melebihi batas maksimum (1024 byte)",
-                        ));
-                    }
-
-                    if !value.is_ascii() {
-                        return Err(AppError::bad_request(
-                            "invalid_watermark",
-                            "Teks watermark saat ini hanya mendukung karakter ASCII",
-                        ));
-                    }
-
-                    text = Some(value);
-                }
                     _ => {}
                 }
-            },
+            }
             Ok(None) => break,
             Err(error) => {
                 error!(%error, "Gagal membaca multipart request");

@@ -1,4 +1,8 @@
-use axum::{extract::Path, Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    extract::Path,
+    routing::{get, post},
+};
 use shared::{ApiResponse, FileMetadata, UploadResponse};
 use uuid::Uuid;
 

@@ -34,6 +34,5 @@ async fn create_conversion(
 }
 
 pub fn routes() -> Router<AppState> {
-    Router::new()
-        .route("/conversions", post(create_conversion))
+    Router::new().route("/conversions", post(create_conversion))
 }
