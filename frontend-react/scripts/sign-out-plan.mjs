@@ -7,7 +7,7 @@
  * The two environments authenticate differently, so they need different
  * answers to "the server did not reply":
  *
- * - **Live preview**  -  a partitioned iframe with no readable session cookie;
+ * - **Live preview**  -  a sandboxed preview frame with no readable session cookie;
  *   the session rides the bearer token in `sessionStorage`. Dropping that token
  *   IS being signed out, so the server call is best effort and a wedged request
  *   must never strand the button. This is where the hang actually happens.

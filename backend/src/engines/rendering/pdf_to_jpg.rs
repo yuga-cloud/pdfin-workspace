@@ -2,12 +2,15 @@ use std::{
     fs::{self, File},
     io::{Read, Seek, SeekFrom},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Stdio,
     thread,
     time::{Duration, Instant},
 };
 
-use crate::engines::{common::validate_input, pdf::common::load_pdf_document};
+use crate::engines::{
+    common::validate_input,
+    pdf::common::{load_pdf_document, validate_pdf_render_dimensions},
+};
 
 const MAX_RENDER_PAGES: usize = 100;
 const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
@@ -31,6 +34,11 @@ pub fn pdf_to_jpg(pdf_bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     if page_count == 0 {
         return Err("PDF tidak memiliki halaman".to_owned());
     }
+
+    validate_pdf_render_dimensions(&document, 150, 50_000_000)
+        .map_err(|error| format!("PDF ditolak sebelum render JPG: {error}"))?;
+
+    drop(document);
 
     if page_count > MAX_RENDER_PAGES {
         return Err(format!(
@@ -96,7 +104,7 @@ fn run_pdftocairo(
     let stderr_file = File::create(stderr_path)
         .map_err(|error| format!("Gagal membuat log pdftocairo: {error}"))?;
 
-    let mut child = Command::new("pdftocairo")
+    let mut child = crate::engines::sandbox::command("pdftocairo", output_dir)?
         .arg("-jpeg")
         .arg("-r")
         .arg("150")
@@ -184,9 +192,12 @@ fn rendered_output_usage(dir: &Path) -> Result<(usize, u64), String> {
         page_count = page_count
             .checked_add(1)
             .ok_or_else(|| "Jumlah hasil render melebihi kapasitas numerik".to_owned())?;
-        let size = fs::metadata(&path)
-            .map_err(|error| format!("Gagal membaca ukuran hasil render JPG: {error}"))?
-            .len();
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|error| format!("Gagal membaca metadata hasil render JPG: {error}"))?;
+        if !metadata.file_type().is_file() {
+            return Err("Hasil render JPG bukan regular file".to_owned());
+        }
+        let size = metadata.len();
 
         if size > MAX_OUTPUT_FILE_SIZE_BYTES as u64 {
             return Err(format!(

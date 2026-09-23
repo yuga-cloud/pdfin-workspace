@@ -1,3 +1,18 @@
+use std::{
+    fs::{self, File},
+    io::{Read, Seek, SeekFrom, Write},
+    path::Path,
+};
+
+#[cfg(not(test))]
+use std::{
+    process::Stdio,
+    thread,
+    time::{Duration, Instant},
+};
+
+use serde::{Deserialize, Serialize};
+
 use super::model::PdfWord;
 
 const WORD_GAP_FACTOR: f32 = 0.55;
@@ -11,14 +26,320 @@ const MAX_PDFIUM_INPUT_BYTES: usize = 100 * 1024 * 1024;
 const MAX_EXTRACTION_PAGES: usize = 1_000;
 const MAX_WORDS_PER_PAGE: usize = 50_000;
 const MAX_WORDS_PER_DOCUMENT: usize = 250_000;
+const MAX_WORD_TEXT_BYTES: usize = 64 * 1024;
+const MAX_TOTAL_WORD_TEXT_BYTES: usize = 64 * 1024 * 1024;
+const MAX_PDFIUM_OBJECTS: usize = 750_000;
+
+#[cfg(not(test))]
+const PDFIUM_WORKER_TIMEOUT: Duration = Duration::from_secs(120);
+const MAX_PDFIUM_WORKER_OUTPUT_BYTES: usize = 64 * 1024 * 1024;
+#[cfg(not(test))]
+const MAX_PDFIUM_WORKER_STDERR_BYTES: usize = 16 * 1024;
+
+fn append_word_char(
+    text: &mut String,
+    value: char,
+    total_text_bytes: &mut usize,
+) -> Result<(), String> {
+    let value_len = value.len_utf8();
+    let next_len = text.len().saturating_add(value_len);
+    if next_len > MAX_WORD_TEXT_BYTES {
+        return Err(format!(
+            "Text word PDF melebihi batas maksimum ({} KiB)",
+            MAX_WORD_TEXT_BYTES / 1024
+        ));
+    }
+
+    *total_text_bytes = total_text_bytes
+        .checked_add(value_len)
+        .ok_or_else(|| "Total text PDF terlalu besar".to_owned())?;
+    if *total_text_bytes > MAX_TOTAL_WORD_TEXT_BYTES {
+        return Err(format!(
+            "Total text hasil ekstraksi PDF melebihi batas maksimum ({} MiB)",
+            MAX_TOTAL_WORD_TEXT_BYTES / 1024 / 1024
+        ));
+    }
+
+    text.push(value);
+    Ok(())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct PdfWordWire {
+    text: String,
+    left: f32,
+    right: f32,
+    top: f32,
+    bottom: f32,
+}
 
 pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> {
+    #[cfg(test)]
+    {
+        extract_pdf_words_in_process(pdf_bytes)
+    }
+
+    #[cfg(not(test))]
+    {
+        extract_pdf_words_via_worker(pdf_bytes)
+    }
+}
+
+#[cfg(not(test))]
+fn extract_pdf_words_via_worker(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> {
+    let expected_pages = validate_pdfium_input(pdf_bytes)?;
+
+    let temp_dir = tempfile::tempdir()
+        .map_err(|error| format!("Gagal membuat temporary directory PDFium: {error}"))?;
+    let input_path = temp_dir.path().join("input.pdf");
+    let output_path = temp_dir.path().join("output.json");
+    let stderr_path = temp_dir.path().join("worker.stderr");
+
+    fs::write(&input_path, pdf_bytes)
+        .map_err(|error| format!("Gagal menulis input worker PDFium: {error}"))?;
+
+    let executable = std::env::current_exe()
+        .map_err(|error| format!("Gagal menemukan executable worker PDFium: {error}"))?;
+    let executable_str = executable
+        .to_str()
+        .ok_or_else(|| "Path executable worker PDFium bukan UTF-8 yang valid.".to_owned())?;
+    let executable_dir = executable
+        .parent()
+        .ok_or_else(|| "Direktori executable worker PDFium tidak valid.".to_owned())?;
+
+    let pdfium_path = pdfium_bundled::ensure_pdfium_library(None)
+        .map_err(|error| format!("Gagal menyiapkan library PDFium: {error}"))?;
+
+    let stderr_file = File::create(&stderr_path)
+        .map_err(|error| format!("Gagal membuat log worker PDFium: {error}"))?;
+
+    let mut child = crate::engines::sandbox::command_with_read_only_paths_and_env(
+        executable_str,
+        temp_dir.path(),
+        &[executable_dir, pdfium_path.as_path()],
+        &[("PDFIUM_LIB_PATH", pdfium_path.as_os_str())],
+    )?
+    .arg("--pdfium-worker")
+    .arg(&input_path)
+    .arg(&output_path)
+    .stdin(Stdio::null())
+    .stdout(Stdio::null())
+    .stderr(Stdio::from(stderr_file))
+    .spawn()
+    .map_err(|error| format!("Gagal menjalankan worker PDFium: {error}"))?;
+
+    let deadline = Instant::now() + PDFIUM_WORKER_TIMEOUT;
+    loop {
+        if file_size_exceeds(&output_path, MAX_PDFIUM_WORKER_OUTPUT_BYTES) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!(
+                "Output worker PDFium melebihi batas maksimum ({} MiB)",
+                MAX_PDFIUM_WORKER_OUTPUT_BYTES / 1024 / 1024
+            ));
+        }
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    let stderr = read_limited_file(&stderr_path, MAX_PDFIUM_WORKER_STDERR_BYTES)
+                        .unwrap_or_default();
+                    return Err(format!(
+                        "Worker PDFium gagal dengan status {status}: {}",
+                        String::from_utf8_lossy(&stderr).trim()
+                    ));
+                }
+                break;
+            }
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "Worker PDFium melebihi batas waktu {} detik",
+                    PDFIUM_WORKER_TIMEOUT.as_secs()
+                ));
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(25)),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("Gagal memantau worker PDFium: {error}"));
+            }
+        }
+    }
+
+    let output = read_limited_file(&output_path, MAX_PDFIUM_WORKER_OUTPUT_BYTES)?;
+    let pages: Vec<Vec<PdfWordWire>> = serde_json::from_slice(&output)
+        .map_err(|error| format!("Output worker PDFium tidak valid: {error}"))?;
+
+    if pages.len() != expected_pages {
+        return Err(format!(
+            "Worker PDFium mengembalikan jumlah halaman {} dari yang diharapkan {}",
+            pages.len(),
+            expected_pages
+        ));
+    }
+
+    let total_words: usize = pages.iter().map(Vec::len).sum();
+    if total_words > MAX_WORDS_PER_DOCUMENT {
+        return Err(format!(
+            "Jumlah total word PDFium melebihi batas maksimum ({MAX_WORDS_PER_DOCUMENT})"
+        ));
+    }
+
+    Ok(pages
+        .into_iter()
+        .map(|page| {
+            page.into_iter()
+                .map(|word| PdfWord::new(word.text, word.left, word.right, word.top, word.bottom))
+                .collect()
+        })
+        .collect())
+}
+
+pub fn run_pdfium_worker(input_path: &Path, output_path: &Path) -> Result<(), String> {
+    let pdf_bytes = read_limited_file(input_path, MAX_PDFIUM_INPUT_BYTES)?;
+    validate_pdfium_input(&pdf_bytes)?;
+
+    let pages = extract_pdf_words_in_process(&pdf_bytes)?;
+    if let Ok(metadata) = fs::symlink_metadata(output_path)
+        && !metadata.file_type().is_file()
+    {
+        return Err("Output worker PDFium bukan regular file".to_owned());
+    }
+
+    let output_file = File::create(output_path)
+        .map_err(|error| format!("Gagal membuat output worker PDFium: {error}"))?;
+    let mut output_file = std::io::BufWriter::new(output_file);
+
+    let wire_pages: Vec<Vec<PdfWordWire>> = pages
+        .into_iter()
+        .map(|page| {
+            page.into_iter()
+                .map(|word| PdfWordWire {
+                    text: word.text,
+                    left: word.left,
+                    right: word.right,
+                    top: word.top,
+                    bottom: word.bottom,
+                })
+                .collect()
+        })
+        .collect();
+
+    serde_json::to_writer(&mut output_file, &wire_pages)
+        .map_err(|error| format!("Gagal menulis output worker PDFium: {error}"))?;
+    output_file
+        .flush()
+        .map_err(|error| format!("Gagal flush output worker PDFium: {error}"))?;
+
+    if file_size_exceeds(output_path, MAX_PDFIUM_WORKER_OUTPUT_BYTES) {
+        return Err(format!(
+            "Output worker PDFium melebihi batas maksimum ({} MiB)",
+            MAX_PDFIUM_WORKER_OUTPUT_BYTES / 1024 / 1024
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_pdfium_input(pdf_bytes: &[u8]) -> Result<usize, String> {
     if pdf_bytes.len() > MAX_PDFIUM_INPUT_BYTES {
         return Err(format!(
             "PDF terlalu besar untuk ekstraksi PDFium (maksimum {} MiB)",
             MAX_PDFIUM_INPUT_BYTES / 1024 / 1024
         ));
     }
+
+    let preflight = crate::engines::pdf::common::load_pdf_document(pdf_bytes)
+        .map_err(|error| format!("Gagal membaca PDF sebelum ekstraksi PDFium: {error}"))?;
+
+    let page_count = preflight.get_pages().len();
+    if page_count > MAX_EXTRACTION_PAGES {
+        return Err(format!(
+            "Jumlah halaman PDF melebihi batas ekstraksi ({MAX_EXTRACTION_PAGES})"
+        ));
+    }
+
+    if preflight.objects.len() > MAX_PDFIUM_OBJECTS {
+        return Err(format!(
+            "Jumlah object PDF melebihi batas ekstraksi PDFium ({MAX_PDFIUM_OBJECTS})"
+        ));
+    }
+
+    crate::engines::pdf::common::validate_pdf_page_dimensions(&preflight)
+        .map_err(|error| format!("PDF ditolak sebelum ekstraksi PDFium: {error}"))?;
+
+    Ok(page_count)
+}
+
+fn file_size_exceeds(path: &Path, limit: usize) -> bool {
+    fs::metadata(path)
+        .map(|metadata| metadata.len() > limit as u64)
+        .unwrap_or(false)
+}
+
+fn read_limited_file(path: &Path, limit: usize) -> Result<Vec<u8>, String> {
+    let metadata = fs::symlink_metadata(path).map_err(|error| {
+        format!(
+            "Gagal membaca metadata file worker {}: {error}",
+            path.display()
+        )
+    })?;
+    if !metadata.file_type().is_file() {
+        return Err(format!("File worker {} bukan regular file", path.display()));
+    }
+
+    let mut file = File::open(path)
+        .map_err(|error| format!("Gagal membaca file worker {}: {error}", path.display()))?;
+    file.seek(SeekFrom::Start(0))
+        .map_err(|error| format!("Gagal seek file worker: {error}"))?;
+
+    let mut bytes = Vec::new();
+    let limit_u64 = limit as u64;
+    let mut limited = (&mut file).take(limit_u64.saturating_add(1));
+    limited
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("Gagal membaca file worker: {error}"))?;
+
+    if bytes.len() > limit {
+        return Err(format!(
+            "File worker melebihi batas maksimum ({} MiB)",
+            limit / 1024 / 1024
+        ));
+    }
+
+    Ok(bytes)
+}
+
+fn extract_pdf_words_in_process(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> {
+    if pdf_bytes.len() > MAX_PDFIUM_INPUT_BYTES {
+        return Err(format!(
+            "PDF terlalu besar untuk ekstraksi PDFium (maksimum {} MiB)",
+            MAX_PDFIUM_INPUT_BYTES / 1024 / 1024
+        ));
+    }
+
+    let preflight = crate::engines::pdf::common::load_pdf_document(pdf_bytes)
+        .map_err(|error| format!("Gagal membaca PDF sebelum ekstraksi PDFium: {error}"))?;
+
+    let page_count = preflight.get_pages().len();
+    if page_count > MAX_EXTRACTION_PAGES {
+        return Err(format!(
+            "Jumlah halaman PDF melebihi batas ekstraksi ({MAX_EXTRACTION_PAGES})"
+        ));
+    }
+
+    if preflight.objects.len() > MAX_PDFIUM_OBJECTS {
+        return Err(format!(
+            "Jumlah object PDF melebihi batas ekstraksi PDFium ({MAX_PDFIUM_OBJECTS})"
+        ));
+    }
+
+    crate::engines::pdf::common::validate_pdf_page_dimensions(&preflight)
+        .map_err(|error| format!("PDF ditolak sebelum ekstraksi PDFium: {error}"))?;
+
+    drop(preflight);
 
     let pdfium = pdfium_bundled::bind_pdfium_silent()
         .map_err(|error| format!("Gagal memuat PDFium: {error}"))?;
@@ -81,6 +402,7 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
         let chars = text.chars();
 
         let mut words = Vec::new();
+        let mut total_text_bytes = 0usize;
 
         let mut current_text = String::new();
 
@@ -111,7 +433,7 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
                      * tidak ikut memperluas bounding box.
                      */
                     if !current_text.is_empty() {
-                        current_text.push(value);
+                        append_word_char(&mut current_text, value, &mut total_text_bytes)?;
                     }
 
                     continue;
@@ -156,7 +478,7 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
              * langsung mulai word baru.
              */
             let Some(previous_right_value) = previous_right else {
-                current_text.push(value);
+                append_word_char(&mut current_text, value, &mut total_text_bytes)?;
 
                 current_left = left;
                 current_right = right;
@@ -204,14 +526,14 @@ pub fn extract_pdf_words(pdf_bytes: &[u8]) -> Result<Vec<Vec<PdfWord>>, String> 
                     &mut current_bottom,
                 );
 
-                current_text.push(value);
+                append_word_char(&mut current_text, value, &mut total_text_bytes)?;
 
                 current_left = left;
                 current_right = right;
                 current_top = top;
                 current_bottom = bottom;
             } else {
-                current_text.push(value);
+                append_word_char(&mut current_text, value, &mut total_text_bytes)?;
 
                 current_right = current_right.max(right);
                 current_top = current_top.min(top);

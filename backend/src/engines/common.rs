@@ -178,14 +178,15 @@ fn validate_office_zip(
             return Err(format!("Nama/metadata entry ZIP {format} tidak valid"));
         }
 
+        let extra = &bytes[name_end..extra_end];
+        if contains_zip64_extra_field(extra) {
+            return Err(format!("ZIP64 untuk {format} tidak didukung"));
+        }
+
         let name = str::from_utf8(&bytes[name_start..name_end])
             .map_err(|_| format!("Nama entry ZIP {format} bukan UTF-8 yang valid"))?;
 
-        if name.starts_with('/')
-            || name.starts_with('\\')
-            || name.contains("../")
-            || name.contains("..\\")
-        {
+        if has_dangerous_zip_path(name) {
             return Err(format!("Entry ZIP {format} memiliki path berbahaya"));
         }
 
@@ -238,15 +239,50 @@ fn validate_office_zip(
     Ok(())
 }
 
+fn contains_zip64_extra_field(extra: &[u8]) -> bool {
+    let mut cursor = 0usize;
+
+    while cursor + 4 <= extra.len() {
+        let field_id = u16::from_le_bytes([extra[cursor], extra[cursor + 1]]);
+        let field_size = usize::from(u16::from_le_bytes([extra[cursor + 2], extra[cursor + 3]]));
+
+        let Some(field_end) = cursor
+            .checked_add(4)
+            .and_then(|offset| offset.checked_add(field_size))
+        else {
+            return true;
+        };
+
+        if field_end > extra.len() {
+            return true;
+        }
+
+        if field_id == 0x0001 {
+            return true;
+        }
+
+        cursor = field_end;
+    }
+
+    cursor != extra.len()
+}
+
+fn has_dangerous_zip_path(name: &str) -> bool {
+    if name.starts_with('/') || name.starts_with('\\') || name.contains('\0') {
+        return true;
+    }
+
+    name.split(['/', '\\']).any(|component| component == "..")
+}
+
 fn validate_ooxml_relationships(bytes: &[u8], format: &str) -> Result<(), String> {
     let mut archive = ::zip::ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| format!("Struktur ZIP {format} tidak dapat dibaca: {error}"))?;
 
-    let has_overlapping_files = archive
+    if archive
         .has_overlapping_files()
-        .map_err(|error| format!("Gagal memeriksa overlap ZIP {format}: {error}"))?;
-
-    if has_overlapping_files {
+        .map_err(|error| format!("Struktur ZIP {format} tidak dapat diperiksa: {error}"))?
+    {
         return Err(format!(
             "File {format} memiliki ZIP entry yang saling overlap"
         ));
@@ -476,8 +512,20 @@ mod tests {
 
     #[test]
     fn rejects_zip_path_traversal() {
-        let malicious = minimal_ooxml(&["[Content_Types].xml", "../xl/workbook.xml"]);
-        assert!(validate_input(&malicious, "Excel").is_err());
+        for name in [
+            "../xl/workbook.xml",
+            "foo/../xl/workbook.xml",
+            "foo/..",
+            r"foo\\..\\xl\\workbook.xml",
+            "/xl/workbook.xml",
+            "\\xl\\workbook.xml",
+        ] {
+            let malicious = minimal_ooxml(&["[Content_Types].xml", name]);
+            assert!(
+                validate_input(&malicious, "Excel").is_err(),
+                "path should reject: {name}"
+            );
+        }
     }
 
     #[test]

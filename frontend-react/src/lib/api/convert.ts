@@ -90,15 +90,3 @@ export function pdfToExcel(
     file,
   );
 }
-
-/**
- * Konversi PDF ke PowerPoint.
- */
-export function pdfToPowerpoint(
-  file: File,
-): Promise<Blob> {
-  return postFile(
-    "/rust-api/pdf-to-powerpoint",
-    file,
-  );
-}

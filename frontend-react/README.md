@@ -1,34 +1,35 @@
-# App Builder Workspace
+# PDFin Frontend
 
-Clean project workspace with a tidy folder structure.
+React + Vite + TypeScript frontend for PDFin.
 
-## Structure
+## Development
 
-```
-├── migrations/     # Database migrations
-├── public/         # Static assets
-│   └── __app/      # App install / PWA assets
-├── scripts/        # Build & utility scripts
-├── server/         # Server middleware
-├── src/            # Application source
-│   ├── components/
-│   ├── lib/
-│   └── routes/
-├── package.json
-├── vite.config.ts
-└── tsconfig.json
-```
-
-## Getting started
+Install dependencies from the repository root:
 
 ```bash
-npm install
+cd frontend-react
+npm ci
 npm run dev
 ```
 
-## Scripts
+The frontend uses Vite on port 8080 and proxies `/rust-api` requests to the local Axum backend on port 3000.
 
-- `npm run dev` – start development server
-- `npm run build` – production build
-- `npm run typecheck` – TypeScript check
-- `npm run lint` – ESLint
+## Validation
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+CI installs dependencies with `npm ci --ignore-scripts` and keeps the committed `package-lock.json` as the reproducible dependency source.
+
+## Structure
+
+- `src/` — application code and feature modules.
+- `scripts/` — build, PWA, and browser smoke-test helpers.
+- `server/` — deployment middleware used by the Vercel/Nitro build.
+- `public/` — static assets.
+
+Document processing should remain bounded on the client. Server-side conversions are subject to the same resource and abuse controls enforced by the Rust backend.

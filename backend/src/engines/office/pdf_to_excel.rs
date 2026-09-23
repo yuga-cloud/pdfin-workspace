@@ -12,6 +12,7 @@ const MAX_COLUMN_WIDTH: f64 = 60.0;
 const MAX_OCR_TABLES: usize = 100;
 const MAX_XLSX_OUTPUT_BYTES: usize = 128 * 1024 * 1024;
 const MAX_WORKBOOK_CELLS: usize = 2_000_000;
+const MAX_CELL_TEXT_BYTES: usize = 32 * 1024;
 
 const HEADER_COLOR: u32 = 0x44C7E6;
 
@@ -260,6 +261,13 @@ fn write_rows_to_sheet(
 
     for (row_index, row) in rows.iter().enumerate() {
         for (column_index, value) in row.iter().enumerate() {
+            if value.len() > MAX_CELL_TEXT_BYTES {
+                return Err(format!(
+                    "Text cell Excel melebihi batas maksimum ({} KiB)",
+                    MAX_CELL_TEXT_BYTES / 1024
+                ));
+            }
+
             let width = value.chars().count() as f64 + 2.0;
 
             widths[column_index] = widths[column_index].max(width).min(MAX_COLUMN_WIDTH);

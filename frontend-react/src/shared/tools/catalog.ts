@@ -12,7 +12,7 @@ export type ToolSlug =
   | "powerpoint-ke-pdf"
   | "pdf-ke-word"
   | "pdf-ke-excel"
-  | "pdf-ke-powerpoint";
+;
 
 export type AcceptKind = "pdf" | "image" | "word" | "excel" | "powerpoint";
 export type ProcessingLocation = "device" | "server";
@@ -187,18 +187,7 @@ export const TOOLS: ToolDef[] = [
     group: "konversi",
     processing: "server",
   },
-  {
-    slug: "pdf-ke-powerpoint",
-    title: "PDF ke PowerPoint",
-    short: "PDF → PowerPoint",
-    description: "Ubah teks PDF menjadi presentasi PowerPoint (.pptx).",
-    hint: "Setiap halaman PDF menjadi satu slide. Layout kompleks tidak selalu sama persis.",
-    accept: "pdf",
-    multiple: false,
-    minFiles: 1,
-    group: "konversi",
-    processing: "device",
-  },
+
 ];
 
 export const GROUPS: { id: ToolDef["group"]; label: string }[] = [

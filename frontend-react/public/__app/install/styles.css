@@ -73,47 +73,6 @@ img {
     calc(24px + env(safe-area-inset-bottom));
 }
 
-.powered {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 20px;
-  margin: 0 auto;
-  flex: 0 0 auto;
-}
-
-.powered-by,
-.powered-by {
-  font-size: var(--text-footnote);
-  font-weight: var(--weight-medium);
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.powered-by {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.powered-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 20px;
-}
-
-.app-logo {
-  display: block;
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-}
-
-.powered-by {
-  color: rgba(255, 255, 255, 0.6);
-}
-
 .content {
   display: flex;
   flex: 1 1 auto;
@@ -315,10 +274,6 @@ html.device-tablet .page {
     calc(24px + env(safe-area-inset-top))
     24px
     calc(24px + env(safe-area-inset-bottom));
-}
-
-html.device-tablet .powered {
-  display: none;
 }
 
 html.device-tablet .content {

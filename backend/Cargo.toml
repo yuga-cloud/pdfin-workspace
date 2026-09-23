@@ -42,12 +42,12 @@ shared = { path = "../shared" }
 tempfile = { workspace = true }
 
 lopdf = {
-    version = "0.44.0",
+    version = "0.45.0",
     features = ["embed_image"],
 }
 rust_xlsxwriter = "0.99.0"
 
-pdfium-render = "0.9.3"
+pdfium-render = "0.9.4"
 pdfium-bundled = "0.1.1"
 
 docx-rs = "0.4.22"

@@ -145,14 +145,14 @@ async fn stream_field(
         file_size = file_size.checked_add(chunk.len()).ok_or_else(|| {
             AppError::bad_request(
                 "upload_too_large",
-                "Ukuran file melebihi batas maksimum (100 MB)",
+                "Ukuran file melebihi batas maksimum (100 MiB)",
             )
         })?;
 
         if file_size > MAX_CONVERSION_UPLOAD_BYTES {
             return Err(AppError::bad_request(
                 "upload_too_large",
-                "Ukuran file melebihi batas maksimum (500 MB)",
+                "Ukuran file melebihi batas maksimum (100 MiB)",
             ));
         }
 
@@ -167,7 +167,7 @@ async fn stream_field(
             if *total > MAX_MULTIPART_TOTAL_BYTES {
                 return Err(AppError::bad_request(
                     "request_too_large",
-                    "Ukuran total upload melebihi batas maksimum (500 MiB)",
+                    "Ukuran total upload melebihi batas maksimum (256 MiB)",
                 ));
             }
         }

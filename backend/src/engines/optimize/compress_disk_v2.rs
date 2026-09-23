@@ -207,8 +207,30 @@ fn run_pymupdf(
     output_path: &Path,
     stderr_path: &Path,
 ) -> Result<(), String> {
+    let python = python
+        .to_str()
+        .ok_or_else(|| "Path Python PyMuPDF bukan UTF-8 yang valid.".to_owned())?;
+    let work_dir = output_path
+        .parent()
+        .ok_or_else(|| "Direktori output PyMuPDF tidak valid.".to_owned())?;
+    let python_path = Path::new(python);
+    let python_venv = python_path
+        .is_absolute()
+        .then(|| python_path.parent().and_then(Path::parent))
+        .flatten()
+        .filter(|path| path.file_name().is_some_and(|name| name == ".venv"));
+
+    let read_only_paths = match python_venv {
+        Some(venv) => vec![venv, script, input_path],
+        None => vec![script, input_path],
+    };
+
+    let read_only_refs: Vec<&Path> = read_only_paths.into_iter().collect();
+    let mut command =
+        crate::engines::sandbox::command_with_read_only_paths(python, work_dir, &read_only_refs)?;
+
     run_external_command(
-        &mut Command::new(python),
+        &mut command,
         PYMUPDF_TIMEOUT,
         stderr_path,
         "PyMuPDF",
@@ -226,8 +248,14 @@ fn run_qpdf(qpdf: &Path, input_path: &Path, temp_dir: &Path) -> Result<Vec<u8>, 
     let output_path = temp_dir.join("qpdf-output.pdf");
     let stderr_path = temp_dir.join("qpdf.stderr");
 
+    let qpdf = qpdf
+        .to_str()
+        .ok_or_else(|| "Path qpdf bukan UTF-8 yang valid.".to_owned())?;
+    let mut command =
+        crate::engines::sandbox::command_with_read_only_paths(qpdf, temp_dir, &[input_path])?;
+
     run_external_command(
-        &mut Command::new(qpdf),
+        &mut command,
         QPDF_TIMEOUT,
         &stderr_path,
         "qpdf",
@@ -263,8 +291,14 @@ fn run_ghostscript(
            /VSamples [2 1 1 2] >>"
     );
 
+    let gs = gs
+        .to_str()
+        .ok_or_else(|| "Path Ghostscript bukan UTF-8 yang valid.".to_owned())?;
+    let mut command =
+        crate::engines::sandbox::command_with_read_only_paths(gs, temp_dir, &[input_path])?;
+
     run_external_command(
-        &mut Command::new(gs),
+        &mut command,
         GHOSTSCRIPT_TIMEOUT,
         &stderr_path,
         "Ghostscript",
@@ -392,8 +426,13 @@ fn run_external_command(
 }
 
 fn output_size_exceeds(path: &Path) -> Result<bool, String> {
-    match fs::metadata(path) {
-        Ok(metadata) => Ok(metadata.len() > MAX_OUTPUT_BYTES as u64),
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            if !metadata.file_type().is_file() {
+                return Err("Hasil kompresi bukan regular file".to_owned());
+            }
+            Ok(metadata.len() > MAX_OUTPUT_BYTES as u64)
+        }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(format!("Gagal memeriksa ukuran hasil PDF: {error}")),
     }

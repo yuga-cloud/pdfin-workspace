@@ -9,7 +9,9 @@ mod zip;
 
 use std::{
     error::Error,
+    ffi::OsStr,
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::PathBuf,
     sync::Arc,
     time::Duration,
 };
@@ -45,7 +47,31 @@ const DEFAULT_MAX_IN_FLIGHT_REQUESTS_PER_PDF_WORKER: usize = 2;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mut args = std::env::args_os();
+    args.next();
+
+    if args.next().as_deref() == Some(OsStr::new("--pdfium-worker")) {
+        let input_path = PathBuf::from(args.next().ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Worker PDFium membutuhkan path input",
+            )
+        })?);
+        let output_path = PathBuf::from(args.next().ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Worker PDFium membutuhkan path output",
+            )
+        })?);
+
+        crate::engines::office::pdf_table::run_pdfium_worker(&input_path, &output_path)
+            .map_err(std::io::Error::other)?;
+
+        return Ok(());
+    }
+
     init_tracing();
+    crate::engines::sandbox::ensure_ready()?;
 
     let host = parse_ipv4_env("PDFIN_HOST", DEFAULT_HOST);
     let port = parse_env("PDFIN_PORT", DEFAULT_PORT);

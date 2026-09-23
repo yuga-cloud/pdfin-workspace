@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File},
     io::Read,
-    process::{Command, Stdio},
+    process::Stdio,
     thread,
     time::{Duration, Instant},
 };
@@ -48,7 +48,7 @@ pub fn convert_to_pdf(
     let stderr_file = File::create(&stderr_path)
         .map_err(|error| format!("Gagal membuat log LibreOffice: {error}"))?;
 
-    let mut process = Command::new("libreoffice")
+    let mut process = crate::engines::sandbox::command("libreoffice", temp_path)?
         .arg("--headless")
         .arg("--norestore")
         .arg(user_installation)
@@ -126,8 +126,13 @@ pub fn convert_to_pdf(
 }
 
 fn output_size_exceeds(path: &std::path::Path, max_size: usize) -> Result<bool, String> {
-    match fs::metadata(path) {
-        Ok(metadata) => Ok(metadata.len() > max_size as u64),
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            if !metadata.file_type().is_file() {
+                return Err("Hasil PDF bukan regular file".to_owned());
+            }
+            Ok(metadata.len() > max_size as u64)
+        }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(format!("Gagal memeriksa ukuran hasil PDF: {error}")),
     }

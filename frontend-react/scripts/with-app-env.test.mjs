@@ -80,7 +80,7 @@ test("an explicit process-env override wins over the file", () => {
   assert.equal(merged.PATH, "/usr/bin");
 });
 
-test("the template default is explicit and reproducible", () => {
+test("the default app environment is explicit and reproducible", () => {
   assert.deepEqual(parseAppEnv(DEFAULT_APP_ENV), { VITE_AUTH_ENABLED: "false" });
 });
 

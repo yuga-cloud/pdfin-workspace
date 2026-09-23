@@ -18,9 +18,6 @@ const SHARE_META_KEYS = new Set([
   "twitter:title",
   "twitter:image",
   "twitter:description",
-  "x:game:image",
-  "x:game:image:width",
-  "x:game:image:height",
 ]);
 
 export function escapeHtml(value: unknown): string {
@@ -171,56 +168,16 @@ export function pwaHeadTags(appName = DEFAULT_APP_NAME): Array<[string, string]>
   ];
 }
 
-export const EXTENSIONS_SCRIPT_SRC = "";
-
-export function readProjectId(): string {
-  return String(process.env?.VITE_PROJECT_ID ?? "").trim();
-}
-
-export function readXCreator(): string {
-  return String(process.env?.X_CREATOR ?? "").trim();
-}
-
-export function readXCreatorId(): string {
-  return String(process.env?.X_CREATOR_ID ?? "").trim();
-}
-
-export function xCreatorHeadTags(creator = readXCreator(), creatorId = readXCreatorId()): string[] {
-  const name = String(creator ?? "").trim();
-  const id = String(creatorId ?? "").trim();
-  if (!name || !id) return [];
-  return [
-    `<meta property="x:creator" content="${escapeHtml(name)}">`,
-    `<meta property="x:creator:id" content="${escapeHtml(id)}">`,
-  ];
-}
-
-export function extensionsHeadTags(projectId = readProjectId()): string[] {
-  if (!EXTENSIONS_SCRIPT_SRC) return [];
-  const id = escapeHtml(projectId);
-  const tags: string[] = [];
-  if (projectId) tags.push(`<meta name="pdfin-project-id" content="${id}">`);
-  tags.push(
-    `<script src="${EXTENSIONS_SCRIPT_SRC}"${projectId ? ` data-project-id="${id}"` : ""} defer></script>`,
-  );
-  return tags;
-}
-
 export type OgSite = {
   title?: string;
   description?: string;
-  type?: string;
   card?: string;
   image?: string;
-  banner?: string;
   color?: string;
 };
 
 export type HeadContext = {
   appName?: string;
-  projectId?: string;
-  creator?: string;
-  creatorId?: string;
   host?: string | null;
   cwd?: string;
   site?: OgSite;
@@ -254,9 +211,6 @@ export function snapshotOgIdentity(cwd = process.cwd()): { site: OgSite } {
   } else {
     if (siteHasCustomCard(site)) delete site.card;
     if (site.image) delete site.image;
-  }
-  if (existsSync(join(cwd, "public/x-banner.jpg"))) {
-    site.banner = site.banner || "/x-banner.jpg";
   }
   return { site };
 }
@@ -334,9 +288,7 @@ export function ogHeadTags({
   ];
   const description = String(site.description ?? "").trim();
   if (description) tags.push(`<meta property="og:description" content="${escapeHtml(description)}">`);
-  if (String(site.type ?? "").toLowerCase() === "x:game") {
-    tags.push('<meta property="og:type" content="x:game">');
-  }
+  tags.push('<meta property="og:type" content="website">');
   if (publicHost) {
     const asset = resolveOgCardAsset(site, cwd, detectFs);
     const custom = Boolean(asset);
@@ -348,13 +300,7 @@ export function ogHeadTags({
     tags.push(`<meta property="og:image" content="${escapeHtml(image)}">`);
     tags.push('<meta property="og:image:width" content="1200">');
     tags.push('<meta property="og:image:height" content="630">');
-    const banner = String(site.banner ?? "").trim();
-    if (banner) {
-      const bannerUrl = `https://${publicHost}${banner.startsWith("/") ? banner : `/${banner}`}`;
-      tags.push(`<meta property="x:game:image" content="${escapeHtml(bannerUrl)}">`);
-      tags.push('<meta property="x:game:image:width" content="1200">');
-      tags.push('<meta property="x:game:image:height" content="264">');
-    }
+
   }
   return tags;
 }
@@ -382,9 +328,6 @@ function insertBeforeHeadClose(html: string, snippet: string): string {
 
 export function normalizeHeadContext(ctx: HeadContext = {}): {
   appName: string;
-  projectId: string;
-  creator: string;
-  creatorId: string;
   host: string;
   cwd: string;
   site: OgSite;
@@ -395,9 +338,6 @@ export function normalizeHeadContext(ctx: HeadContext = {}): {
   const appName = resolveOgTitle(site, ctx.appName ?? DEFAULT_APP_NAME, ctx.host ?? "");
   return {
     appName,
-    projectId: ctx.projectId ?? readProjectId(),
-    creator: ctx.creator ?? readXCreator(),
-    creatorId: ctx.creatorId ?? readXCreatorId(),
     host: ctx.host ?? "",
     cwd,
     site,
@@ -407,7 +347,7 @@ export function normalizeHeadContext(ctx: HeadContext = {}): {
 
 export function injectPwaHead(html: string, ctx: HeadContext = {}): string {
   if (typeof html !== "string") return html;
-  const { site, projectId, creator, creatorId, host, cwd, detectFs } = normalizeHeadContext(ctx);
+  const { site, host, cwd, detectFs } = normalizeHeadContext(ctx);
   const documentTitle = titleFromDocument(html);
   const appName = resolveOgTitle(site, ctx.appName ?? DEFAULT_APP_NAME, host, documentTitle);
   let next = stripShareMetaTags(html);
@@ -427,20 +367,6 @@ export function injectPwaHead(html: string, ctx: HeadContext = {}): string {
     ogHeadTags({ host, appName, site, documentTitle, cwd, detectFs }).join(""),
   );
 
-  if (EXTENSIONS_SCRIPT_SRC && !next.includes(EXTENSIONS_SCRIPT_SRC)) {
-    missing.push(...extensionsHeadTags(projectId));
-  } else if (projectId && !next.includes('name="pdfin-project-id"')) {
-    missing.push(`<meta name="pdfin-project-id" content="${escapeHtml(projectId)}">`);
-  }
-  if (projectId && !next.includes('property="pdfin:app_id"') && !next.includes("property='pdfin:app_id'")) {
-    missing.push(`<meta property="pdfin:app_id" content="${escapeHtml(projectId)}">`);
-  }
-  const creatorTags = xCreatorHeadTags(creator, creatorId);
-  if (creatorTags.length > 0) {
-    const hasCreator = next.includes('property="x:creator" content=') || next.includes("property='x:creator' content=");
-    if (!hasCreator) missing.push(creatorTags[0]);
-    if (!next.includes('property="x:creator:id"')) missing.push(creatorTags[1]);
-  }
   if (missing.length === 0) return next;
   return insertBeforeHeadClose(next, missing.join(""));
 }
@@ -460,9 +386,6 @@ export function createHeadInjector(ctx: HeadContext = {}): {
   const apply = (html: string): string =>
     injectPwaHead(html, {
       appName: normalized.appName,
-      projectId: normalized.projectId,
-      creator: normalized.creator,
-      creatorId: normalized.creatorId,
       host: normalized.host,
       cwd: normalized.cwd,
       site: normalized.site,

@@ -2,7 +2,7 @@ use std::{
     fs::{self, File},
     io::{Read, Seek, SeekFrom},
     path::Path,
-    process::{Command, Stdio},
+    process::Stdio,
     thread,
     time::{Duration, Instant},
 };
@@ -46,19 +46,23 @@ pub fn ocr_image(image_path: &Path) -> Result<Vec<OcrTextItem>, String> {
     let stderr_file = File::create(&stderr_path)
         .map_err(|error| format!("Gagal membuat log Tesseract: {error}"))?;
 
-    let mut child = Command::new(executable)
-        .arg(image_path)
-        .arg("stdout")
-        .arg("--psm")
-        .arg("6")
-        .arg("-l")
-        .arg("eng")
-        .arg("tsv")
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(stdout_file))
-        .stderr(Stdio::from(stderr_file))
-        .spawn()
-        .map_err(|error| format!("Gagal menjalankan Tesseract: {error}"))?;
+    let mut child = crate::engines::sandbox::command_with_read_only_paths(
+        executable,
+        temp_dir.path(),
+        &[image_path],
+    )?
+    .arg(image_path)
+    .arg("stdout")
+    .arg("--psm")
+    .arg("6")
+    .arg("-l")
+    .arg("eng")
+    .arg("tsv")
+    .stdin(Stdio::null())
+    .stdout(Stdio::from(stdout_file))
+    .stderr(Stdio::from(stderr_file))
+    .spawn()
+    .map_err(|error| format!("Gagal menjalankan Tesseract: {error}"))?;
 
     let deadline = Instant::now() + OCR_TIMEOUT;
     loop {
@@ -263,7 +267,7 @@ mod tests {
 
     #[test]
     fn tesseract_should_be_available() {
-        let output = Command::new(tesseract_executable())
+        let output = std::process::Command::new(tesseract_executable())
             .arg("--version")
             .output()
             .expect("Tesseract tidak ditemukan");

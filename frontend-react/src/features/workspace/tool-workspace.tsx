@@ -13,14 +13,12 @@ import {
   FileText,
   ImageIcon,
   LoaderCircle,
-  Trash2,
   Upload,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/ui/button";
 import { Progress } from "@/shared/ui/progress";
-import { PdfPageThumbnail } from "@/features/workspace/pdf-page-thumbnail";
 import { acceptFor, type ToolDef } from "@/shared/tools/catalog";
 import {
   MAX_REORDER_UI_PAGES,
@@ -29,6 +27,7 @@ import {
 } from "@/features/workspace/processing-policy";
 import { processTool, type ToolOptions } from "@/lib/pdf/engine";
 import { PdfThumbnailCache } from "@/lib/pdf/thumbnail-cache";
+import { VirtualizedPdfPageGrid } from "@/features/workspace/virtualized-pdf-page-grid";
 import { cn, formatBytes, uid } from "@/lib/utils";
 
 type Item = { id: string; file: File };
@@ -387,28 +386,20 @@ function ToolWorkspaceInner({ tool }: { tool: ToolDef }) {
           <div className="workspace-panel-heading">
             <div>
               <h2 className="text-sm font-semibold">Susun halaman</h2>
-              <p className="mt-1 text-xs text-muted">Pratinjau hanya dibuat saat mendekati layar. Naik/turun untuk urutan, hapus yang tidak perlu.</p>
+              <p className="mt-1 text-xs text-muted">Hanya halaman yang terlihat yang dirender. Naik/turun untuk urutan, hapus yang tidak perlu.</p>
             </div>
             <span className="workspace-panel-count tabular-nums">{order.length} halaman</span>
           </div>
           {thumbBusy && pageCount === null ? (
             <p className="mt-4 flex items-center gap-2 text-sm text-muted"><LoaderCircle className="size-4 animate-spin" /> Membaca jumlah halaman…</p>
           ) : (
-            <ol className="workspace-page-grid mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {order.map((pageIndex, index) => (
-                <li key={`${pageIndex}-${index}`} className="workspace-page-card rounded-lg bg-bg p-2">
-                  <PdfPageThumbnail cache={thumbCacheRef.current} pageNumber={pageIndex + 1} alt={`Halaman ${pageIndex + 1}`} />
-                  <div className="mt-2 flex items-center justify-between gap-1">
-                    <span className="text-xs tabular-nums text-muted">Halaman {pageIndex + 1}</span>
-                    <div className="flex">
-                      <button type="button" className="grid size-8 place-items-center rounded-md hover:bg-surface-2 disabled:opacity-40" aria-label="Naikkan halaman" onClick={() => movePage(index, -1)} disabled={index === 0 || busy}><ArrowUp className="size-3.5" /></button>
-                      <button type="button" className="grid size-8 place-items-center rounded-md hover:bg-surface-2 disabled:opacity-40" aria-label="Turunkan halaman" onClick={() => movePage(index, 1)} disabled={index === order.length - 1 || busy}><ArrowDown className="size-3.5" /></button>
-                      <button type="button" className="grid size-8 place-items-center rounded-md text-danger hover:bg-surface-2 disabled:opacity-40" aria-label="Hapus halaman" onClick={() => removePage(index)} disabled={order.length <= 1 || busy}><Trash2 className="size-3.5" /></button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <VirtualizedPdfPageGrid
+              order={order}
+              cache={thumbCacheRef.current}
+              busy={busy}
+              onMove={movePage}
+              onRemove={removePage}
+            />
           )}
         </section>
       ) : null}

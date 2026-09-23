@@ -1,9 +1,9 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Stdio,
     thread,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 const MAX_INPUT_SIZE_BYTES: usize = 100 * 1024 * 1024;
@@ -12,6 +12,7 @@ const MAX_RENDERED_PAGE_BYTES: u64 = 25 * 1024 * 1024;
 const MAX_TOTAL_RENDERED_BYTES: u64 = 512 * 1024 * 1024;
 const RENDER_TIMEOUT: Duration = Duration::from_secs(120);
 const PROCESS_POLL_INTERVAL: Duration = Duration::from_millis(50);
+const MAX_RENDER_PIXELS: u64 = 50_000_000;
 
 pub fn render_pdf_pages(pdf_bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
     if pdf_bytes.is_empty() {
@@ -25,6 +26,23 @@ pub fn render_pdf_pages(pdf_bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
         ));
     }
 
+    let document = lopdf::Document::load_mem_with_options(
+        pdf_bytes,
+        lopdf::LoadOptions::with_max_decompressed_size(128 * 1024 * 1024),
+    )
+    .map_err(|error| format!("Gagal membaca PDF sebelum OCR render: {error}"))?;
+
+    if document.get_pages().len() > MAX_RENDER_PAGES {
+        return Err(format!(
+            "PDF melebihi batas render OCR (maksimum {MAX_RENDER_PAGES} halaman)"
+        ));
+    }
+
+    crate::engines::pdf::common::validate_pdf_render_dimensions(&document, 200, MAX_RENDER_PIXELS)
+        .map_err(|error| format!("PDF ditolak sebelum render OCR: {error}"))?;
+
+    drop(document);
+
     let temp_dir = create_temp_dir()?;
     let pdf_path = temp_dir.join("input.pdf");
 
@@ -36,7 +54,7 @@ pub fn render_pdf_pages(pdf_bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
     let output_prefix = temp_dir.join("page");
     let executable = pdf_renderer_executable();
 
-    let mut process = Command::new(executable)
+    let mut process = crate::engines::sandbox::command(executable, &temp_dir)?
         .arg("-jpeg")
         .arg("-r")
         .arg("200")
@@ -181,9 +199,12 @@ fn rendered_output_usage(dir: &Path) -> Result<(usize, u64), String> {
         page_count = page_count
             .checked_add(1)
             .ok_or_else(|| "Jumlah hasil render melebihi kapasitas numerik".to_owned())?;
-        let size = fs::metadata(&path)
-            .map_err(|error| format!("Gagal membaca ukuran hasil render JPG: {error}"))?
-            .len();
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|error| format!("Gagal membaca metadata hasil render JPG: {error}"))?;
+        if !metadata.file_type().is_file() {
+            return Err("Hasil render JPG bukan regular file".to_owned());
+        }
+        let size = metadata.len();
 
         if size > MAX_RENDERED_PAGE_BYTES {
             return Err(format!(
@@ -227,17 +248,11 @@ fn pdf_renderer_executable() -> &'static str {
 }
 
 fn create_temp_dir() -> Result<PathBuf, String> {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|error| format!("Gagal mendapatkan timestamp: {error}"))?
-        .as_nanos();
-
-    let dir = std::env::temp_dir().join(format!("pdfin-ocr-{timestamp}"));
-
-    fs::create_dir_all(&dir)
-        .map_err(|error| format!("Gagal membuat direktori OCR sementara: {error}"))?;
-
-    Ok(dir)
+    tempfile::Builder::new()
+        .prefix("pdfin-ocr-")
+        .tempdir()
+        .map(tempfile::TempDir::keep)
+        .map_err(|error| format!("Gagal membuat direktori OCR sementara: {error}"))
 }
 
 fn cleanup_temp_dir(path: &Path) {

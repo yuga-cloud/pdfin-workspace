@@ -71,32 +71,48 @@ pub fn excel_to_pdf(document_bytes: &[u8]) -> Result<Vec<u8>, String> {
     let stderr_path = temp_path.join("uno.stderr");
     let mut last_error: Option<String> = None;
 
+    let python_program = python_program
+        .to_str()
+        .ok_or_else(|| "Path Python UNO bukan UTF-8 yang valid.".to_owned())?;
+
     for program in ["libreoffice", "soffice"] {
-        let mut office = match Command::new(program)
-            .arg("--headless")
-            .arg("--nologo")
-            .arg("--nodefault")
-            .arg("--nolockcheck")
-            .arg("--norestore")
-            .arg(format!("-env:UserInstallation={profile_uri}"))
-            .arg(&accept_argument)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-        {
-            Ok(child) => child,
+        let mut python_command = match crate::engines::sandbox::command(python_program, temp_path) {
+            Ok(command) => command,
             Err(error) => {
-                last_error = Some(format!("Tidak bisa menjalankan {program}: {error}"));
+                last_error = Some(format!("Tidak bisa menyiapkan helper UNO: {error}"));
                 continue;
             }
         };
-
-        let mut python_command = Command::new(python_program);
         python_command
             .arg(&script_path)
             .arg(&input_path)
             .arg(&output_path)
             .arg(&pipe_name);
+
+        let mut office = match crate::engines::sandbox::command(program, temp_path) {
+            Ok(mut command) => match command
+                .arg("--headless")
+                .arg("--nologo")
+                .arg("--nodefault")
+                .arg("--nolockcheck")
+                .arg("--norestore")
+                .arg(format!("-env:UserInstallation={profile_uri}"))
+                .arg(&accept_argument)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+            {
+                Ok(child) => child,
+                Err(error) => {
+                    last_error = Some(format!("Tidak bisa menjalankan {program}: {error}"));
+                    continue;
+                }
+            },
+            Err(error) => {
+                last_error = Some(format!("Tidak bisa menyiapkan {program}: {error}"));
+                continue;
+            }
+        };
 
         let python_output =
             match run_with_timeout(python_command, PYTHON_TIMEOUT, &stderr_path, &output_path) {
@@ -211,8 +227,13 @@ fn run_with_timeout(
 }
 
 fn output_size_exceeds(path: &Path) -> Result<bool, String> {
-    match fs::metadata(path) {
-        Ok(metadata) => Ok(metadata.len() > MAX_OUTPUT_SIZE_BYTES),
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            if !metadata.file_type().is_file() {
+                return Err("Hasil PDF bukan regular file".to_owned());
+            }
+            Ok(metadata.len() > MAX_OUTPUT_SIZE_BYTES)
+        }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(format!("Gagal memeriksa ukuran hasil PDF: {error}")),
     }

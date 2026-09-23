@@ -17,42 +17,235 @@ env:
   RUNNER_LABELS: self-hosted,linux,x64
 
 jobs:
-  rust:
-    name: Rust check lint test
+  changes:
+    name: Detect system dependency changes
     runs-on: [self-hosted, linux, x64]
-
+    if: github.event_name != 'pull_request' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    outputs:
+      system-deps: ${{ steps.filter.outputs.system-deps }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Format
+      - name: Detect changed paths
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          case "$EVENT_NAME" in
+            pull_request)
+              base_sha="$BASE_SHA"
+              head_sha="$HEAD_SHA"
+              ;;
+            push)
+              base_sha="$BEFORE_SHA"
+              head_sha="$SHA"
+              ;;
+            *)
+              base_sha=""
+              head_sha="$SHA"
+              ;;
+          esac
+
+          if [[ -n "$base_sha" ]] && git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+            changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
+          else
+            changed_files="$(git diff-tree --no-commit-id --name-only -r "$head_sha")"
+          fi
+
+          if grep -Eq '^(backend/src/engines/(office/|optimize/|rendering/|sandbox\.rs)|backend/Cargo.toml|Cargo.toml|Cargo.lock)' <<<"$changed_files"; then
+            echo "system-deps=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "system-deps=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  rust:
+    name: Rust check, lint and test
+    needs: changes
+    if: github.event_name != 'pull_request' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verify Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v cargo >/dev/null
+          command -v rustc >/dev/null
+          command -v rustfmt >/dev/null
+          command -v cargo-clippy >/dev/null
+          cargo --version
+          rustc --version
+
+      - name: Verify Rust build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v pkg-config >/dev/null
+          command -v cc >/dev/null
+          command -v git >/dev/null
+          pkg-config --version
+          cc --version | head -n 1
+
+      - name: Cache Cargo
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Download pinned Gitleaks
+        shell: bash
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors "$url" -o "$archive"
+          echo "${GITLEAKS_SHA256}  $archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          test -x "$RUNNER_TEMP/gitleaks"
+          "$RUNNER_TEMP/gitleaks" version
+
+      - name: Scan every Git ref for secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/gitleaks" git --redact --log-opts="--all"
+
+      - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Check
+      - name: Cargo check
         run: cargo check --workspace --all-targets --all-features --locked
-
-      - name: Test
-        run: cargo test --workspace --all-targets --all-features --locked
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
-  frontend:
-    name: Frontend validation
-    runs-on: [self-hosted, linux, x64]
+      - name: Tests
+        run: cargo test --workspace --all-targets --all-features --locked -- --skip tesseract_should_be_available
 
+  system-integration:
+    name: System dependency smoke tests
+    needs: changes
+    # Kompilasi dingin `cargo test -p backend --all-features` (pdfium, ureq,
+    # hyper, ...) butuh >10 menit di runner; 10 menit hanya memangkas build.
+    # 30 menit cukup untuk cold build + dua tes smoke.
+    timeout-minutes: 30
+    if: needs.changes.outputs.system-deps == 'true' && (github.event_name != 'pull_request' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Install dependencies
+      - name: Verify parser sandbox dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v bwrap >/dev/null
+          bwrap --version
+
+      - name: Verify system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v tesseract >/dev/null
+          command -v libreoffice >/dev/null
+          command -v pdftoppm >/dev/null
+          tesseract --version
+          libreoffice --version
+          pdftoppm -v
+
+      - name: Verify Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v cargo >/dev/null
+          command -v rustc >/dev/null
+          cargo --version
+          rustc --version
+
+      - name: Cache Cargo
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Test parser sandbox
+        run: cargo test -p backend --all-features --locked required_sandbox_clears_environment_and_isolates_tmp -- --exact
+
+      - name: Test Tesseract availability
+        run: cargo test -p backend --all-features --locked tesseract_should_be_available -- --exact
+
+
+  frontend:
+    name: Frontend typecheck, lint, test and build
+    runs-on: [self-hosted, linux, x64]
+    if: github.event_name != 'pull_request' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    defaults:
+      run:
         working-directory: frontend-react
-        run: npm install --ignore-scripts --no-audit --no-fund
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+
+      - name: Verify Node toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v node >/dev/null
+          command -v npm >/dev/null
+          node --version
+          npm --version
+
+      - name: Install dependencies reproducibly
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
 
       - name: Build
-        working-directory: frontend-react
         run: npm run build
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
